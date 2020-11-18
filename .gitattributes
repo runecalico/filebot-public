@@ -1,0 +1,112 @@
+# This should basically make everything that is detected as "text" use LF
+# Which is what we want for cookbooks that are used for Unix Systems only.
+* text eol=lf
+
+#
+# The above will handle all files NOT found below
+#
+# Documents
+*.doc  diff=astextplain
+*.DOC  diff=astextplain
+*.docx diff=astextplain
+*.DOCX diff=astextplain
+*.dot  diff=astextplain
+*.DOT  diff=astextplain
+*.pdf  diff=astextplain
+*.PDF  diff=astextplain
+*.rtf  diff=astextplain
+*.RTF  diff=astextplain
+
+# Text files we want converted (CRLF <> LF)
+
+# These files are binary and should be left untouched
+# (binary is a macro for -text -diff)
+## Graphics
+*.ai   binary
+*.bmp  binary
+*.eps  binary
+*.gif  binary
+*.ico  binary
+*.jng  binary
+*.jp2  binary
+*.jpg  binary
+*.jpeg binary
+*.jpx  binary
+*.jxr  binary
+*.pdf  binary
+*.png  binary
+*.psb  binary
+*.psd  binary
+*.svgz binary
+*.tif  binary
+*.tiff binary
+*.wbmp binary
+*.webp binary
+*.svg binary
+
+## AUDIO
+*.kar  binary
+*.m4a  binary
+*.mid  binary
+*.midi binary
+*.mp3  binary
+*.ogg  binary
+*.ra   binary
+
+## VIDEO
+*.3gpp binary
+*.3gp  binary
+*.as   binary
+*.asf  binary
+*.asx  binary
+*.fla  binary
+*.flv  binary
+*.m4v  binary
+*.mng  binary
+*.mov  binary
+*.mp4  binary
+*.mpeg binary
+*.mpg  binary
+*.swc  binary
+*.swf  binary
+*.webm binary
+
+## Archive formats
+*.gz binary
+*.zip binary
+*.7z binary
+*.tar binary
+*.tar.gz binary
+*.rar binary
+
+## FONTS
+*.ttf   binary
+*.eot   binary
+*.otf   binary
+*.woff  binary
+*.woff2 binary
+
+## Java Files (treat as binary)
+*.class         binary
+*.dll           binary
+*.ear           binary
+*.jar           binary
+*.so            binary
+*.war           binary
+
+## Python files (treat as binary)
+*.db		binary
+*.p 		binary
+*.pkl 	binary
+*.pyc 	binary
+*.pyd		binary
+*.pyo 	binary
+
+## Ruby (gems)
+*.gem binary
+
+## PowerShell
+*.ps1 eol=crlf
+
+## Executables
+*.exe binary
