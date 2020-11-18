@@ -40,7 +40,7 @@ secrets/*
 *.tar
 *.gz
 *.zip
-*.xml
+
 
 # 3rd Party Stuff that shouldn't be checked in to VCS (I guess)
 3rdPartyScripts/
