@@ -37,7 +37,7 @@
   $MYAnimeFormat= "$MYScriptPath\initialSort_strict_series.groovy"
   $FileBotSourceDirectory = "..."
   $FileBotDestDirectory = "..."
-  filebot -script $MyScript --action $ACTION -rename -no-xattr --conflict index -r --def animeFormat=@$MYAnimeFormat minFileSize=10 minLengthMS=5 aniDBXMLrefreshDays=1 $FileBotSourceDirectory --output $FileBotDestDirectory --log all --lang English
+  filebot -script $MyScript --action $ACTION -rename -no-xattr --conflict index -r --def animeFormat=@$MYAnimeFormat aniDBuserAgent="myanidbid/filebot" minFileSize=10 minLengthMS=5 aniDBXMLrefreshDays=1 $FileBotSourceDirectory --output $FileBotDestDirectory --log all --lang English
   ```
   Step #2 - Look at the output from Step 1 if you want to reduce false matches on movies/specials. Run the script in NON-STRICT mode for Movies and Specials. As Filebot doesn't have support for Movies, and OVA/ONA/OAD are .. kinda supported (even when the filename is useful)
   
@@ -48,7 +48,7 @@
     $MYAnimeFormat= "$MYScriptPath\initialSort_strict_series.groovy"
     $FileBotSourceDirectory = "..."
     $FileBotDestDirectory = "..."
-    filebot -script $MyScript --action $ACTION -rename -no-xattr --conflict index -r --def animeFormat=@$MYAnimeFormat minFileSize=10 minLengthMS=5 aniDBXMLrefreshDays=1 useNonStrictOnAniDBMovies=y useNonStrictOnAniDBSpecials=y $FileBotSourceDirectory --output $FileBotDestDirectory --log all --lang English
+    filebot -script $MyScript --action $ACTION -rename -no-xattr --conflict index -r --def animeFormat=@$MYAnimeFormat aniDBuserAgent="myanidbid/filebot" minFileSize=10 minLengthMS=5 aniDBXMLrefreshDays=1 useNonStrictOnAniDBMovies=y useNonStrictOnAniDBSpecials=y $FileBotSourceDirectory --output $FileBotDestDirectory --log all --lang English
   ```  
   Step #3 - Look at the output from Step 1/2 if you want to reduce false matches on Anime Series. Run the script in NON-STRICT mode for "full AniDB matches" as well as 2nd rename rounds. This is the step most likely to produce incorrect matches. I do not recommend using these switches as your first step.
   ```powershell
@@ -58,6 +58,6 @@
     $MYAnimeFormat= "$MYScriptPath\initialSort_strict_series.groovy"
     $FileBotSourceDirectory = "..."
     $FileBotDestDirectory = "..."
-    filebot -script $MyScript --action $ACTION -rename -no-xattr --conflict index -r --def animeFormat=@$MYAnimeFormat minFileSize=10 minLengthMS=5 aniDBXMLrefreshDays=1 useNonStrictPartialRenames=y useNonStrictOnAniDBFullMatch=y $FileBotSourceDirectory --output $FileBotDestDirectory --log all --lang English
+    filebot -script $MyScript --action $ACTION -rename -no-xattr --conflict index -r --def animeFormat=@$MYAnimeFormat aniDBuserAgent="myanidbid/filebot" minFileSize=10 minLengthMS=5 aniDBXMLrefreshDays=1 useNonStrictPartialRenames=y useNonStrictOnAniDBFullMatch=y $FileBotSourceDirectory --output $FileBotDestDirectory --log all --lang English
   ```  
   Step #4 - Use AMC Non-Strict on whatever is left :) Tho I use a different path then normal, so I know those files are from AMC Non-Strict and require manual verification more often then not.
