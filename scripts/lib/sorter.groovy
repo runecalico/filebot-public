@@ -1,5 +1,5 @@
 package lib
-//--- VERSION 1.0.0
+//--- VERSION 1.0.2
 
 import net.filebot.web.TheTVDBSeriesInfo
 import org.apache.commons.text.similarity.JaroWinklerDistance
@@ -17,6 +17,18 @@ ArrayList basenameGenerator ( LinkedHashMap group, Boolean useBaseAnimeNameWithS
   switch(group.anime) {
     case ~/girl gaku ~hijiri girls square gakuin~/:
       baseAnimeName =  'Girl Gaku. Sei Girls Square Gakuin'
+      break
+    case ~/munou no nana/:
+      baseAnimeName =  'Munou na Nana'
+      break
+    case ~/evangelion 1 0 you are alone/:
+      baseAnimeName =  'evangelion 1.0 you are not alone'
+      break
+    case ~/evangelion 2 0 you can advance/:
+      baseAnimeName =  'evangelion 2.0 you can not advance'
+      break
+    case ~/evangelion 3 0 you can redo,/:
+      baseAnimeName =  'evangelion 3.0 you can not redo,'
       break
     case ~/otome game/:
       baseAnimeName =  'My Next Life as a Villainess: All Routes Lead to Doom!'
@@ -668,7 +680,10 @@ LinkedHashMap searchForMoviesJWD(LinkedHashMap group, String aniDBTitleXMLFilena
 //    println "group.filebotMovieTitle:[${group.filebotMovieTitle}]"
     // VOID myMovieRegexMatcher = myFileNameForParsing =~ /(?i)((^[a-z\s]+)\(?((19\d\d|20\d\d)\)?\s))/
     // VOID myMovieRegexMatcher = group.filebotMovieTitle =~ /(?i)((^[a-z\s-]+)\(?((19\d\d|20\d\d)\)?\b))/
-    // VOID myMovieRegexMatcher = group.filebotMovieTitle =~ /(?i)((^[^\d\(]+)\(?((19\d\d|20\d\d)\)?\b))/ // Thank you Intellij, but the escape is not redundent
+    // VOID myMovieRegexMatcher = group.filebotMovieTitle =~ /(?i)((^[^\d\(]+)\(?((19\d\d|20\d\d)\)?\b))/ // Thank you Intellij, but the escape is needed
+    // TODO
+    // See if we can look for the date either at the end of the title or evalute all (), due to edge cases like this
+    // Evangelion: 1.0 You Are (Not) Alone (2007) -it does't recognize the date ..
     myMovieRegexMatcher = group.filebotMovieTitle =~ /(?i)((^[^\(]+)\(?((19\d\d|20\d\d)\)?\b))/
     if ( myMovieRegexMatcher.find() ) {
       filebotBaseAnimeNames = ["${myMovieRegexMatcher[0][2]}"]

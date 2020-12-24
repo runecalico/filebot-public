@@ -1,0 +1,9 @@
+1.2.0
+- Fixed issue where 3rd pass would always run instead of the few cases when it *should* run
+- Added Individual File Renaming to 2nd Pass RFSPartial Rename, except when useNonStrictPartialRenames is true
+- Since Individual File Renaming works VERY well, I defaulted the 1st pass to ALSo use Individual File Renaming 
+  - Added useIndividualFileRenaming option (Default true) which can turn that off if desired
+  - Using IFR dramatically improves matching when strict=true, as well as it seems to also reduce false matches in *some* instances
+- Added skipMovies option (default false) to allow skipping movie renaming.
+1.1.0
+- First Release

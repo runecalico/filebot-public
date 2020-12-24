@@ -1,5 +1,5 @@
 #!/usr/bin/env filebot -script
-//--- VERSION 1.0.0
+//--- VERSION 1.2.0
 // http://docs.groovy-lang.org/latest/html/documentation/grape.html
 // https://mvnrepository.com/artifact/org.apache.commons/commons-text
 @Grapes(
@@ -7,6 +7,7 @@
 )
 
 import com.cedarsoftware.util.io.JsonObject
+import net.filebot.cli.ScriptShellBaseClass
 import org.apache.commons.text.similarity.JaroWinklerDistance
 import net.filebot.media.AutoDetection
 import net.filebot.util.FileSet
@@ -21,6 +22,7 @@ args.withIndex().each { f, i -> if (f.exists()) { log.finest "Argument[$i]: $f" 
 
 // initialize variables
 testRun = license == null || _args.action.equalsIgnoreCase('test')
+scriptAction = _args.action
 
 // --output folder must be a valid folder
 //**// If you don't pass --output (so _args.output is null) it will default to Current Working Directory)
@@ -58,9 +60,10 @@ storeReport        = tryQuietly { def f = storeReport as File; f.isAbsolute() ? 
 reportError        = tryQuietly { reportError.toBoolean() }
 clearXattr         = tryQuietly { clearXattr.toBoolean() }
 useXattrDB         = tryQuietly { useXattrDB.toBoolean() }
+skipMovies         = tryQuietly { skipMovies.toBoolean() }
 useFBAutoDetection = tryQuietly { useFBAutoDetection.toBoolean() }
 useGroupByAutodection = tryQuietly { useGroupByAutodection.toBoolean() }
-String aniDBuserAgent         = any { aniDBuserAgent.toString() } { 'ihavenoaccount/filebot' }
+String aniDBuserAgent         = any { aniDBuserAgent.toString() } { 'nosuchuser/filebot' }
 String aniDBTitleXMLFilename  = any { aniDBTitleXMLFilename.toString() } { 'anime-titles.xml' }
 String aniDBSynonymXMLFilename  = any { aniDBSynonymXMLFilename.toString() } { 'anime-synonyms.xml' }
 Integer aniDBXMLrefreshDays   = any { aniDBXMLrefreshDays.toInteger() } { 7 }
@@ -92,21 +95,17 @@ ignoreVideoExtraFoldersRegex    = any { ignoreVideoExtraFoldersRegex } { /(?i)^(
 ignoreVideoExtraFilesRegex = any { ignoreVideoExtraFilesRegex } { /(?i:Sample|\b(NCOP|NCED)\d{0,3}\b|Clean\s*(ED|OP|Ending|Opening)|Creditless\s*(ED|OP|Ending|Opening)|Textless\s*(ED|OP|Ending|Opening)|\b(BD|Menu)\b\s*\b(BD|Menu)\b|Character\b.*\bPV\b.*\bCollection\b|ON\sAIR\sMaterials}Previews|PMV|\bPV\b|PV\d+)|Trailer|Extras|Featurettes|Extra.Episodes|Bonus.Features|Music.Video|Scrapbook|Behind.the.Scenes|Extended.Scenes|Deleted.Scenes|Mini.Series|s\d{2}c\d{2}|S\d+EXTRA|\d+xEXTRA|\b(OP|ED)\b(\d+)?|Formula.1.\d{4}(?=\b|_)/ }
 useBaseAnimeNameWithSeriesSyntax = any { useBaseAnimeNameWithSeriesSyntax.toBoolean() } { false }
 breakAfterGroups  = any { breakAfterGroups.toBoolean() } { false }
+useIndividualFileRenaming = any { useIndividualFileRenaming.toBoolean() } { true }
+//generateFilebotRenamePS  = any { generateFilebotRenamePS.toBoolean() } { false }
+//filebotHatedFileNamesFileName = "RunMeToSeeIfThereAreHatedFileNamesByFilebotRenameMethod.ps1"
 // TODO
 // Allow non-strict for TVDB 1.0 Matches?
 // aka useNonStrictOnTVDBFullMatch
 
 // user-defined filters
-label       = any { ut_label } { null }
 ignore      = any { ignore } { null }
 minFileSize = any { minFileSize.toLong() } { 50 * 1000L * 1000L }
 minLengthMS = any { minLengthMS.toLong() } { 10 * 60 * 1000L }
-
-// database preferences
-seriesDB = any { seriesDB } { 'TheTVDB' }
-animeDB = any { animeDB } { 'AniDB' }
-movieDB = any { movieDB } { 'TheMovieDB' }
-musicDB = any { musicDB } { 'ID3' }
 
 // series / anime / movie format expressions
 specialFormat  = any { specialFormat  } { _args.format } { '{ \'specials\' }/\n' +
@@ -128,13 +127,13 @@ locale = any { _args.language.locale } { Locale.ENGLISH }
 if (artwork || kodi || plex || emby) { include('lib/htpc') }
 if (pushover || pushbullet || gmail || mail) { include('lib/web') }
 
-// Include Shared & Anidb Libraries
+// Include My Libraries
 include('lib/shared') // Generic/Shared Functions
-include('lib/anidb')  // Download of AniDB Titles XML file
-include('lib/tvdb')  // tvdb Search file
-include('lib/manami')  // Anime OFfline Database
-include('lib/detect') // Detect Functions
-include('lib/sorter') // Sorter methods
+include('lib/anidb')  // AniDB Stuff
+include('lib/tvdb')  // TVDB Stuff
+include('lib/manami')  // Anime offline Database Stuff
+include('lib/detect') // Renamer Detect Functions
+include('lib/sorter') // Renamer Sorter methods
 
 // check input parameters
 def ut = _def.findAll { k, v -> k.startsWith('ut_') }.collectEntries { k, v ->
@@ -414,15 +413,8 @@ if (input.size() == 0) {
 String anime = ''
 Boolean useDetectAnimeName = false
 
-//  TODO
-//  Some groups ([ASW] for instance) include an alt/syn name for the series in ()
-//  aka - [ASW] Toaru Kagaku no Railgun T (A Certain Scientific Railgun T) - S01E01.mkv
-//  But the use of () to hold SERIES info is not consistant between release groups, even for [ASW]
-//  aka - [ASW] Sword Art Online Alicization - War of Underworld - S02E11 (23).mkv
-//  Add an altname field to grouping for those groups that can be identified as using it?
-//  Might be able to model after the ~ alt title search?
 // TODO
-// Subtitles for movies do not end up in the same group as the movie
+// Subtitles for movies do not end up in the same group as the movie, actually external subtitles need work in general
 LinkedHashMap groupGeneration( def input, Boolean useGroupByAutodection, Locale locale ) {
   def groupsByManualThree = input.groupBy { f ->
     String order = 'Absolute'
@@ -503,7 +495,7 @@ LinkedHashMap groupGeneration( def input, Boolean useGroupByAutodection, Locale 
     // }
     // print xattr metadata
     if (f.metadata) {
-      log.finest "FROM groupsByManualThree - xattr: [$f.name] => [$f.metadata]"
+      log.finest "--- xattr: [$f.name] => [$f.metadata]"
       if ( clearXattr ) {
         log.finest "Clearing file metadata- $f.name"
         f.xattr.clear()
@@ -1012,7 +1004,8 @@ LinkedHashMap groupGeneration( def input, Boolean useGroupByAutodection, Locale 
 
     // VOID - (?i)(\(([^)]*)\))
     // VOID - (?i)(\(((?!((19|20)\d\d))[^)]*)\))
-    mySanityRegexMatcher = myFileNameForParsing =~ /(?i)(\(((?!((19|20)\d\d))[^)]*)\))(?!.\w\w\w)/
+    // VOID - (?i)(\(((?!((19|20)\d\d))[^)]*)\))(?!.\w\w\w)
+    mySanityRegexMatcher = myFileNameForParsing =~ /(?i)(\(((?!((19|20)\d\d))[^)]*)\))(?!\.\w\w\w)/
     if (mySanityRegexMatcher.find()) {
       mySanityAltTxt = mySanityRegexMatcher[0][2]
       if ( mySanityAltTxt.size() >= 2 ) {
@@ -1117,6 +1110,178 @@ def renameWrapper(LinkedHashMap group, def files, Boolean renameStrict, def rena
   }
   if (!group.mov && !group.isSpecial) {
     wrapperArgs.put('format', animeFormat)
+  }
+  // wrapperArgs.put('format', animeFormat)
+  wrapperArgs.put('strict', renameStrict)
+  if (renameQuery) {
+    wrapperArgs.put('query', "${renameQuery}")
+  }
+  if (renameDB) {
+    wrapperArgs.put('db', renameDB)
+  }
+  if (renameOrder) {
+    wrapperArgs.put('order', "${renameOrder}")
+  }
+  if (renameFilter) {
+    wrapperArgs.put('filter', "${renameFilter}")
+  }
+  if (renameMapper) {
+    wrapperArgs.put('mapper', "${renameMapper}")
+  }
+  // println "Running: Rename"
+  // println "rename - ${[*:wrapperArgs]}"
+  println '// ---------- RENAME: 1st Run ---------- //'
+  if ( useIndividualFileRenaming ) {
+    files.each { fileToRename ->
+      rftsTemp = []
+      wrapperArgs.file = fileToRename
+      try {
+        rfsTemp = rename(*:wrapperArgs)
+        if (rfsTemp) {
+          rfs += rfsTemp
+        }
+      } catch (Exception IllegalStateException) {
+        println 'AniDB has already banned your IP. Please stop hitting AniDB for at least 24 hours'
+        aniDBBanHammer = true
+        rfsIncomplete = false as Boolean
+        rfs = []
+      }
+    }
+  } else {
+      try {
+        rfs = rename(*:wrapperArgs)
+      } catch (Exception IllegalStateException) {
+        println 'AniDB has already banned your IP. Please stop hitting AniDB for at least 24 hours'
+        aniDBBanHammer = true
+        rfsIncomplete = false as Boolean
+        rfs = []
+      }
+  }
+  // println "RFS is class: ${rfs.getClass()}"
+  if (rfs) {
+    println "--- Successfully Renamed files - ${rfs}"
+    switch(renamerSource) {
+      case ~/filebot/:
+        destinationFilesFilebot += rfs
+        break
+      case ~/script/:
+        destinationFilesScript += rfs
+        break
+    }
+    destinationFiles += rfs
+    if ( rfs.size() == files.size() ) {
+      println "----- Renamed all ${rfs.size()} files out of ${files.size()}"
+      rfsIncomplete = false as Boolean
+    } else {
+      println "--- Renamed ${rfs.size()} files out of ${files.size()}"
+      rfsLeftOver = files.getFiles { it.isFile() && it.isVideo() }
+      renameMissedFiles1stPass += rfsLeftOver
+      println "----- Leaving ${rfsLeftOver}"
+      rfsPartial = true
+    }
+  } else if (failOnError && rfs == null) {
+    println '*****************************'
+    println '***  FAILURE! FAILURE!    ***'
+    println '*****************************'
+    die "Failed to process group: $group"
+  } else {
+    rfsIncomplete = true  as Boolean
+    // TODO
+    // Collecting stats on failure here is not useful as these files *could* get renamed in a different stage
+    switch(renamerSource) {
+      case ~/filebot/:
+        failedFilesFilebot += files
+        break
+      case ~/script/:
+        failedFilesScript += files
+        break
+    }
+  }
+  // ------ Rename again if there are Leftover files from the First rename attempt              ------- //
+  // ------ try to rename each file individually unless useNonStrictPartialRenames is set       ------- //
+  // ------ This sometimes overcomes the behavior that evaluating multiple files results        ------- //
+  // ------ In no matches, while evaluating a file singularly will result in a match (strictly) ------- //
+  // ------ Non-Strict usually doesn't have this issue, but does increase the probability of    ------- //
+  // ------ Incorrect matches
+  if ( rfsPartial && rfsLeftOver ) {
+    println '// ---------- RENAME: 2nd Run ---------- //'
+    println "--- 2nd Attempt to rename files missed during the first rename - ${rfsLeftOver}"
+    if ( useNonStrictPartialRenames ) {
+      println "--- Enabling Non-Strict 2nd Pass"
+      wrapperArgs.strict = false
+      wrapperArgs.file = rfsLeftOver
+      rfs = rename(*:wrapperArgs)
+    } else {
+      rfs = []
+      rfsLeftOver.each { fileToRename ->
+        rfsTemp = []
+        wrapperArgs.file = fileToRename
+        rfsTemp = rename(*:wrapperArgs)
+        if (rfsTemp) {
+          rfs += rfsTemp
+        }
+      }
+    }
+    if (rfs) {
+      println '--- Successfully Renamed files'
+      destinationFiles += rfs
+      switch(renamerSource) {
+        case ~/filebot/:
+          destinationFilesFilebot += rfs
+          break
+        case ~/script/:
+          destinationFilesScript += rfs
+          break
+      }
+      if ( rfs.size() == rfsLeftOver.size() ) {
+        println "----- Renamed all ${rfs.size()} files out of ${files.size()}"
+        rfsIncomplete = false  as Boolean
+        rfsLeftOver = []
+      } else {
+        println "--- Renamed ${rfs.size()} files out of ${rfsLeftOver.size()}"
+        rfsLeftOver = rfsLeftOver.getFiles { it.isFile() && it.isVideo() }
+        renameMissedFiles2ndPass += rfsLeftOver
+        println "----- Leaving ${rfsLeftOver}"
+        rfsIncomplete = false  as Boolean
+      }
+    } else if (failOnError && rfs == null) {
+      println '*****************************'
+      println '***  FAILURE! FAILURE!    ***'
+      println '*****************************'
+      die "Failed to process group: $group"
+    } else {
+      println "--- Failed to rename any more files from group: $group"
+      rfsIncomplete = false  as Boolean
+      rfsLeftOver = rfsLeftOver.getFiles { it.isFile() && it.isVideo() }
+      renameMissedFiles2ndPass += rfsLeftOver
+      switch(renamerSource) {
+        case ~/filebot/:
+          failedFilesFilebot += renameMissedFiles2ndPass
+          break
+        case ~/script/:
+          failedFilesScript += renameMissedFiles2ndPass
+          break
+      }
+    }
+  }
+}
+
+
+/*
+def renameWrapper(LinkedHashMap group, def files, Boolean renameStrict, def renameQuery = false, def renameDB = false, def renameOrder = false, def renameFilter = false, def renameMapper = false) {
+  rfsPartial = false
+  rfsPartialFiles = []
+  rfs = []
+  wrapperArgs = [:]
+  wrapperArgs.put('file', files)
+  if (group.isSpecial) {
+    wrapperArgs.put('format', specialFormat)
+  }
+  if (group.mov) {
+    wrapperArgs.put('format', movieFormat)
+  }
+  if (!group.mov && !group.isSpecial) {
+    wrapperArgs.put('format', animeFormat)
   }  
   // wrapperArgs.put('format', animeFormat)
   wrapperArgs.put('strict', renameStrict)
@@ -1176,6 +1341,8 @@ def renameWrapper(LinkedHashMap group, def files, Boolean renameStrict, def rena
   } else {
     println "Failed to process group: $group"
     rfsIncomplete = true  as Boolean
+    // TODO
+    // Collecting stats on failure here is not useful as these files *could* get renamed in a different stage
     switch(renamerSource) {
       case ~/filebot/:
         failedFilesFilebot += files
@@ -1185,9 +1352,14 @@ def renameWrapper(LinkedHashMap group, def files, Boolean renameStrict, def rena
       break
     }
   }
-  // ---------- Rename again if there are Leftover files from the First rename attempt ---------- //
+  // ------ Rename again if there are Leftover files from the First rename attempt              ------- //
+  // ------ try to rename each file individually unless useNonStrictPartialRenames is set       ------- //
+  // ------ This sometimes overcomes the behavior that evaluating multiple files results        ------- //
+  // ------ In no matches, while evaluating a file singularly will result in a match (strictly) ------- //
+  // ------ Non-Strict usually doesn't have this issue, but does increase the probability of    ------- //
+  // ------ Incorrect matches
   if ( rfsPartial && rfsLeftOver ) {
-    println '// ---------- RENAME:  2nd Run ---------- //'
+    println '// ---------- RENAME: 2nd Run ---------- //'
     println "--- 2nd Attempt to rename files missed during the first rename - ${rfsLeftOver}"
     wrapperArgs.file = rfsLeftOver
     if ( useNonStrictPartialRenames ) {
@@ -1237,16 +1409,56 @@ def renameWrapper(LinkedHashMap group, def files, Boolean renameStrict, def rena
       }
     }
   }
-  // ---------- Rename again if there are Leftover files from the SECOND rename attempt ---------- //
-  // --- Two usually works, but occasionally not.. If enabled, Shell out to filebot to rename the files
-  // --- Yes, it's silly .. but on more then one occasion a shell out filebot CLI rename WILL work,
-  // --- When a rename method invocation will totally not work...
-//  if ( rfsPartial && rfsLeftOver && rfsShellOut ) {
-//
-//    log.fine "Execute: $command"
-////    execute(command)
-//  }
 }
+*/
+
+/*
+def executeWrapper(LinkedHashMap group, def files, Boolean renameStrict, def renameQuery = false, def renameDB = false, def renameOrder = false, def renameFilter = false, def renameMapper = false) {
+  String wrapperCommand = "filebot -rename --action ${scriptAction} -no-xattr --conflict index"
+  if (renameQuery) {
+    wrapperCommand = wrapperCommand + ' --q "' + renameQuery + '"'
+  }
+  if (renameDB) {
+    wrapperCommand = wrapperCommand + " --db ${renameDB}"
+  }
+  if (renameOrder) {
+    wrapperCommand = wrapperCommand + " --order ${renameOrder}"
+  }
+  if (renameFilter) {
+    wrapperCommand = wrapperCommand + ' --filter "' + renameFilter + '"'
+  }
+  if (renameMapper) {
+    wrapperCommand = wrapperCommand + ' --mapper "' + renameMapper + '"'
+  }
+  if (group.isSpecial) {
+    File specialFormatFile = new File("RunMeToSeeIfThereAreHatedFileNamesByFilebotRenameMethod-SpecialFormat.groovy").newOutputStream().withWriter('UTF-8') { contents ->
+      contents.write specialFormat
+    }
+    wrapperCommand = wrapperCommand + ' --format ' + "'" + new File("RunMeToSeeIfThereAreHatedFileNamesByFilebotRenameMethod-SpecialFormat.groovy").path + "'"
+  }
+  if (group.mov) {
+    File movieFormatFile = new File("RunMeToSeeIfThereAreHatedFileNamesByFilebotRenameMethod-MovieFormat.groovy").newOutputStream().withWriter('UTF-8') { contents ->
+      contents.write movieFormat
+    }
+    wrapperCommand = wrapperCommand + ' --format ' + "'" + new File("RunMeToSeeIfThereAreHatedFileNamesByFilebotRenameMethod-MovieFormat.groovy").path + "'"
+  }
+  if (!group.mov && !group.isSpecial) {
+    File seriesFormatFile = new File("RunMeToSeeIfThereAreHatedFileNamesByFilebotRenameMethod-SeriesFormat.groovy").newOutputStream().withWriter('UTF-8') { contents ->
+      contents.write animeFormat
+    }
+    wrapperCommand = wrapperCommand + ' --format ' + "'" + new File("RunMeToSeeIfThereAreHatedFileNamesByFilebotRenameMethod-SeriesFormat.groovy").path + "'"
+  }
+  files.each {
+    wrapperCommand = wrapperCommand + ' "' + it + '"'
+  }
+  wrapperCommand = wrapperCommand + ' --output "' + outputFolder + '"\n'
+  //--- Running filebot from filebot doesn't seem to work so well (or at least not the few ways I tried)
+  //--- So let's write everything to a file, which unfortunately we will have to run afterwards.
+  new File("${filebotHatedFileNamesFileName}").withWriterAppend('UTF-8') { contents ->
+   contents.append wrapperCommand
+  }
+}
+*/
 
 // Class/Global Variables Changed/Referenced
 // hasSeasonality
@@ -2889,10 +3101,13 @@ groupsByManualThreeEpisodes.each { group, files ->
     if (performRename) {
       println '// -------------------------------------- //'
       println '// ---------- 1st pass Renaming---------- //'
-      println "group: ${group}, files: ${files}, renameStrict: ${renameStrict}, renameQuery: ${renameQuery}, renameDB: ${renameDB}, renameOrder: ${renameOrder}, renameFilter: ${renameFilter}, renameMapper: ${renameMapper}"
-      renameWrapper(group, files, renameStrict, renameQuery , renameDB , renameOrder , renameFilter, renameMapper )
+      println "group: ${group}, files: ${files}"
+      println "renameStrict: ${renameStrict}, renameQuery: ${renameQuery}, renameDB: ${renameDB}, renameOrder: ${renameOrder}, renameFilter: ${renameFilter}, renameMapper: ${renameMapper}"
+      renameWrapper(group, files, renameStrict, renameQuery , renameDB , renameOrder , renameFilter, renameMapper)
+      println "\t rfsLeftOver: ${rfsLeftOver}, rfsIncomplete: ${rfsIncomplete}"
+      println '// -------------------------------------- //'
     }
-    println "rfsLeftOver: ${rfsLeftOver}, rfsIncomplete: ${rfsIncomplete}"
+
     // ------------------------------ //
     // ---------- 2nd Pass ---------- //
     // ------------------------------ //
@@ -3405,16 +3620,23 @@ groupsByManualThreeEpisodes.each { group, files ->
     }
     // ---------- 2nd pass Renaming---------- //
     if ( performRename && rfsIncomplete ) {
+      println '// -------------------------------------- //'
       println '// ---------- 2nd pass Renaming---------- //'
-      println "group: ${group}, files: ${files}, renameStrict: ${renameStrict}, renameQuery: ${renameQuery}, renameDB: ${renameDB}, renameOrder: ${renameOrder}, renameFilter: ${renameFilter}, renameMapper: ${renameMapper}"
+      println "group: ${group}, files: ${files}"
+      println "renameStrict: ${renameStrict}, renameQuery: ${renameQuery}, renameDB: ${renameDB}, renameOrder: ${renameOrder}, renameFilter: ${renameFilter}, renameMapper: ${renameMapper}"
       renameWrapper(group, files, renameStrict, renameQuery , renameDB , renameOrder , renameFilter, renameMapper )
-      println "rfsLeftOver: ${rfsLeftOver}, rfsIncomplete: ${rfsIncomplete}"
+      println "\t rfsLeftOver: ${rfsLeftOver}, rfsIncomplete: ${rfsIncomplete}"
+      println '// -------------------------------------- //'
     }
     // ---------- Setup 3rd Pass Options for Specific "types" ---------- //
     if ( rfsIncomplete && performRename ) {
       sleep(2000) // Pause 2 seconds in between Stages
       println '// ---------- deliberations on order, DB, filter ---------- //'
+      performRename = false
       // --- airdate Syntax --- //
+      if (group.order == 'airdate') {
+        performRename = false
+      }
 /*      if (group.order == 'airdate') {
         println '//--- Airdate Syntax'
         if ( animeFoundInTVDB ) {
@@ -3567,12 +3789,13 @@ groupsByManualThreeEpisodes.each { group, files ->
             println '--------- Use TVDB with Absolute Ordering'
             renameQuery = theTVDBFirstMatchDetails.dbid
             thirdPassOptionsSet = true
+            performRename = true
             renameDB = 'TheTVDB'
             renameFilter = ''
-//            renameMapper = ''
-            renameMapper = '[AnimeList.AniDB, episode, order.absolute.episode]'
-//            renameOrder = 'Absolute'
-            renameOrder = 'Airdate'
+            renameMapper = ''
+//            renameMapper = '[AnimeList.AniDB, episode, order.absolute.episode]'
+            renameOrder = 'Absolute'
+//            renameOrder = 'Airdate'
             renameStrict = true
           }
         }
@@ -3951,10 +4174,13 @@ groupsByManualThreeEpisodes.each { group, files ->
     }
     // ---------- 3rd pass Renaming---------- //
     if ( performRename && rfsIncomplete ) {
+      println '// -------------------------------------- //'
       println '// ---------- 3rd pass Renaming---------- //'
-      println "group: ${group}, files: ${files}, renameStrict: ${renameStrict}, renameQuery: ${renameQuery}, renameDB: ${renameDB}, renameOrder: ${renameOrder}, renameFilter: ${renameFilter}, renameMapper: ${renameMapper}"
+      println "group: ${group}, files: ${files}"
+      println "renameStrict: ${renameStrict}, renameQuery: ${renameQuery}, renameDB: ${renameDB}, renameOrder: ${renameOrder}, renameFilter: ${renameFilter}, renameMapper: ${renameMapper}"
       renameWrapper(group, files, renameStrict, renameQuery , renameDB , renameOrder , renameFilter, renameMapper )
-      println "rfsLeftOver: ${rfsLeftOver}, rfsIncomplete: ${rfsIncomplete}"
+      println "\t rfsLeftOver: ${rfsLeftOver}, rfsIncomplete: ${rfsIncomplete}"
+      println '// -------------------------------------- //'
     }
     // ---------- Stat Collection -----------//
     if ( rfsLeftOver ) {
@@ -4010,6 +4236,15 @@ groupsByManualThreeMovies.each { group, files ->
     println '//----------------'
     println '//-------------------------------------------'
     println "Stop Processing due to AniDB Ban"
+    println '//-------------------------------------------'
+    println '//----------------'
+    return
+  }
+  if (skipMovies) {
+    println ''
+    println '//----------------'
+    println '//-------------------------------------------'
+    println "Stop Processing due to skipMovies"
     println '//-------------------------------------------'
     println '//----------------'
     return
@@ -4092,29 +4327,39 @@ groupsByManualThreeMovies.each { group, files ->
   if (performRename) {
     println '// -------------------------------------- //'
     println '// ---------- 1st pass Renaming---------- //'
-    println "group: ${group}, files: ${files}, renameStrict: ${renameStrict}, renameQuery: ${renameQuery}, renameDB: ${renameDB}, renameOrder: ${renameOrder}, renameFilter: ${renameFilter}, renameMapper: ${renameMapper}"
+    println "group: ${group}, files: ${files}"
+    println "renameStrict: ${renameStrict}, renameQuery: ${renameQuery}, renameDB: ${renameDB}, renameOrder: ${renameOrder}, renameFilter: ${renameFilter}, renameMapper: ${renameMapper}"
     renameWrapper(group, files, renameStrict, renameQuery, renameDB, renameOrder, renameFilter, renameMapper)
+    println "rfsLeftOver: ${rfsLeftOver}, rfsIncomplete: ${rfsIncomplete}"
+    println '// -------------------------------------- //'
   }
-  println "rfsLeftOver: ${rfsLeftOver}, rfsIncomplete: ${rfsIncomplete}"
+
+  // ---------- Stat Collection -----------//
+  if ( rfsLeftOver ) {
+    partialFiles += rfsLeftOver.getFiles { it.isFile() && it.isVideo() }
+  }
+  if ( rfsIncomplete ) {
+    unsortedFiles += files.getFiles { it.isFile() && it.isVideo() }
+  }
 }
 
 // ---------- END Renaming ---------- //
 println '// ---------- END Renaming ---------- //'
-println "Total Files: ${input.size()}"
+println "Total Files: ${input.size()-1}"
 println "   Processed files: ${destinationFiles.size()}"
-renameLog.each { from, to ->
+renameLog.sort().each { from, to ->
   println "       [${to.parent}, ${from.name}, ${to.name} ]"
 }
 println '// ----------             ---------- //'
 println "      Script Name Renamed files: ${destinationFilesScript.size()}"
-/*destinationFilesScript.each { file ->
+destinationFilesScript.each { file ->
   println "       [${file.name}, ${file.parent}]"
-}*/
+}
 println '// ----------             ---------- //'
 println "      Filebot Name Renamed files: ${destinationFilesFilebot.size()}"
-/*destinationFilesFilebot.each { file ->
+destinationFilesFilebot.each { file ->
   println "       [${file.name}, ${file.parent}]"
-}*/
+}
 println '// ----------             ---------- //'
 println "   1st Pass Rename Missed Files: ${renameMissedFiles1stPass.size()}"
 println "   2nd Pass Rename Missed Files: ${renameMissedFiles2ndPass.size()}"
