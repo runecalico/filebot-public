@@ -1,5 +1,5 @@
 #!/usr/bin/env filebot -script
-//--- VERSION 1.2.0
+//--- VERSION 1.2.6
 // http://docs.groovy-lang.org/latest/html/documentation/grape.html
 // https://mvnrepository.com/artifact/org.apache.commons/commons-text
 @Grapes(
@@ -21,7 +21,7 @@ _def.each { n, v -> log.finest('Parameter: ' + [n, n =~ /plex|kodi|pushover|push
 args.withIndex().each { f, i -> if (f.exists()) { log.finest "Argument[$i]: $f" } else { log.warning "Argument[$i]: File does not exist: $f" } }
 
 // initialize variables
-testRun = license == null || _args.action.equalsIgnoreCase('test')
+testRun = _args.action.equalsIgnoreCase('test')
 scriptAction = _args.action
 
 // --output folder must be a valid folder
@@ -402,9 +402,6 @@ if (excludeList && !testRun) {
 // print exclude and input sets for logging
 input.each { f -> log.fine "Input: $f" }
 
-// print xattr metadata
-//**//input.each{ f -> if (f.metadata) log.finest "xattr: [$f.name] => [$f.metadata]" }
-
 // early abort if there is nothing to do
 if (input.size() == 0) {
   die 'No files selected for processing', ExitCode.NOOP
@@ -460,9 +457,10 @@ LinkedHashMap groupGeneration( def input, Boolean useGroupByAutodection, Locale 
     myRegexMatcher = f.name =~ /^\[/
     if ( !myRegexMatcher.find() ) {
       // If it starts with a number .. I most likely can't parse it
-      myRegexMatcher = f.name =~ /^[0-9]/
+      // VOID - myRegexMatcher = f.name =~ /^[0-9]/
+      myRegexMatcher = f.name =~ /^([0-9]|#[0-9])/
       if ( myRegexMatcher.find() ) {
-        println '//----- Filename starts with #'
+        println '//----- Filename starts with number'
         println '//----- useDetectAnimeName = true'
         useDetectAnimeName = true
       }
@@ -498,7 +496,7 @@ LinkedHashMap groupGeneration( def input, Boolean useGroupByAutodection, Locale 
       log.finest "--- xattr: [$f.name] => [$f.metadata]"
       if ( clearXattr ) {
         log.finest "Clearing file metadata- $f.name"
-        f.xattr.clear()
+        tryQuietly { f.xattr.clear() }
       }
     }
     // MediaInfo related to "dates"
@@ -765,19 +763,36 @@ LinkedHashMap groupGeneration( def input, Boolean useGroupByAutodection, Locale 
     // void - myOrdinalSeasonalityMatcher = anime =~ /(?i)(\s+(\d|\d\d)[a-z]{2}\s+(Season|part)|\s+(part)\s*([\d]+))/ // 2nd Season, 3rd Season, Part 1, Part 2, 2nd part, Season 2 etc.
     myOrdinalSeasonalityMatcher = anime =~ /(?i)(\s+(\d|\d\d)[a-z]{2}\s+(Season|part)(\s\d{1,2})?|\s+(part)\s*([\d]+))/ // 2nd Season, 3rd Season, Part 1, Part 2, 2nd part, Season 2 etc.
     if ( myOrdinalSeasonalityMatcher.find() ) {
-      println "--------${anime} name has Ordinal or Partial/TVDB Seasonality"
-      myOrdinalNumber = myOrdinalSeasonalityMatcher[0][6]
-//      println "---------- myOrdinalNumber: ${myOrdinalNumber}"
-      if ( myOrdinalNumber == null ) {
-        myOrdinalNumber = myOrdinalSeasonalityMatcher[0][2]
+      println "--------${anime} name has Ordinal and/or Partial/TVDB Seasonality"
+      def partialSeasonNumberTEMP = tryQuietly { myOrdinalSeasonalityMatcher[1][6] } // It would be [0][6] if it was ONLY Partial..
+      def myOrdinalNumberTEMP = myOrdinalSeasonalityMatcher[0][6]
+      if ( myOrdinalNumberTEMP == null ) {
         hasOrdinalSeasonality = true
+        myOrdinalNumber = myOrdinalSeasonalityMatcher[0][2]
         ordinalSeasonNumber = myOrdinalNumber.toInteger()
         println "---------- ordinalSeasonNumber: ${ordinalSeasonNumber}"
       } else {
         hasPartialSeasonality = true
-        partialSeasonNumber = myOrdinalNumber.toInteger()
-        println "---------- seasonNumber: ${partialSeasonNumber}"
+        partialSeasonNumber = myOrdinalNumberTEMP.toInteger()
+        println "---------- Partial seasonNumber:: ${partialSeasonNumber}"
       }
+      if ( partialSeasonNumberTEMP != null ) {
+        hasPartialSeasonality = true
+        partialSeasonNumber = partialSeasonNumberTEMP.toInteger()
+        println "---------- Partial seasonNumber: ${partialSeasonNumber}"
+      }
+//      myOrdinalNumber = myOrdinalSeasonalityMatcher[0][6]
+////      println "---------- myOrdinalNumber: ${myOrdinalNumber}"
+//      if ( myOrdinalNumber == null ) {
+//        myOrdinalNumber = myOrdinalSeasonalityMatcher[0][2]
+//        hasOrdinalSeasonality = true
+//        ordinalSeasonNumber = myOrdinalNumber.toInteger()
+//        println "---------- ordinalSeasonNumber: ${ordinalSeasonNumber}"
+//      } else {
+//        hasPartialSeasonality = true
+//        partialSeasonNumber = myOrdinalNumber.toInteger()
+//        println "---------- seasonNumber: ${partialSeasonNumber}"
+//      }
       anime = anime.replaceAll(/(?i)(\s+(\d|\d\d)[a-z]{2}\s+(Season|part)(\s\d{1,2})?|\s+(part)\s*([\d]+))/, '').replaceAll(/(\s){2,20}/, ' ').replaceAll(/([\s-])*$/, '')
       println "---------- Anime Name is now: $anime"
     }
@@ -885,43 +900,7 @@ LinkedHashMap groupGeneration( def input, Boolean useGroupByAutodection, Locale 
       mySanityAltTxt = mySanityRegexMatcher[0][2]
       println "-------- [${anime}] has possible additional text to remove: [${mySanityAltTxt}] using -"
       Set searchList = ["${anime}"]
-      if (anime =~ /(?i)(\swo\s)/) {
-        println '---------- Adding Hepburn Romanisation of Particle を as o (instead of wo)'
-        searchList += anime.replaceAll(/(?i)(\swo\s)/, ' o ')
-      }
-      if (anime =~ /(?i)(\she\s)/) {
-        println '---------- Adding Hepburn Romanisation of Particle へ as e (instead of he)'
-        searchList += anime.replaceAll(/(?i)(\she\s)/, ' e ')
-      }
-      if (anime =~ /(?i)(\sha\s)/) {
-        println '---------- Adding Hepburn Romanisation of Particle は as wa (instead of ha)'
-        searchList += anime.replaceAll(/(?i)(\sha\s)/, ' wa ')
-      }
-      if (anime =~ /(?i)(\sand\s)/) {
-        println '---------- Adding AniDBSyntax variation of & instead of and'
-        searchList += anime.replaceAll(/(?i)(\sand\s)/, ' & ')
-      }
-      // I really can't figure out why this doesn't work
-//      switch (anime) {
-//        case ~/(?i)(\swo\s)/: println '---------- Adding Hepburn Romanisation of Particle を as o (instead of wo)'
-//          searchList += anime.replaceAll(/(?i)(\swo\s)/, ' o ')
-//          break
-//        case ~/(?i)(\she\s)/:
-//          println '---------- Adding Hepburn Romanisation of Particle へ as e (instead of he)'
-//          searchList += anime.replaceAll(/(?i)(\she\s)/, ' e ')
-//          break
-//        case ~/(?i)(\sha\s)/:
-//          println '---------- Adding Hepburn Romanisation of Particle は as wa (instead of ha)'
-//          searchList += anime.replaceAll(/(?i)(\sha\s)/, ' wa ')
-//          break
-//        case ~/(?i)(\sand\s)/:
-//          println '---------- Adding AniDBSyntax variation of & instead of and'
-//          searchList += anime.replaceAll(/(?i)(\sand\s)/, ' & ')
-//          break
-//        default:
-//          println "Found nothing in [${anime}] for Hepburn Romanisation to do"
-//          break
-//      }
+      searchList += ["${returnAniDBRomanization(anime)}"]
       animeTemp = anime.replaceAll(/(?i)(-\s(.*))$/, '').replaceAll(/(\s){2,20}/, ' ').replaceAll(/([\s-])*$/, '')
       myGroup2AniDBOptions = anidbXMLTitleSearch(aniDBTitleXML, searchList, locale, false, false, false, true)
       myGroup2AniDBOptions2 = anidbXMLTitleSearch(aniDBSynonymXML, searchList, locale, false, false, false, true)
@@ -931,22 +910,7 @@ LinkedHashMap groupGeneration( def input, Boolean useGroupByAutodection, Locale 
         println "---------- New Anime name is ${anime}"
         println "------------ Checking if [${mySanityAltTxt}] is Alternative Title"
         searchList = ["${mySanityAltTxt}"]
-        if (anime =~ /(?i)(\swo\s)/) {
-          println '---------- Adding Hepburn Romanisation of Particle を as o (instead of wo)'
-          searchList += anime.replaceAll(/(?i)(\swo\s)/, ' o ')
-        }
-        if (anime =~ /(?i)(\she\s)/) {
-          println '---------- Adding Hepburn Romanisation of Particle へ as e (instead of he)'
-          searchList += anime.replaceAll(/(?i)(\she\s)/, ' e ')
-        }
-        if (anime =~ /(?i)(\sha\s)/) {
-          println '---------- Adding Hepburn Romanisation of Particle は as wa (instead of ha)'
-          searchList += anime.replaceAll(/(?i)(\sha\s)/, ' wa ')
-        }
-        if (anime =~ /(?i)(\sand\s)/) {
-          println '---------- Adding AniDBSyntax variation of & instead of and'
-          searchList += anime.replaceAll(/(?i)(\sand\s)/, ' & ')
-        }
+        searchList += ["${returnAniDBRomanization(mySanityAltTxt)}"]
         myGroup2AniDBOptions = anidbXMLTitleSearch(aniDBTitleXML, searchList, locale, false, false, false, true)
         myGroup2AniDBOptions2 = anidbXMLTitleSearch(aniDBSynonymXML, searchList, locale, false, false, false, true)
         if ( myGroup2AniDBOptions.isEmpty() && myGroup2AniDBOptions2.isEmpty() ) {
@@ -960,14 +924,6 @@ LinkedHashMap groupGeneration( def input, Boolean useGroupByAutodection, Locale 
         println "---------- Our Query Returned from AniDB: ${myGroup2AniDBOptions}:${myGroup2AniDBOptions2}"
         println '---------- We are not changing the Anime name'
       }
-/*      if ( myGroup2AniDBOptions.isEmpty() && myGroup2AniDBOptions2.isEmpty() ) {
-        println "---------- TV Series not found in AniDB by AniDB XML Title/Synonym Search: ${anime}"
-        anime = animeTemp
-        println "---------- New Anime name is ${anime}"
-      } else {
-        println "---------- Our Query Returned from AniDB: ${myGroup2AniDBOptions}:${myGroup2AniDBOptions2}"
-        println '---------- We are not changing the Anime name'
-      }*/
     }
 
     // VOID - (?i)(~\s(.*))$
@@ -1005,7 +961,8 @@ LinkedHashMap groupGeneration( def input, Boolean useGroupByAutodection, Locale 
     // VOID - (?i)(\(([^)]*)\))
     // VOID - (?i)(\(((?!((19|20)\d\d))[^)]*)\))
     // VOID - (?i)(\(((?!((19|20)\d\d))[^)]*)\))(?!.\w\w\w)
-    mySanityRegexMatcher = myFileNameForParsing =~ /(?i)(\(((?!((19|20)\d\d))[^)]*)\))(?!\.\w\w\w)/
+    // VOID - (?i)(\(((?!((19|20)\d\d))[^)]*)\))(?!\.\w\w\w)
+    mySanityRegexMatcher = myFileNameForParsing =~ /(?i)(?<!^)(\(((?!((19|20)\d\d))[^)]*)\))(?!\.\w\w\w)/
     if (mySanityRegexMatcher.find()) {
       mySanityAltTxt = mySanityRegexMatcher[0][2]
       if ( mySanityAltTxt.size() >= 2 ) {
@@ -1036,14 +993,6 @@ LinkedHashMap groupGeneration( def input, Boolean useGroupByAutodection, Locale 
         }
       }
     }
-
-//    if ( filebotMovieTitle == null ) {
-//      filebotMovieTitle = ''
-//    }
-//    if ( altTitle == null ) {
-//      altTitle = ''
-//    }
-
     return [anime: anime, altTitle: altTitle, filebotMovieTitle: filebotMovieTitle, order: order, airdateSeasonNumber: airdateSeasonNumber, mov: mov, isFileBotDetectedName: isFileBotDetectedName, hasSeriesSyntax: hasSeriesSyntax, seriesNumber: seriesNumber, hasSeasonality: hasSeasonality, seasonNumber: seasonNumber, hasOrdinalSeasonality: hasOrdinalSeasonality, ordinalSeasonNumber: ordinalSeasonNumber, hasPartialSeasonality: hasPartialSeasonality, partialSeasonNumber: partialSeasonNumber, isSpecial: isSpecial, specialType: specialType, yearDateInName: yearDateInName]
   }
   return groupsByManualThree
@@ -1052,14 +1001,6 @@ LinkedHashMap groupGeneration( def input, Boolean useGroupByAutodection, Locale 
 def groupsByManualThree = groupGeneration(input, useGroupByAutodection, locale)
 def groupsByManualThreeMovies = groupsByManualThree.findAll { it.key.mov == true}
 def groupsByManualThreeEpisodes = groupsByManualThree.findAll { it.key.mov == false}
-// log movie/series/anime detection results
-//println ''
-//println 'groupsByManualThree'
-//// println "groupsByManualThreeClass:${groupsByManualThree.getClass()}"
-//groupsByManualThree.each { group, files ->
-//    log.finest "${groupInfoGenerator(group)}"
-//}
-//println ''
 
 println ''
 println 'groupsByManualThreeEpisodes'
@@ -1082,7 +1023,6 @@ if (breakAfterGroups) {
 }
 
 // keep track of files that have been processed successfully
-// def destinationFiles = []
 destinationFiles = []
 destinationFilesFilebot = []
 destinationFilesScript = []
@@ -1092,7 +1032,6 @@ renameMissedFiles1stPass = []
 renameMissedFiles2ndPass = []
 
 // keep track of unsorted files or files that could not be processed for some reason
-// def unsortedFiles = []
 unsortedFiles = []
 partialFiles = []
 
@@ -1266,200 +1205,6 @@ def renameWrapper(LinkedHashMap group, def files, Boolean renameStrict, def rena
   }
 }
 
-
-/*
-def renameWrapper(LinkedHashMap group, def files, Boolean renameStrict, def renameQuery = false, def renameDB = false, def renameOrder = false, def renameFilter = false, def renameMapper = false) {
-  rfsPartial = false
-  rfsPartialFiles = []
-  rfs = []
-  wrapperArgs = [:]
-  wrapperArgs.put('file', files)
-  if (group.isSpecial) {
-    wrapperArgs.put('format', specialFormat)
-  }
-  if (group.mov) {
-    wrapperArgs.put('format', movieFormat)
-  }
-  if (!group.mov && !group.isSpecial) {
-    wrapperArgs.put('format', animeFormat)
-  }  
-  // wrapperArgs.put('format', animeFormat)
-  wrapperArgs.put('strict', renameStrict)
-  if (renameQuery) {
-    wrapperArgs.put('query', "${renameQuery}")
-  }
-  if (renameDB) {
-    wrapperArgs.put('db', renameDB)
-  }
-  if (renameOrder) {
-    wrapperArgs.put('order', "${renameOrder}")
-  }
-  if (renameFilter) {
-    wrapperArgs.put('filter', "${renameFilter}")
-  }
-  if (renameMapper) {
-    wrapperArgs.put('mapper', "${renameMapper}")
-  }
-  // println "Running: Rename"
-  // println "rename - ${[*:wrapperArgs]}"
-  println '// ---------- RENAME: 1st Run ---------- //'
-  try {
-    rfs = rename(*:wrapperArgs)
-  } catch (Exception IllegalStateException) {
-    println 'AniDB has already banned your IP. Please stop hitting AniDB for at least 24 hours'
-    aniDBBanHammer = true
-    rfsIncomplete = false as Boolean
-    rfs = []
-  }
-  // println "RFS is class: ${rfs.getClass()}"
-  if (rfs) {
-    println "--- Successfully Renamed files - ${rfs}"
-    switch(renamerSource) {
-      case ~/filebot/:
-        destinationFilesFilebot += rfs
-      break
-      case ~/script/:
-        destinationFilesScript += rfs
-      break
-    }
-    destinationFiles += rfs
-    if ( rfs.size() == files.size() ) {
-      println "----- Renamed all ${rfs.size()} files out of ${files.size()}"
-      rfsIncomplete = false as Boolean
-    } else {
-      println "--- Renamed ${rfs.size()} files out of ${files.size()}"
-      rfsLeftOver = files.getFiles { it.isFile() && it.isVideo() }
-      renameMissedFiles1stPass += rfsLeftOver
-      println "----- Leaving ${rfsLeftOver}"
-      rfsPartial = true
-    }
-  } else if (failOnError && rfs == null) {
-    println '*****************************'
-    println '***  FAILURE! FAILURE!    ***'
-    println '*****************************'
-    die "Failed to process group: $group"
-  } else {
-    println "Failed to process group: $group"
-    rfsIncomplete = true  as Boolean
-    // TODO
-    // Collecting stats on failure here is not useful as these files *could* get renamed in a different stage
-    switch(renamerSource) {
-      case ~/filebot/:
-        failedFilesFilebot += files
-      break
-      case ~/script/:
-        failedFilesScript += files
-      break
-    }
-  }
-  // ------ Rename again if there are Leftover files from the First rename attempt              ------- //
-  // ------ try to rename each file individually unless useNonStrictPartialRenames is set       ------- //
-  // ------ This sometimes overcomes the behavior that evaluating multiple files results        ------- //
-  // ------ In no matches, while evaluating a file singularly will result in a match (strictly) ------- //
-  // ------ Non-Strict usually doesn't have this issue, but does increase the probability of    ------- //
-  // ------ Incorrect matches
-  if ( rfsPartial && rfsLeftOver ) {
-    println '// ---------- RENAME: 2nd Run ---------- //'
-    println "--- 2nd Attempt to rename files missed during the first rename - ${rfsLeftOver}"
-    wrapperArgs.file = rfsLeftOver
-    if ( useNonStrictPartialRenames ) {
-      println "--- Enabling Non-Strict 2nd Pass"
-      wrapperArgs.strict = false
-    }
-    rfs = rename(*:wrapperArgs)
-    if (rfs) {
-      println '--- Successfully Renamed files'
-      destinationFiles += rfs
-      switch(renamerSource) {
-        case ~/filebot/:
-          destinationFilesFilebot += rfs
-        break
-        case ~/script/:
-          destinationFilesScript += rfs
-        break
-      }
-      if ( rfs.size() == rfsLeftOver.size() ) {
-        println "----- Renamed all ${rfs.size()} files out of ${files.size()}"
-        rfsIncomplete = false  as Boolean
-        rfsLeftOver = []
-      } else {
-        println "--- Renamed ${rfs.size()} files out of ${rfsLeftOver.size()}"
-        rfsLeftOver = rfsLeftOver.getFiles { it.isFile() && it.isVideo() }
-        renameMissedFiles2ndPass += rfsLeftOver
-        println "----- Leaving ${rfsLeftOver}"
-        rfsIncomplete = false  as Boolean
-      }
-    } else if (failOnError && rfs == null) {
-      println '*****************************'
-      println '***  FAILURE! FAILURE!    ***'
-      println '*****************************'
-      die "Failed to process group: $group"
-    } else {
-      println "--- Failed to rename any more files from group: $group"
-      rfsIncomplete = false  as Boolean
-      rfsLeftOver = rfsLeftOver.getFiles { it.isFile() && it.isVideo() }
-      renameMissedFiles2ndPass += rfsLeftOver
-      switch(renamerSource) {
-        case ~/filebot/:
-          failedFilesFilebot += renameMissedFiles2ndPass
-        break
-        case ~/script/:
-          failedFilesScript += renameMissedFiles2ndPass
-        break
-      }
-    }
-  }
-}
-*/
-
-/*
-def executeWrapper(LinkedHashMap group, def files, Boolean renameStrict, def renameQuery = false, def renameDB = false, def renameOrder = false, def renameFilter = false, def renameMapper = false) {
-  String wrapperCommand = "filebot -rename --action ${scriptAction} -no-xattr --conflict index"
-  if (renameQuery) {
-    wrapperCommand = wrapperCommand + ' --q "' + renameQuery + '"'
-  }
-  if (renameDB) {
-    wrapperCommand = wrapperCommand + " --db ${renameDB}"
-  }
-  if (renameOrder) {
-    wrapperCommand = wrapperCommand + " --order ${renameOrder}"
-  }
-  if (renameFilter) {
-    wrapperCommand = wrapperCommand + ' --filter "' + renameFilter + '"'
-  }
-  if (renameMapper) {
-    wrapperCommand = wrapperCommand + ' --mapper "' + renameMapper + '"'
-  }
-  if (group.isSpecial) {
-    File specialFormatFile = new File("RunMeToSeeIfThereAreHatedFileNamesByFilebotRenameMethod-SpecialFormat.groovy").newOutputStream().withWriter('UTF-8') { contents ->
-      contents.write specialFormat
-    }
-    wrapperCommand = wrapperCommand + ' --format ' + "'" + new File("RunMeToSeeIfThereAreHatedFileNamesByFilebotRenameMethod-SpecialFormat.groovy").path + "'"
-  }
-  if (group.mov) {
-    File movieFormatFile = new File("RunMeToSeeIfThereAreHatedFileNamesByFilebotRenameMethod-MovieFormat.groovy").newOutputStream().withWriter('UTF-8') { contents ->
-      contents.write movieFormat
-    }
-    wrapperCommand = wrapperCommand + ' --format ' + "'" + new File("RunMeToSeeIfThereAreHatedFileNamesByFilebotRenameMethod-MovieFormat.groovy").path + "'"
-  }
-  if (!group.mov && !group.isSpecial) {
-    File seriesFormatFile = new File("RunMeToSeeIfThereAreHatedFileNamesByFilebotRenameMethod-SeriesFormat.groovy").newOutputStream().withWriter('UTF-8') { contents ->
-      contents.write animeFormat
-    }
-    wrapperCommand = wrapperCommand + ' --format ' + "'" + new File("RunMeToSeeIfThereAreHatedFileNamesByFilebotRenameMethod-SeriesFormat.groovy").path + "'"
-  }
-  files.each {
-    wrapperCommand = wrapperCommand + ' "' + it + '"'
-  }
-  wrapperCommand = wrapperCommand + ' --output "' + outputFolder + '"\n'
-  //--- Running filebot from filebot doesn't seem to work so well (or at least not the few ways I tried)
-  //--- So let's write everything to a file, which unfortunately we will have to run afterwards.
-  new File("${filebotHatedFileNamesFileName}").withWriterAppend('UTF-8') { contents ->
-   contents.append wrapperCommand
-  }
-}
-*/
-
 // Class/Global Variables Changed/Referenced
 // hasSeasonality
 // mySeasonalityNumber
@@ -1488,14 +1233,11 @@ ArrayList seriesnameGenerator ( LinkedHashMap group, HashSet baseGeneratedAnimeN
          addGroupAnimeNameToList = false
        }
        switch (group.specialType) {
-         case ~/(?i)(OVA|ONA|OAD|OVA)/:
+         case ~/(?i)(OVA|ONA|OAD)/:
            generatedAnimeName = basename + ' ' + group.specialType
            tier1AnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
            println "------- Tier1: [${group.specialType}]: Adding ${generatedAnimeName}"
        }
-       // addGroupAnimeNameToList = false
-       // println "----- Tier2: Adding ${basename}"
-       // tier2AnimeNames += ["${basename}"]
      }
      // ---------- AirDate Syntax  ---------- //
      if ( (group.airdateSeasonNumber != null || group.hasSeasonality)  && ( !group.hasOrdinalSeasonality || !group.hasPartialSeasonality) ) {
@@ -1554,7 +1296,7 @@ ArrayList seriesnameGenerator ( LinkedHashMap group, HashSet baseGeneratedAnimeN
          println "------- Tier1: Adding ${generatedAnimeName} - Alternative Seasonality Syntax"
          tier1AnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
          switch (group.specialType) {
-           case ~/(?i)(OVA|ONA|OAD|OVA)/:
+           case ~/(?i)(OVA|ONA|OAD)/:
              // ---------- Add Full list of alternative Season names as options ending with SpecialType (ugh)---------- //
              generatedAnimeName = basename + ' part ' + mySeasonalityNumber + ' ' + group.specialType // anime part 2
              println "------- Tier1: [${group.specialType}]: Adding ${generatedAnimeName} - Partial (Numerical) Seasonality"
@@ -1595,7 +1337,7 @@ ArrayList seriesnameGenerator ( LinkedHashMap group, HashSet baseGeneratedAnimeN
          }
        }
        switch (group.specialType) {
-         case ~/(?i)(OVA|ONA|OAD|OVA)/:
+         case ~/(?i)(OVA|ONA|OAD)/:
            generatedAnimeName = basename + ' ' + group.specialType
            tier1AnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
            println "------- Tier1: [${group.specialType}]: Adding ${generatedAnimeName}"
@@ -1654,7 +1396,7 @@ ArrayList seriesnameGenerator ( LinkedHashMap group, HashSet baseGeneratedAnimeN
          generatedOrdinalAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
          if ( !group.hasPartialSeasonality) {
            switch (group.specialType) {
-             case ~/(?i)(OVA|ONA|OAD|OVA)/:
+             case ~/(?i)(OVA|ONA|OAD)/:
                // ---------- Add Full list of alternative Season names as options and OVA Syntax (ugh)---------- //
                generatedAnimeName = basename + ' part ' + mySeasonalityNumber + ' ' + group.specialType // anime part 2
                println "------- Ordinal: [${group.specialType}]: Adding ${generatedAnimeName} - Partial (Numerical) Seasonality"
@@ -1737,7 +1479,7 @@ ArrayList seriesnameGenerator ( LinkedHashMap group, HashSet baseGeneratedAnimeN
              println "------- Tier1: Adding ${generatedAnimeName} - Alternative Seasonality Syntax"
              tier1AnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
              switch (group.specialType) {
-               case ~/(?i)(OVA|ONA|OAD|OVA)/:
+               case ~/(?i)(OVA|ONA|OAD)/:
                  // ---------- Add Full list of alternative Season names as options ---------- //
                  generatedAnimeName = ordinalAnimeName + ' part ' + mySeasonalityNumber + ' ' + group.specialType // anime part 2
                  println "------- Tier1: [${group.specialType}]: Adding ${generatedAnimeName} - Partial (Numerical) Seasonality"
@@ -1824,7 +1566,7 @@ ArrayList seriesnameGenerator ( LinkedHashMap group, HashSet baseGeneratedAnimeN
          println "------- Tier1: Adding ${generatedAnimeName} - Alternative Seasonality Syntax"
          tier1AnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
          switch (group.specialType) {
-           case ~/(?i)(OVA|ONA|OAD|OVA)/:
+           case ~/(?i)(OVA|ONA|OAD)/:
              // ---------- Add Full list of alternative Season names as options ---------- //
              generatedAnimeName = basename + ' part ' + mySeasonalityNumber + ' ' + group.specialType // anime part 2
              println "------- Tier1: [${group.specialType}]: Adding ${generatedAnimeName} - Partial (Numerical) Seasonality"
@@ -1866,7 +1608,7 @@ ArrayList seriesnameGenerator ( LinkedHashMap group, HashSet baseGeneratedAnimeN
      if ( group.isSpecial ) {
        println '----- OVA/ONA/OAD/Special Syntax Detected'
        switch (group.specialType) {
-         case ~/(?i)(OVA|ONA|OAD|OVA)/:
+         case ~/(?i)(OVA|ONA|OAD)/:
            generatedAnimeName = basename + ' ' + group.specialType
            tier1AnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
            println "------- Tier1: [${group.specialType}]: Adding ${generatedAnimeName}"
@@ -1890,13 +1632,9 @@ ArrayList seriesnameGenerator ( LinkedHashMap group, HashSet baseGeneratedAnimeN
        if ( hasSeasonality ) {
          println "--------- We have Seasonality, checking Tier 1 and Tier2 lists"
          if ( !tier1AnimeNames.contains("${fbdetectName}") && !tier2AnimeNames.contains("${fbdetectName}") ) {
-           // jwdcompare = jaroWinklerDistance.apply(altjwdStringBlender(animeDetectedName), altjwdStringBlender(group.anime))
-           // println "------- jaroWinklerDistance to ${group.anime}: ${jwdcompare}"
-           // if ( jwdcompare != 1 ) {
            println "--------- Tier3: Adding ${fbdetectName} FileBot Detected name to Tier 3 List"
            tier3AnimeNames += animeDetectedName
            statsTier3FilebotNameAdded++
-           // }
          } else {
            statsTierFilebotNameIncluded++
            println "--------- ${fbdetectName} Already in Tier1 or Tier2 list"
@@ -1904,13 +1642,9 @@ ArrayList seriesnameGenerator ( LinkedHashMap group, HashSet baseGeneratedAnimeN
        } else {
          println "--------- Checking Tier 1 list"
          if ( !tier1AnimeNames.contains("${fbdetectName}") ) {
-           // jwdcompare = jaroWinklerDistance.apply(altjwdStringBlender(animeDetectedName), altjwdStringBlender(group.anime))
-           // println "------- jaroWinklerDistance to ${group.anime}: ${jwdcompare}"
-           // if ( jwdcompare != 1 ) {
            println "--------- Tier3: Adding ${fbdetectName} FileBot Detected name to Tier 3 List"
            tier3AnimeNames += animeDetectedName
            statsTier3FilebotNameAdded++
-           // }
          } else {
            statsTierFilebotNameIncluded++
            println "--------- ${fbdetectName} Already in Tier1 list"
@@ -1933,9 +1667,6 @@ ArrayList seriesnameGenerator ( LinkedHashMap group, HashSet baseGeneratedAnimeN
 String order = ''
 animeDetectedName = ''
 renamerSource = 'script' as String
-// String lookupTVDB = ''
-// String lookupAniDB = ''
-// Boolean rfsIncomplete = false
 rfsIncomplete = false as Boolean// GLobal variable?
 Boolean hasTVDBSeasonalitySyntax = false
 Boolean hasOrdinalSeasonalitySyntax = false
@@ -1945,7 +1676,6 @@ secondPassOptionsSet = false
 myXMLTVDBSeasonLookupSetup = false
 myXMLTVDBSeasonLookup = 0
 Boolean hasOVAONASyntax = false
-// Boolean strictRename = true
 animeFoundInTVDB = false
 animeFoundInAniDB = false
 statsGroupsFromFilebot = 0 as Integer
@@ -2019,7 +1749,6 @@ groupsByManualThreeEpisodes.each { group, files ->
   log.finest "${groupInfoGenerator(group)} => ${files*.name}"
 //  log.finest "${group}"
   // ---------- START TV Mode ---------- //
-//  if ( !group.mov ) {
     // ---------- Reset Variables ---------- //
     // TODO
     // Implement actions or options to allow changing the "default" Match threshold
@@ -2109,7 +1838,6 @@ groupsByManualThreeEpisodes.each { group, files ->
     returnThing = filebotTVDBJWDSearch(tier3AnimeNames, fileBotThetvDBJWDResults, animeFoundInTVDB, locale)
     fileBotThetvDBJWDResults = returnThing.jwdresults
     animeFoundInTVDB = returnThing.animeFoundInTVDB
-//    fileBotThetvDBJWDResults = filebotTVDBJWDSearch(tier3AnimeNames, fileBotThetvDBJWDResults)
 //    println "fileBotThetvDBJWDResults:->${fileBotThetvDBJWDResults}"
     returnThing2 = filebotAnidbJWDSearch(tier3AnimeNames, fileBotAniDBJWDResults, animeFoundInAniDB, locale, aniDBTitleXMLFilename, aniDBSynonymXMLFilename, useFilebotAniDBAliases)
     fileBotAniDBJWDResults = returnThing2.jwdresults
@@ -2266,7 +1994,6 @@ groupsByManualThreeEpisodes.each { group, files ->
     // Another option prior (or including) when using non-strict is to limit the "age" of the episodes in consideration to the media encoded date .. except for Horrible Subs which of course have invalid media encoded dates :(
     //  - This might also allow for NOT using a query (if the age is recent, if it's 6 months then probably not ..) - Use age filter if media encoded date is less then 30 day's ago?
     // ---------- Final deliberations on order, DB, filter ---------- //
-    // how to programatically handle series with multiple seasonality syntaxes?
     println '// ---------- deliberations on order, DB, filter ---------- //'
     // --- airdate Syntax --- //
     if (group.order == 'airdate' && performRename) {
@@ -2300,11 +2027,11 @@ groupsByManualThreeEpisodes.each { group, files ->
             }
             if ( firstANIDBWTMatchNumber > 0.9800000000000000000 ) {
               println '------- We are going to try and validate TVDB Season as 1st AniDB match 0.98+'
-              myanimeListXMLGetTVDBID = animeListXMLGetTVDBID(scudlessAnimeTitles, anidbFirstMatchDetails.dbid, locale)
+              myanimeListXMLGetTVDBID = filebotAnimeListReturnFromAID(anidbFirstMatchDetails.dbid, true)
               if ( myanimeListXMLGetTVDBID == theTVDBFirstMatchDetails.dbid ) {
                  println '--------- AnimeList mapping found and matched.'
                 // Since we got an ID, in theory that means there is always a mapping so we don't need to check if it's null..
-                myanimeListXMLGetTVDBSeason = animeListXMLGetTVDBSeason(scudlessAnimeTitles, anidbFirstMatchDetails.dbid, locale)
+                myanimeListXMLGetTVDBSeason = filebotAnimeListReturnFromAID(anidbFirstMatchDetails.dbid, false, true)
                 if ( myanimeListXMLGetTVDBSeason == mySeasonalityNumber ) {
                   statsRenamedUsingScript++
                   println "--------- Seasons Match, Filter to Season ${mySeasonalityNumber}"
@@ -2314,7 +2041,6 @@ groupsByManualThreeEpisodes.each { group, files ->
                   } else {
                     renameFilter = "s == ${mySeasonalityNumber}"
                   }
-                  // renameFilter = "s == ${mySeasonalityNumber}"
                   renameMapper = '[episode, AnimeList.AniDB, order.absolute.episode]'
                   firstPassOptionsSet = true
                   renameQuery = theTVDBFirstMatchDetails.dbid
@@ -2358,7 +2084,6 @@ groupsByManualThreeEpisodes.each { group, files ->
                 println "----------- 1st AniDB == 1.0, Let's use AniDB"
                 renameFilter = ""
                 renameMapper = '[episode, AnimeList.TheTVDB, XEM.TheTVDB]' // While I use AniDB metadata, in theory it isn't needed to specify a mapper to access that metadata as long as it's in AnimeList.AniDB.
-                // renameMapper = '[episode, AnimeList.AniDB, order.absolute.episode]'
                 firstPassOptionsSet = true
                 renameQuery = anidbFirstMatchDetails.dbid
                 renameDB = 'AniDB'
@@ -2385,19 +2110,17 @@ groupsByManualThreeEpisodes.each { group, files ->
                 renameFilter = ''
               }
               // Series name mathes TVDB primary title, let's go under the assumption it has the correct SxxExx notation.
-              // renameFilter = ''
               firstPassOptionsSet = true
               renameQuery = theTVDBFirstMatchDetails.dbid
               renameDB = 'TheTVDB'
               renameOrder = 'airdate'
               renameStrict = true
               renameMapper = '' // While I use AniDB metadata, in theory it isn't needed to specify a mapper to access that metadata as long as it's in AnimeList.AniDB.
-              // renameMapper = '[episode, AnimeList.AniDB, order.absolute.episode]'
               println "renameStrict: ${renameStrict}, renameQuery: ${renameQuery}, renameDB: ${renameDB}, renameOrder: ${renameOrder}, renameFilter: ${renameFilter}, renameMapper: ${renameMapper}"
             }
             if ( firstANIDBWTMatchNumber > 0.9800000000000000000 ) {
               println '------- We are going to try and validate AnimeList has Mapping as 1st AniDB match 0.98+'
-              myanimeListXMLGetTVDBID = animeListXMLGetTVDBID(scudlessAnimeTitles, anidbFirstMatchDetails.dbid, locale)
+              myanimeListXMLGetTVDBID = filebotAnimeListReturnFromAID(anidbFirstMatchDetails.dbid, true)
               if ( myanimeListXMLGetTVDBID != null ) {
                 statsRenamedUsingScript++
                 // Since we got an ID, in theory that means there is always a mapping so we don't need to check if it's null..
@@ -2410,7 +2133,6 @@ groupsByManualThreeEpisodes.each { group, files ->
                     renameFilter = ''
                   }
                   // Series name mathes TVDB primary title, let's go under the assumption it has the correct SxxExx notation.
-                  // renameFilter = ''
                   firstPassOptionsSet = true
                   renameQuery = theTVDBFirstMatchDetails.dbid
                   renameDB = 'TheTVDB'
@@ -2422,32 +2144,19 @@ groupsByManualThreeEpisodes.each { group, files ->
               } else {
                 println "--------- Mapping was likely null, returned TVDBID: ${myanimeListXMLGetTVDBID}"
                 statsRenamedUsingScript++
-                // if ( firstANIDBWTMatchNumber == 1 ) {
-                  println "----------- 1st AniDB > 0.98, Let's use AniDB"
-                  renameFilter = ""
-                  renameMapper = '[episode, AnimeList.TheTVDB, XEM.TheTVDB]' // While I use AniDB metadata, in theory it isn't needed to specify a mapper to access that metadata as long as it's in AnimeList.AniDB.
-                  // renameMapper = '[episode, AnimeList.AniDB, order.absolute.episode]'
-                  firstPassOptionsSet = true
-                  renameQuery = anidbFirstMatchDetails.dbid
-                  renameDB = 'AniDB'
-                  renameOrder = 'Absolute'
-                  if ( (useNonStrictOnAniDBFullMatch && firstANIDBWTMatchNumber == 1 ) || (useNonStrictOnAniDBSpecials && group.isSpecial) ) {
-                    renameStrict = false
-                  } else {
-                    renameStrict = true
-                  }
-                  println "renameStrict: ${renameStrict}, renameQuery: ${renameQuery}, renameDB: ${renameDB}, renameOrder: ${renameOrder}, renameFilter: ${renameFilter}, renameMapper: ${renameMapper}"
-                // } else {
-                //   println "----------- Using TVDB with Season Filter set to ${mySeasonalityNumber}"
-                //   renameFilter = "s == ${mySeasonalityNumber}"
-                //   renameMapper = '[episode, AnimeList.AniDB, order.absolute.episode]' // While I use AniDB metadata, in theory it isn't needed to specify a mapper to access that metadata as long as it's in AnimeList.AniDB.
-                //   // renameMapper = '[episode, AnimeList.AniDB, order.absolute.episode]'
-                //   firstPassOptionsSet = true
-                //   renameQuery = theTVDBFirstMatchDetails.dbid
-                //   renameDB = 'TheTVDB'
-                //   renameOrder = 'airdate'
-                //   renameStrict = true
-                // }
+                println "----------- 1st AniDB > 0.98, Let's use AniDB"
+                renameFilter = ""
+                renameMapper = '[episode, AnimeList.TheTVDB, XEM.TheTVDB]' // While I use AniDB metadata, in theory it isn't needed to specify a mapper to access that metadata as long as it's in AnimeList.AniDB.
+                firstPassOptionsSet = true
+                renameQuery = anidbFirstMatchDetails.dbid
+                renameDB = 'AniDB'
+                renameOrder = 'Absolute'
+                if ( (useNonStrictOnAniDBFullMatch && firstANIDBWTMatchNumber == 1 ) || (useNonStrictOnAniDBSpecials && group.isSpecial) ) {
+                  renameStrict = false
+                } else {
+                  renameStrict = true
+                }
+                println "renameStrict: ${renameStrict}, renameQuery: ${renameQuery}, renameDB: ${renameDB}, renameOrder: ${renameOrder}, renameFilter: ${renameFilter}, renameMapper: ${renameMapper}"
               }
             }
           }
@@ -2466,7 +2175,6 @@ groupsByManualThreeEpisodes.each { group, files ->
               } else {
                 renameFilter = "s == ${mySeasonalityNumber}"
               }
-              // renameFilter = "s == ${mySeasonalityNumber}"
               renameMapper = '[episode, AnimeList.AniDB, order.absolute.episode]'
               firstPassOptionsSet = true
               renameQuery = fileBotTheTVDBJWDMatchDetails.dbid
@@ -2477,11 +2185,11 @@ groupsByManualThreeEpisodes.each { group, files ->
             }
             if ( firstANIDBWTMatchNumber > 0.9800000000000000000 ) {
               println '------- We are going to try and validate TVDB Season as 1st AniDB match 0.98+'
-              myanimeListXMLGetTVDBID = animeListXMLGetTVDBID(scudlessAnimeTitles, anidbFirstMatchDetails.dbid, locale)
+              myanimeListXMLGetTVDBID = filebotAnimeListReturnFromAID(anidbFirstMatchDetails.dbid, true)
               if ( myanimeListXMLGetTVDBID == fileBotTheTVDBJWDMatchDetails.dbid ) {
                 println '--------- AnimeList mapping found and matched.'
                 // Since we got an ID, in theory that means there is always a mapping so we don't need to check if it's null..
-                myanimeListXMLGetTVDBSeason = animeListXMLGetTVDBSeason(scudlessAnimeTitles, anidbFirstMatchDetails.dbid, locale)
+                myanimeListXMLGetTVDBSeason = filebotAnimeListReturnFromAID(anidbFirstMatchDetails.dbid, false, true)
                 if ( myanimeListXMLGetTVDBSeason == mySeasonalityNumber ) {
                   statsRenamedUsingFilebot++
                   renamerSource = 'filebot'
@@ -2492,7 +2200,6 @@ groupsByManualThreeEpisodes.each { group, files ->
                   } else {
                     renameFilter = "s == ${mySeasonalityNumber}"
                   }
-                  // renameFilter = "s == ${mySeasonalityNumber}"
                   renameMapper = '[episode, AnimeList.AniDB, order.absolute.episode]'
                   firstPassOptionsSet = true
                   renameQuery = fileBotTheTVDBJWDMatchDetails.dbid
@@ -2512,7 +2219,6 @@ groupsByManualThreeEpisodes.each { group, files ->
                     } else {
                       renameFilter = ''
                     }
-                    // renameFilter = ''
                     renameMapper = '[episode, AnimeList.AniDB, order.absolute.episode]'
                     firstPassOptionsSet = true
                     renameQuery = fileBotTheTVDBJWDMatchDetails.dbid
@@ -2525,7 +2231,6 @@ groupsByManualThreeEpisodes.each { group, files ->
                     println "----------- Mapped Season is [${myanimeListXMLGetTVDBSeason}]"
                     renameFilter = ""
                     renameMapper = '[episode, AnimeList.TheTVDB, XEM.TheTVDB]' // While I use AniDB metadata, in theory it isn't needed to specify a mapper to access that metadata as long as it's in AnimeList.AniDB.
-                    // renameMapper = '[episode, AnimeList.AniDB, order.absolute.episode]'
                     firstPassOptionsSet = true
                     renameQuery = anidbFirstMatchDetails.dbid
                     renameDB = 'AniDB'
@@ -2572,19 +2277,17 @@ groupsByManualThreeEpisodes.each { group, files ->
                 renameFilter = ''
               }
               // Series name mathes TVDB primary title, let's go under the assumption it has the correct SxxExx notation.
-              // renameFilter = ''
               firstPassOptionsSet = true
               renameQuery = fileBotTheTVDBJWDMatchDetails.dbid
               renameDB = 'TheTVDB'
               renameOrder = 'airdate'
               renameStrict = true
               renameMapper = '' // While I use AniDB metadata, in theory it isn't needed to specify a mapper to access that metadata as long as it's in AnimeList.AniDB.
-              // renameMapper = '[episode, AnimeList.AniDB, order.absolute.episode]'
               println "renameStrict: ${renameStrict}, renameQuery: ${renameQuery}, renameDB: ${renameDB}, renameOrder: ${renameOrder}, renameFilter: ${renameFilter}, renameMapper: ${renameMapper}"
             }
             if ( firstANIDBWTMatchNumber > 0.9800000000000000000 ) {
               println '------- We are going to try and validate AnimeList has Mapping as 1st AniDB match 0.98+'
-              myanimeListXMLGetTVDBID = animeListXMLGetTVDBID(scudlessAnimeTitles, anidbFirstMatchDetails.dbid, locale)
+              myanimeListXMLGetTVDBID = filebotAnimeListReturnFromAID(anidbFirstMatchDetails.dbid, true)
               if ( myanimeListXMLGetTVDBID != null ) {
                 statsRenamedUsingFilebot++
                 renamerSource = 'filebot'
@@ -2598,44 +2301,29 @@ groupsByManualThreeEpisodes.each { group, files ->
                     renameFilter = ''
                   }
                   // Series name mathes TVDB primary title, let's go under the assumption it has the correct SxxExx notation.
-                  // renameFilter = ''
                   firstPassOptionsSet = true
                   renameQuery = fileBotTheTVDBJWDMatchDetails.dbid
                   renameDB = 'TheTVDB'
                   renameOrder = 'airdate'
                   renameStrict = true
                   renameMapper = '' // While I use AniDB metadata, in theory it isn't needed to specify a mapper to access that metadata as long as it's in AnimeList.AniDB.
-                  // renameMapper = '[episode, AnimeList.AniDB, order.absolute.episode]'
                   println "renameStrict: ${renameStrict}, renameQuery: ${renameQuery}, renameDB: ${renameDB}, renameOrder: ${renameOrder}, renameFilter: ${renameFilter}, renameMapper: ${renameMapper}"
               } else {
                 statsRenamedUsingScript++
                 println "--------- Mapping was likely null, returned TVDBID: ${myanimeListXMLGetTVDBID}"
-                // if ( firstANIDBWTMatchNumber == 1 ) {
-                  println "----------- 1st AniDB > 0.98, Let's use AniDB"
-                  renameFilter = ""
-                  renameMapper = '[episode, AnimeList.TheTVDB, XEM.TheTVDB]' // While I use AniDB metadata, in theory it isn't needed to specify a mapper to access that metadata as long as it's in AnimeList.AniDB.
-                  // renameMapper = '[episode, AnimeList.AniDB, order.absolute.episode]'
-                  firstPassOptionsSet = true
-                  renameQuery = anidbFirstMatchDetails.dbid
-                  renameDB = 'AniDB'
-                  renameOrder = 'Absolute'
-                  if ( (useNonStrictOnAniDBFullMatch && firstANIDBWTMatchNumber == 1 ) || (useNonStrictOnAniDBSpecials && group.isSpecial) ) {
-                    renameStrict = false
-                  } else {
-                    renameStrict = true
-                  }
-                  println "renameStrict: ${renameStrict}, renameQuery: ${renameQuery}, renameDB: ${renameDB}, renameOrder: ${renameOrder}, renameFilter: ${renameFilter}, renameMapper: ${renameMapper}"
-                // } else {
-                //   println "----------- Using TVDB with Season Filter set to ${mySeasonalityNumber}"
-                //   renameFilter = "s == ${mySeasonalityNumber}"
-                //   renameMapper = '[episode, AnimeList.AniDB, order.absolute.episode]' // While I use AniDB metadata, in theory it isn't needed to specify a mapper to access that metadata as long as it's in AnimeList.AniDB.
-                //   // renameMapper = '[episode, AnimeList.AniDB, order.absolute.episode]'
-                //   firstPassOptionsSet = true
-                //   renameQuery = theTVDBFirstMatchDetails.dbid
-                //   renameDB = 'TheTVDB'
-                //   renameOrder = 'airdate'
-                //   renameStrict = true
-                // }
+                println "----------- 1st AniDB > 0.98, Let's use AniDB"
+                renameFilter = ""
+                renameMapper = '[episode, AnimeList.TheTVDB, XEM.TheTVDB]' // While I use AniDB metadata, in theory it isn't needed to specify a mapper to access that metadata as long as it's in AnimeList.AniDB.
+                firstPassOptionsSet = true
+                renameQuery = anidbFirstMatchDetails.dbid
+                renameDB = 'AniDB'
+                renameOrder = 'Absolute'
+                if ( (useNonStrictOnAniDBFullMatch && firstANIDBWTMatchNumber == 1 ) || (useNonStrictOnAniDBSpecials && group.isSpecial) ) {
+                  renameStrict = false
+                } else {
+                  renameStrict = true
+                }
+                println "renameStrict: ${renameStrict}, renameQuery: ${renameQuery}, renameDB: ${renameDB}, renameOrder: ${renameOrder}, renameFilter: ${renameFilter}, renameMapper: ${renameMapper}"
               }
             }
           }
@@ -2769,7 +2457,6 @@ groupsByManualThreeEpisodes.each { group, files ->
       }
     }
     // --- Absolute Syntax --- //
-    // if (group.order == 'Absolute' && !group.isSpecial && performRename) {
     if (group.order == 'Absolute' && performRename) {
       if ( fileBotAniDBMatchUsed ){
         renamerSource = 'filebot'
@@ -2797,7 +2484,6 @@ groupsByManualThreeEpisodes.each { group, files ->
           renameMapper = '[AnimeList.AniDB, episode, order.absolute.episode]'
           renameDB = 'TheTVDB'
         }
-        // if ( firstTVDBDWTMatchNumber < 0.9800000000000000000 && fileBotTheTVDBJWDMatchNumber > 0.9800000000000000000 && fileBotTheTVDBJWDMatchDetails.dbid != theTVDBFirstMatchDetails.dbid ) {
         if ( firstTVDBDWTMatchNumber < 0.9800000000000000000 && fileBotTheTVDBJWDMatchNumber > 0.9800000000000000000 ) {
           println '----- Using Filebot TVDB Match as it 0.98+'
           firstPassOptionsSet = true
@@ -2868,11 +2554,11 @@ groupsByManualThreeEpisodes.each { group, files ->
       if ( firstANIDBWTMatchNumber > 0.9800000000000000000 && firstTVDBDWTMatchNumber > 0.9800000000000000000 && !group.isSpecial) {
         println '------- 1st AniDB match 0.98+'
         println '--------- We are going to try and validate TVDB Season (To see if we can use TVDB to lookup Anime)'
-        myanimeListXMLGetTVDBID = animeListXMLGetTVDBID(scudlessAnimeTitles, anidbFirstMatchDetails.dbid, locale)
+        myanimeListXMLGetTVDBID = filebotAnimeListReturnFromAID(anidbFirstMatchDetails.dbid, true)
         if ( myanimeListXMLGetTVDBID == theTVDBFirstMatchDetails.dbid ) {
           println '--------- AnimeList AniDB to TVDB ID mapping found and matched.'
           // Since we got an ID, in theory that means there is always a mapping so we don't need to check if it's null..
-          myanimeListXMLGetTVDBSeason = animeListXMLGetTVDBSeason(scudlessAnimeTitles, anidbFirstMatchDetails.dbid, locale)
+          myanimeListXMLGetTVDBSeason = filebotAnimeListReturnFromAID(anidbFirstMatchDetails.dbid, false, true)
           if ( hasSeasonality ) {
             println '-----------  Seasonality Detected'
             if ( myanimeListXMLGetTVDBSeason == mySeasonalityNumber ) {
@@ -2885,7 +2571,6 @@ groupsByManualThreeEpisodes.each { group, files ->
               } else {
                 renameFilter = "s == ${myanimeListXMLGetTVDBSeason}"
               }
-              // renameFilter = "s == ${myanimeListXMLGetTVDBSeason}"
               renameMapper = '[AnimeList.AniDB, episode, order.absolute.episode]'
               firstPassOptionsSet = true
               statsRenamedUsingScript++
@@ -2919,7 +2604,6 @@ groupsByManualThreeEpisodes.each { group, files ->
             } else {
               renameFilter = "s == ${myanimeListXMLGetTVDBSeason}"
             }
-            // renameFilter = "s == ${myanimeListXMLGetTVDBSeason}"
             renameMapper = '[AnimeList.AniDB, episode, order.absolute.episode]'
             firstPassOptionsSet = true
             statsRenamedUsingScript++
@@ -2950,11 +2634,11 @@ groupsByManualThreeEpisodes.each { group, files ->
       if ( firstANIDBWTMatchNumber < 0.9800000000000000000 && fileBotANIDBJWDMatchNumber > 0.9800000000000000000 && firstTVDBDWTMatchNumber > 0.9800000000000000000 ) {
         println '------- Filebot match 0.98+'
         println '--------- We are going to try and validate TVDB Season'
-        myanimeListXMLGetTVDBID = animeListXMLGetTVDBID(scudlessAnimeTitles, fileBotANIDBJWDMatchDetails.dbid, locale)
+        myanimeListXMLGetTVDBID = filebotAnimeListReturnFromAID(fileBotANIDBJWDMatchDetails.dbid, true)
         if ( myanimeListXMLGetTVDBID == theTVDBFirstMatchDetails.dbid ) {
             println '--------- AnimeList mapping found and matched.'
           // Since we got an ID, in theory that means there is always a mapping so we don't need to check if it's null..
-          myanimeListXMLGetTVDBSeason = animeListXMLGetTVDBSeason(scudlessAnimeTitles, fileBotANIDBJWDMatchDetails.dbid, locale)
+          myanimeListXMLGetTVDBSeason = filebotAnimeListReturnFromAID(fileBotANIDBJWDMatchDetails.dbid, false, true)
           println "--------- Use the mapping Season ${myanimeListXMLGetTVDBSeason} as a filter."
           println '------------ Using TVDB'
           if ( group.isSpecial ) {
@@ -2963,7 +2647,6 @@ groupsByManualThreeEpisodes.each { group, files ->
           } else {
             renameFilter = "s == ${myanimeListXMLGetTVDBSeason}"
           }
-          // renameFilter = "s == ${myanimeListXMLGetTVDBSeason}"
           renameMapper = '[AnimeList.AniDB, episode, order.absolute.episode]'
           firstPassOptionsSet = true
           statsRenamedUsingScript++
@@ -3009,7 +2692,6 @@ groupsByManualThreeEpisodes.each { group, files ->
           renameMapper = ''
           println "renameStrict: ${renameStrict}, renameQuery: ${renameQuery}, renameDB: ${renameDB}, renameOrder: ${renameOrder}, renameFilter: ${renameFilter}, renameMapper: ${renameMapper}"
         }
-        // if ( firstANIDBWTMatchNumber < 0.9800000000000000000 && fileBotANIDBJWDMatchNumber > 0.9800000000000000000 && fileBotANIDBJWDMatchDetails.dbid != anidbFirstMatchDetails.dbid ) {
         if ( firstANIDBWTMatchNumber < 0.9800000000000000000 && fileBotANIDBJWDMatchNumber > 0.9800000000000000000 ) {
           println "------- using Filebot match as it's 0.98+"
           // Use Filebot AniDB Match if it's 0.98+
@@ -3107,34 +2789,9 @@ groupsByManualThreeEpisodes.each { group, files ->
       println "\t rfsLeftOver: ${rfsLeftOver}, rfsIncomplete: ${rfsIncomplete}"
       println '// -------------------------------------- //'
     }
-
     // ------------------------------ //
     // ---------- 2nd Pass ---------- //
     // ------------------------------ //
-    // MediaInfo related to "dates"
-    //  --- Note it is not unusual to have 'invalid' (error kind) or 'invalid' (weird date kind) in Encoded_Date, and of course horriblesubs seems to set their File_Created_Date to the same day in 2010 ..
-    //       File_Created_Date, File_Created_Date_Local, File_Modified_Date and File_Modified_Date_Local usually contain "good" data as those tend to be based on "local" data on the filesystem the file is currently on.
-    // Property [Encoded_Date              ] : UTC 2020-09-08 16:26:49
-    // Property [File_Created_Date         ] : UTC 2020-09-09 13:14:36.400
-    // Property [File_Created_Date_Local   ] : 2020-09-09 08:14:36.400
-    // Property [File_Modified_Date        ] : UTC 2020-09-08 17:31:48.000
-    // Property [File_Modified_Date_Local  ] : 2020-09-08 12:31:48.000
-    // if ( rfsIncomplete ) {
-    //   maxFileAge = 0
-    //   files.each { fileAgeDisovery ->
-    //     med = getMediaInfo(fileAgeDisovery, '{media.Encoded_Date}') // 2020-07-02 00:55:19.560 - Type String
-    //     Date today = getNow()
-    //     if ( med == null ) {
-    //       medFormatted = today
-    //     } else {
-    //       medFormatted = Date.parse('zzz yyyy-MM-dd HH:mm:ss', med)
-    //     }
-    //     fileAge = daysBetween(medFormatted, today)
-    //     if ( fileAge > maxFileAge ) {
-    //       maxFileAge = fileAge
-    //     }
-    //   }
-    // }
     // ---------- Setup 2nd Pass Options for Specific "types" ---------- //
     if ( rfsIncomplete && performRename ) {
       sleep (2000) // Pause 2 seconds in between Stages
@@ -3276,7 +2933,6 @@ groupsByManualThreeEpisodes.each { group, files ->
         }
       }
       // --- Absolute Syntax --- //
-      // if (group.order == 'Absolute' && !group.isSpecial) {
       if (group.order == 'Absolute') {
         println "//--- Absolute Ordering Detected"
         if (( !animeFoundInAniDB || (firstANIDBWTMatchNumber < 0.9800000000000000000 && fileBotANIDBJWDMatchNumber < 0.9800000000000000000 )) && animeFoundInTVDB) {
@@ -3330,7 +2986,6 @@ groupsByManualThreeEpisodes.each { group, files ->
               performRename = false
             }
           }
-          // if ( firstTVDBDWTMatchNumber < 0.9800000000000000000 && fileBotTheTVDBJWDMatchNumber > 0.9800000000000000000 && fileBotTheTVDBJWDMatchDetails.dbid != theTVDBFirstMatchDetails.dbid ) {
           if ( firstTVDBDWTMatchNumber < 0.9800000000000000000 && fileBotTheTVDBJWDMatchNumber > 0.9800000000000000000 ) {
             println '----- Using Filebot TVDB Match as it 0.98+'
             if ( secondTVDBDWTMatchNumber > 0.9800000000000000000 ) {
@@ -3373,11 +3028,11 @@ groupsByManualThreeEpisodes.each { group, files ->
         if ( firstANIDBWTMatchNumber > 0.9800000000000000000 && firstTVDBDWTMatchNumber > 0.9800000000000000000 ) {
           println '------- 1st AniDB match 0.98+'
           println '--------- We are going to try and validate TVDB Season'
-          myanimeListXMLGetTVDBID = animeListXMLGetTVDBID(scudlessAnimeTitles, anidbFirstMatchDetails.dbid, locale)
+          myanimeListXMLGetTVDBID = filebotAnimeListReturnFromAID(anidbFirstMatchDetails.dbid, true)
           if ( myanimeListXMLGetTVDBID == theTVDBFirstMatchDetails.dbid ) {
           println '--------- AnimeList AniDB to TVDB ID mapping found and matched.'
           // Since we got an ID, in theory that means there is always a mapping so we don't need to check if it's null..
-          myanimeListXMLGetTVDBSeason = animeListXMLGetTVDBSeason(scudlessAnimeTitles, anidbFirstMatchDetails.dbid, locale)
+          myanimeListXMLGetTVDBSeason = filebotAnimeListReturnFromAID(anidbFirstMatchDetails.dbid, false, true)
           if ( hasSeasonality ) {
             println '-----------  Seasonality Detected'
             if ( myanimeListXMLGetTVDBSeason == mySeasonalityNumber ) {
@@ -3431,7 +3086,6 @@ groupsByManualThreeEpisodes.each { group, files ->
           } else {
             println "--------- Mapping didn't match, returned TVDBID: ${myanimeListXMLGetTVDBID}"
             // Are we missing that we should be using filebotanidb if it's above 0.98? and first is also above 0.98?
-            // if ( firstANIDBWTMatchNumber < 0.9800000000000000000 && fileBotANIDBJWDMatchNumber > 0.9800000000000000000 && fileBotANIDBJWDMatchDetails.dbid != anidbFirstMatchDetails.dbid ) {
             if ( fileBotANIDBJWDMatchNumber > 0.9800000000000000000 && fileBotANIDBJWDMatchDetails.dbid != anidbFirstMatchDetails.dbid ) {
               println "------- using Filebot match as it's 0.98+"
               // Use Filebot AniDB Match if it's 0.98+
@@ -3477,7 +3131,7 @@ groupsByManualThreeEpisodes.each { group, files ->
         if ( firstANIDBWTMatchNumber < 0.9800000000000000000 && fileBotANIDBJWDMatchNumber > 0.9800000000000000000 && firstTVDBDWTMatchNumber > 0.9800000000000000000 ) {
           println '------- Filebot match 0.98+'
           println '--------- We are going to try and validate TVDB Season'
-          myanimeListXMLGetTVDBID = animeListXMLGetTVDBID(scudlessAnimeTitles, fileBotANIDBJWDMatchDetails.dbid, locale)
+          myanimeListXMLGetTVDBID = filebotAnimeListReturnFromAID(fileBotANIDBJWDMatchDetails.dbid, true)
           if ( myanimeListXMLGetTVDBID == theTVDBFirstMatchDetails.dbid ) {
             println '--------- AnimeList mapping found and matched.'
             secondPassOptionsSet = true
@@ -3567,7 +3221,6 @@ groupsByManualThreeEpisodes.each { group, files ->
               secondPassOptionsSet = true
             }
           }
-          // if ( firstANIDBWTMatchNumber < 0.9800000000000000000 && fileBotANIDBJWDMatchNumber > 0.9800000000000000000 && fileBotANIDBJWDMatchDetails.dbid != anidbFirstMatchDetails.dbid ) {
           if ( firstANIDBWTMatchNumber < 0.9800000000000000000 && fileBotANIDBJWDMatchNumber > 0.9800000000000000000 ) {
             if ( secondANIDBWTMatchNumber > 0.9800000000000000000  && firstPassOptionsSet == false) {
               println "------- using 2nd AniDB match as it's 0.98+"
@@ -3637,539 +3290,40 @@ groupsByManualThreeEpisodes.each { group, files ->
       if (group.order == 'airdate') {
         performRename = false
       }
-/*      if (group.order == 'airdate') {
-        println '//--- Airdate Syntax'
-        if ( animeFoundInTVDB ) {
-          println '--- Anime found in TheTVDB'
-          if ( firstTVDBDWTMatchNumber > 0.9800000000000000000  || fileBotTheTVDBJWDMatchNumber > 0.9800000000000000000 ) {
-            println '----- 1st/filebot TVDB match 0.98+'
-            if ( firstANIDBWTMatchNumber > 0.9800000000000000000 ) {
-              println "------- using 1st AniDB match as it's 0.98+"
-              // Use AniDB 1st Match if it's 0.98+
-              secondPassOptionsSet = true
-              renameDB = 'AniDB'
-              renameQuery = anidbFirstMatchDetails.dbid
-              renameOrder = 'Absolute'
-              renameFilter = ''
-              if ( (useNonStrictOnAniDBFullMatch && firstANIDBWTMatchNumber == 1 ) || (useNonStrictOnAniDBSpecials && group.isSpecial) ) {
-                renameStrict = false
-              } else {
-                renameStrict = true
-              }
-              renameMapper = '[AnimeList.TheTVDB, episode, XEM.TheTVDB]'  // Since it's SxxExx file syntax, order.absolute.episode is needed to match if no entry in AnimeList
-              // Tho it may also mean that it could match even when there is an entry, which might affect metadata available?
-              println "renameStrict: ${renameStrict}, renameQuery: ${renameQuery}, renameDB: ${renameDB}, renameOrder: ${renameOrder}, renameFilter: ${renameFilter}, renameMapper: ${renameMapper}"
-            }
-            if ( firstANIDBWTMatchNumber < 0.9800000000000000000 && fileBotANIDBJWDMatchNumber > 0.9800000000000000000 && fileBotANIDBJWDMatchDetails.dbid != anidbFirstMatchDetails.dbid ) {
-              println "------- using Filebot match as it's 0.98+"
-              // Use Filebot AniDB Match if it's 0.98+
-              secondPassOptionsSet = true
-              renameDB = 'AniDB'
-              renameQuery = fileBotANIDBJWDMatchDetails.dbid
-              renameOrder = 'Absolute'
-              renameFilter = ''
-              if ( useNonStrictOnAniDBFullMatch && fileBotANIDBJWDMatchNumber == 1 ) {
-                renameStrict = false
-              } else {
-                renameStrict = true
-              }
-              renameMapper = '[AnimeList.TheTVDB, episode, XEM.TheTVDB]'  // Since it's SxxExx file syntax, order.absolute.episode is needed to match if no entry in AnimeList
-              println "renameStrict: ${renameStrict}, renameQuery: ${renameQuery}, renameDB: ${renameDB}, renameOrder: ${renameOrder}, renameFilter: ${renameFilter}, renameMapper: ${renameMapper}"
-            }
-            if ( secondANIDBWTMatchNumber > 0.9800000000000000000 && secondPassOptionsSet == false) {
-              println "------- using 2nd AniDB match as it's 0.98+"
-              // Use 2nd AniDB Match if it's above 0.98+
-              secondPassOptionsSet = true
-              renameDB = 'AniDB'
-              renameQuery = anidbSecondMatchDetails.dbid
-              renameOrder = 'Absolute'
-              renameFilter = ''
-              if ( useNonStrictOnAniDBFullMatch && secondANIDBWTMatchNumber == 1 ) {
-                renameStrict = false
-              } else {
-                renameStrict = true
-              }
-              renameMapper = '[AnimeList.TheTVDB, episode]'  // Since it's SxxExx file syntax, order.absolute.episode is needed to match if no entry in AnimeList
-              // Tho it may also mean that it could match even when there is an entry, which might affect metadata available?
-              println "renameStrict: ${renameStrict}, renameQuery: ${renameQuery}, renameDB: ${renameDB}, renameOrder: ${renameOrder}, renameFilter: ${renameFilter}, renameMapper: ${renameMapper}"
-            }
-          }
-          if ( firstTVDBDWTMatchNumber < 0.9800000000000000000 && (fileBotTheTVDBJWDMatchNumber < 0.9800000000000000000 || fileBotTheTVDBMatchUsed || fileBotTheTVDBJWDMatchNumber == 0) ) {
-            println '------ None of our TVDB Options are above 0.98+, exploring Additional ANIDB Options'
-            if ( firstANIDBWTMatchNumber > 0.9800000000000000000 ) {
-              if ( firstANIDBWTMatchNumber < 0.9800000000000000000 && fileBotANIDBJWDMatchNumber > 0.9800000000000000000 && fileBotANIDBJWDMatchDetails.dbid != anidbFirstMatchDetails.dbid ) {
-                println "------- using Filebot match as it's 0.98+"
-                // Use Filebot AniDB Match if it's 0.98+
-                secondPassOptionsSet = true
-                renameDB = 'AniDB'
-                renameQuery = fileBotANIDBJWDMatchDetails.dbid
-                renameOrder = 'Absolute'
-                renameFilter = ''
-                if ( useNonStrictOnAniDBFullMatch && fileBotANIDBJWDMatchNumber == 1 ) {
-                  renameStrict = false
-                } else {
-                  renameStrict = true
-                }
-                renameMapper = '[AnimeList.TheTVDB, episode, XEM.TheTVDB]'  // Since it's SxxExx file syntax, order.absolute.episode is needed to match if no entry in AnimeList
-                println "renameStrict: ${renameStrict}, renameQuery: ${renameQuery}, renameDB: ${renameDB}, renameOrder: ${renameOrder}, renameFilter: ${renameFilter}, renameMapper: ${renameMapper}"
-              }
-              if ( secondANIDBWTMatchNumber > 0.9800000000000000000 ) {
-                println "------- using 2nd AniDB match as it's 0.98+"
-                // Use 2nd AniDB Match if it's above 0.98+
-                secondPassOptionsSet = true
-                renameDB = 'AniDB'
-                renameQuery = anidbSecondMatchDetails.dbid
-                renameOrder = 'Absolute'
-                renameFilter = ''
-                if ( useNonStrictOnAniDBFullMatch && secondANIDBWTMatchNumber == 1 ) {
-                  renameStrict = false
-                } else {
-                  renameStrict = true
-                }
-                renameMapper = '[AnimeList.TheTVDB, episode]'  // Since it's SxxExx file syntax, order.absolute.episode is needed to match if no entry in AnimeList
-                // Tho it may also mean that it could match even when there is an entry, which might affect metadata available?
-                println "renameStrict: ${renameStrict}, renameQuery: ${renameQuery}, renameDB: ${renameDB}, renameOrder: ${renameOrder}, renameFilter: ${renameFilter}, renameMapper: ${renameMapper}"
-              }
-            }
-            if ( firstANIDBWTMatchNumber < 0.9800000000000000000 && fileBotANIDBJWDMatchNumber > 0.9800000000000000000 && fileBotANIDBJWDMatchDetails.dbid != anidbFirstMatchDetails.dbid ) {
-              if ( secondANIDBWTMatchNumber > 0.9800000000000000000 ) {
-                println "------- using 2nd AniDB match as it's 0.98+"
-                // Use 2nd AniDB Match if it's above 0.98+
-                secondPassOptionsSet = true
-                renameDB = 'AniDB'
-                renameQuery = anidbSecondMatchDetails.dbid
-                renameOrder = 'Absolute'
-                renameFilter = ''
-                if ( useNonStrictOnAniDBFullMatch && secondANIDBWTMatchNumber == 1 ) {
-                  renameStrict = false
-                } else {
-                  renameStrict = true
-                }
-                renameMapper = '[AnimeList.TheTVDB, episode, XEM.TheTVDB]'  // Since it's SxxExx file syntax, order.absolute.episode is needed to match if no entry in AnimeList
-                // Tho it may also mean that it could match even when there is an entry, which might affect metadata available?
-                println "renameStrict: ${renameStrict}, renameQuery: ${renameQuery}, renameDB: ${renameDB}, renameOrder: ${renameOrder}, renameFilter: ${renameFilter}, renameMapper: ${renameMapper}"
-              }
-            }
-            if ( secondANIDBWTMatchNumber > 0.9800000000000000000 && secondPassOptionsSet == false ) {
-              println '//-----------------------------//'
-              println '//  STOP - airdate.1-2nd.1.3   //'
-              println '//-----------------------------//'
-              performRename = false
-            }
-          }
-          if ( secondPassOptionsSet == false ) {
-            println '//-----------------------------//'
-            println '//  STOP - airdate.1-2nd       //'
-            println '//-----------------------------//'
-            performRename = false
-          }
-        }
-        if ( animeFoundInAniDB && !animeFoundInTVDB ) {
-          println '--- Anime found Only in AniDB'
-          println '//-----------------------------//'
-          println '//  STOP - airdate.2-2nd    //'
-          println '//-----------------------------//'
-          performRename = false
-        }
-      }*/
       // --- Absolute Syntax --- //
       if (group.order == 'Absolute') {
         println "//--- Absolute Ordering Detected"
         if (firstANIDBWTMatchNumber > 0.9800000000000000000 && firstTVDBDWTMatchNumber > 0.9800000000000000000) {
           println '------- 1st AniDB match 0.98+ and 1st TVDB match 0.98+'
-          if ( hasSeasonality ) {
-            println '-----------  Seasonality Detected'
-            println '//-----------------------------//'
-            println '//  STOP - absolute.3-1st.1    //'
-            println '//-----------------------------//'
-            performRename = false
-            thirdPassOptionsSet = true
-          } else {
-            println '--------- No Seasonality Detected'
-            println '--------- Use TVDB with Absolute Ordering'
-            renameQuery = theTVDBFirstMatchDetails.dbid
-            thirdPassOptionsSet = true
-            performRename = true
-            renameDB = 'TheTVDB'
-            renameFilter = ''
-            renameMapper = ''
-//            renameMapper = '[AnimeList.AniDB, episode, order.absolute.episode]'
-            renameOrder = 'Absolute'
-//            renameOrder = 'Airdate'
-            renameStrict = true
-          }
-        }
-/*        if ((!animeFoundInAniDB || (firstANIDBWTMatchNumber < 0.9800000000000000000 && fileBotANIDBJWDMatchNumber < 0.9800000000000000000)) && animeFoundInTVDB) {
-          println '--- Anime found Only in TVDB with matches above 0.98+'
-          if (firstTVDBDWTMatchNumber > 0.9800000000000000000) {
-            println '----- 1st TVDB Match is 0.98+'
-            if (firstTVDBDWTMatchNumber < 0.9800000000000000000 && fileBotTheTVDBJWDMatchNumber > 0.9800000000000000000 && fileBotTheTVDBJWDMatchDetails.dbid != theTVDBFirstMatchDetails.dbid) {
-              println '----- Using Filebot TVDB Match as it 0.98+ and has a different TVDB ID'
-              secondPassOptionsSet = true
-              if (hasSeasonality) {
-                println "----- Seasonality Detected, using ${mySeasonalityNumber} as a Season Filter"
-                renameFilter = "s == ${mySeasonalityNumber}"
-              } else {
-                renameFilter = ''
-              }
-              if (group.isSpecial) {
-                println "--------- Specials however use filter of episode.special"
-                renameFilter = "episode.special"
-              }
-              renameQuery = fileBotTheTVDBJWDMatchDetails.dbid
-              renameOrder = 'Airdate'
-              renameStrict = true
-              renameMapper = '[AnimeList.AniDB, episode, order.absolute.episode]'
-              renameDB = 'TheTVDB'
-            }
-            if (secondTVDBDWTMatchNumber > 0.9800000000000000000 && secondPassOptionsSet == false) {
-              println '----- Using 2nd TVDB Match as it 0.98+ (wow)'
-              secondPassOptionsSet = true
-              if (hasSeasonality) {
-                println "----- Seasonality Detected, using ${mySeasonalityNumber} as a Season Filter"
-                renameFilter = "s == ${mySeasonalityNumber}"
-              } else {
-                renameFilter = ''
-              }
-              if (group.isSpecial) {
-                println "--------- Specials however use filter of episode.special"
-                renameFilter = "episode.special"
-              }
-              renameQuery = theTVDBSecondMatchDetails.dbid
-              renameOrder = 'Airdate'
-              renameStrict = true
-              renameMapper = '[AnimeList.AniDB, episode, order.absolute.episode]'
-              renameDB = 'TheTVDB'
-            }
-            if (secondPassOptionsSet == false) {
-              println '----- No Suitable TVDB Options found'
-              println '//-----------------------------//'
-              println '//  STOP - absolute.1-2nd.1.3  //'
-              println '//-----------------------------//'
-              secondPassOptionsSet = true
-              performRename = false
-            }
-          }
-          // if ( firstTVDBDWTMatchNumber < 0.9800000000000000000 && fileBotTheTVDBJWDMatchNumber > 0.9800000000000000000 && fileBotTheTVDBJWDMatchDetails.dbid != theTVDBFirstMatchDetails.dbid ) {
-          if (firstTVDBDWTMatchNumber < 0.9800000000000000000 && fileBotTheTVDBJWDMatchNumber > 0.9800000000000000000) {
-            println '----- Using Filebot TVDB Match as it 0.98+'
-            if (secondTVDBDWTMatchNumber > 0.9800000000000000000) {
-              println '----- Using 2nd TVDB Match as it 0.98+ (wow)'
-              secondPassOptionsSet = true
-              if (hasSeasonality) {
-                println "----- Seasonality Detected, using ${mySeasonalityNumber} as a Season Filter"
-                renameFilter = "s == ${mySeasonalityNumber}"
-              } else {
-                renameFilter = ''
-              }
-              if (group.isSpecial) {
-                println "--------- Specials however use filter of episode.special"
-                renameFilter = "episode.special"
-              }
-              renameQuery = theTVDBSecondMatchDetails.dbid
-              renameOrder = 'Airdate'
-              renameStrict = true
-              renameMapper = '[AnimeList.AniDB, episode, order.absolute.episode]'
-              renameDB = 'TheTVDB'
-            }
-            if (secondPassOptionsSet == false) {
-              println '----- No Suitable TVDB Options found'
-              println '//-----------------------------//'
-              println '//  STOP - absolute.1-2nd.2.2  //'
-              println '//-----------------------------//'
-              secondPassOptionsSet = true
-              performRename = false
-            }
-          }
-          if (secondPassOptionsSet == false) {
-            println '----- No Suitable TVDB Options found'
-            println '//-----------------------------//'
-            println '//  STOP - absolute.1-2nd.4    //'
-            println '//-----------------------------//'
-            secondPassOptionsSet = true
-            performRename = false
-          }
-        }*/
-/*        if (firstANIDBWTMatchNumber > 0.9800000000000000000 && firstTVDBDWTMatchNumber > 0.9800000000000000000) {
           println '------- 1st AniDB match 0.98+'
           println '--------- We are going to try and validate TVDB Season'
-          myanimeListXMLGetTVDBID = animeListXMLGetTVDBID(scudlessAnimeTitles, anidbFirstMatchDetails.dbid, locale)
+          myanimeListXMLGetTVDBID = filebotAnimeListReturnFromAID(anidbFirstMatchDetails.dbid, true)
           if (myanimeListXMLGetTVDBID == theTVDBFirstMatchDetails.dbid) {
             println '--------- AnimeList AniDB to TVDB ID mapping found and matched.'
             // Since we got an ID, in theory that means there is always a mapping so we don't need to check if it's null..
-            myanimeListXMLGetTVDBSeason = animeListXMLGetTVDBSeason(scudlessAnimeTitles, anidbFirstMatchDetails.dbid, locale)
+            myanimeListXMLGetTVDBSeason = filebotAnimeListReturnFromAID(anidbFirstMatchDetails.dbid, false, true)
             if (hasSeasonality) {
               println '-----------  Seasonality Detected'
-              if (myanimeListXMLGetTVDBSeason == mySeasonalityNumber) {
-                println "----------- Mapped Season (${myanimeListXMLGetTVDBSeason}) matches SeasonNumber(${mySeasonalityNumber})"
-                println '------------- Using AniDB'
-                secondPassOptionsSet = true
-                renameQuery = anidbFirstMatchDetails.dbid
-                renameDB = 'AniDB'
-                renameOrder = 'Absolute'
-                if ((useNonStrictOnAniDBFullMatch && firstANIDBWTMatchNumber == 1) || (useNonStrictOnAniDBSpecials && group.isSpecial)) {
-                  renameStrict = false
-                } else {
-                  renameStrict = true
-                }
-                renameFilter = ''
-                renameMapper = ''
-                // renameFilter = "s == ${myanimeListXMLGetTVDBSeason}"
-                // renameMapper = '[AnimeList.AniDB, episode, order.absolute.episode]'
-                // firstPassOptionsSet = true
-                // renameQuery = theTVDBFirstMatchDetails.dbid
-                // renameDB = 'TheTVDB'
-                // renameOrder = 'airdate'
-                // renameStrict = true
-              } else {
-                println "----------- Mapped Season (${myanimeListXMLGetTVDBSeason}) DOES NOT MATCH SeasonNumber(${mySeasonalityNumber})"
-                println "------------- Using TVDB, with Mapped Season (${myanimeListXMLGetTVDBSeason}) as Filter"
-                if (group.isSpecial) {
-                  println "--------- Specials however use filter of episode.special"
-                  renameFilter = "episode.special"
-                } else {
-                  renameFilter = "s == ${myanimeListXMLGetTVDBSeason}"
-                }
-                // renameFilter = "s == ${myanimeListXMLGetTVDBSeason}"
-                renameMapper = '[AnimeList.AniDB, episode, order.absolute.episode]'
-                secondPassOptionsSet = true
-                renameQuery = theTVDBFirstMatchDetails.dbid
-                renameDB = 'TheTVDB'
-                renameOrder = 'airdate'
-                renameStrict = true
-              }
-            } else {
-              println '-----------  there is no Seasonality'
-              secondPassOptionsSet = true
-              // Since we got an ID, in theory that means there is always a mapping so we don't need to check if it's null..
-              println '------------ Using 1st AniDB Match'
-              renameDB = 'AniDB'
-              renameQuery = anidbFirstMatchDetails.dbid
-              renameOrder = 'Absolute'
-              renameFilter = ''
-              if ((useNonStrictOnAniDBFullMatch && firstANIDBWTMatchNumber == 1) || (useNonStrictOnAniDBSpecials && group.isSpecial)) {
-                renameStrict = false
-              } else {
-                renameStrict = true
-              }
-              renameMapper = ''
-              // renameFilter = ''
-              // renameMapper = '[AnimeList.AniDB, episode, order.absolute.episode]'
-              // firstPassOptionsSet = true
-              // renameQuery = theTVDBFirstMatchDetails.dbid
-              // renameDB = 'TheTVDB'
-              // renameOrder = 'airdate'
-              // renameStrict = true
-            }
-            // println '--------- AnimeList mapping found and matched.'
-            // secondPassOptionsSet = true
-            // // Since we got an ID, in theory that means there is always a mapping so we don't need to check if it's null..
-            // println '------------ Using 1st AniDB Match'
-            // renameDB = 'AniDB'
-            // renameQuery = anidbFirstMatchDetails.dbid
-            // renameOrder = 'Absolute'
-            // renameFilter = ''
-            // if ( (useNonStrictOnAniDBFullMatch && firstANIDBWTMatchNumber == 1 ) || (useNonStrictOnAniDBSpecials && group.isSpecial) ) {
-            //   renameStrict = false
-            // } else {
-            //   renameStrict = true
-            // }
-            // renameMapper = ''
-            println "renameStrict: ${renameStrict}, renameQuery: ${renameQuery}, renameDB: ${renameDB}, renameOrder: ${renameOrder}, renameFilter: ${renameFilter}, renameMapper: ${renameMapper}"
-          } else {
-            println "--------- Mapping didn't match, returned TVDBID: ${myanimeListXMLGetTVDBID}"
-            // Are we missing that we should be using filebotanidb if it's above 0.98? and first is also above 0.98?
-            // if ( firstANIDBWTMatchNumber < 0.9800000000000000000 && fileBotANIDBJWDMatchNumber > 0.9800000000000000000 && fileBotANIDBJWDMatchDetails.dbid != anidbFirstMatchDetails.dbid ) {
-            if (fileBotANIDBJWDMatchNumber > 0.9800000000000000000 && fileBotANIDBJWDMatchDetails.dbid != anidbFirstMatchDetails.dbid) {
-              println "------- using Filebot match as it's 0.98+"
-              // Use Filebot AniDB Match if it's 0.98+
-              secondPassOptionsSet = true
-              renameDB = 'AniDB'
-              renameQuery = fileBotANIDBJWDMatchDetails.dbid
-              renameOrder = 'Absolute'
-              renameFilter = ''
-              if (useNonStrictOnAniDBFullMatch && fileBotANIDBJWDMatchNumber == 1) {
-                renameStrict = false
-              } else {
-                renameStrict = true
-              }
-              renameMapper = ''
-              // Since it's SxxExx file syntax, order.absolute.episode is needed to match if no entry in AnimeList
-              println "renameStrict: ${renameStrict}, renameQuery: ${renameQuery}, renameDB: ${renameDB}, renameOrder: ${renameOrder}, renameFilter: ${renameFilter}, renameMapper: ${renameMapper}"
-            }
-            if (secondANIDBWTMatchNumber > 0.9800000000000000000 && secondPassOptionsSet == false) {
-              println "------- using 2nd AniDB match as it's 0.98+"
-              // Use 2nd AniDB Match if it's above 0.98+
-              secondPassOptionsSet = true
-              renameDB = 'AniDB'
-              renameQuery = anidbSecondMatchDetails.dbid
-              renameOrder = 'Absolute'
-              renameFilter = ''
-              if (useNonStrictOnAniDBFullMatch && secondANIDBWTMatchNumber == 1) {
-                renameStrict = false
-              } else {
-                renameStrict = true
-              }
-              renameMapper = ''
-              // Since it's SxxExx file syntax, order.absolute.episode is needed to match if no entry in AnimeList
-              // Tho it may also mean that it could match even when there is an entry, which might affect metadata available?
-              println "renameStrict: ${renameStrict}, renameQuery: ${renameQuery}, renameDB: ${renameDB}, renameOrder: ${renameOrder}, renameFilter: ${renameFilter}, renameMapper: ${renameMapper}"
-            }
-            if (secondPassOptionsSet == false) {
               println '//-----------------------------//'
-              println '//  STOP - absolute.2-1st.3      //'
+              println '//  STOP - absolute.3-1st.1    //'
               println '//-----------------------------//'
               performRename = false
-              secondPassOptionsSet = true
-            }
-          }
-        }*/
-/*        if (firstANIDBWTMatchNumber < 0.9800000000000000000 && fileBotANIDBJWDMatchNumber > 0.9800000000000000000 && firstTVDBDWTMatchNumber > 0.9800000000000000000) {
-          println '------- Filebot match 0.98+'
-          println '--------- We are going to try and validate TVDB Season'
-          myanimeListXMLGetTVDBID = animeListXMLGetTVDBID(scudlessAnimeTitles, fileBotANIDBJWDMatchDetails.dbid, locale)
-          if (myanimeListXMLGetTVDBID == theTVDBFirstMatchDetails.dbid) {
-            println '--------- AnimeList mapping found and matched.'
-            secondPassOptionsSet = true
-            // Since we got an ID, in theory that means there is always a mapping so we don't need to check if it's null..
-            println '------------ Using Filebot AniDB Match'
-            renameDB = 'AniDB'
-            renameQuery = fileBotANIDBJWDMatchDetails.dbid
-            renameOrder = 'Absolute'
-            renameFilter = ''
-            if (useNonStrictOnAniDBFullMatch && fileBotANIDBJWDMatchNumber == 1) {
-              renameStrict = false
+              thirdPassOptionsSet = true
             } else {
+              println '--------- No Seasonality Detected'
+              println "--------- Use the mapping Season ${myanimeListXMLGetTVDBSeason} as a filter."
+              println '--------- Use TVDB with Absolute Ordering'
+              renameQuery = theTVDBFirstMatchDetails.dbid
+              thirdPassOptionsSet = true
+              performRename = true
+              renameDB = 'TheTVDB'
+              renameFilter = "s == ${myanimeListXMLGetTVDBSeason}"
+              renameMapper = '[AnimeList.AniDB, episode, order.absolute.episode]'
+              renameOrder = 'Airdate'
               renameStrict = true
             }
-            renameMapper = ''
-            println "renameStrict: ${renameStrict}, renameQuery: ${renameQuery}, renameDB: ${renameDB}, renameOrder: ${renameOrder}, renameFilter: ${renameFilter}, renameMapper: ${renameMapper}"
-          } else {
-            println "--------- Mapping didn't match, returned TVDBID: ${myanimeListXMLGetTVDBID}"
-            if (secondANIDBWTMatchNumber > 0.9800000000000000000 && firstPassOptionsSet == false) {
-              println "------- using 2nd AniDB match as it's 0.98+"
-              // Use 2nd AniDB Match if it's above 0.98+
-              secondPassOptionsSet = true
-              renameDB = 'AniDB'
-              renameQuery = anidbSecondMatchDetails.dbid
-              renameOrder = 'Absolute'
-              renameFilter = ''
-              if (useNonStrictOnAniDBFullMatch && secondANIDBWTMatchNumber == 1) {
-                renameStrict = false
-              } else {
-                renameStrict = true
-              }
-              renameMapper = ''
-              // Since it's SxxExx file syntax, order.absolute.episode is needed to match if no entry in AnimeList
-              // Tho it may also mean that it could match even when there is an entry, which might affect metadata available?
-              println "renameStrict: ${renameStrict}, renameQuery: ${renameQuery}, renameDB: ${renameDB}, renameOrder: ${renameOrder}, renameFilter: ${renameFilter}, renameMapper: ${renameMapper}"
-            }
-            if (secondPassOptionsSet == false) {
-              println '//---------------------------------//'
-              println '//  STOP - absolute.2-2nd.2.3      //'
-              println '//---------------------------------//'
-              performRename = false
-              secondPassOptionsSet = true
-            }
           }
-        }*/
-/*        if (animeFoundInAniDB && firstTVDBDWTMatchNumber < 0.9800000000000000000) {
-          println '----- Anime in ANIDB and 1st TVDB < 0.98'
-          if (firstANIDBWTMatchNumber > 0.9800000000000000000) {
-            // if ( firstANIDBWTMatchNumber < 0.9800000000000000000 && fileBotANIDBJWDMatchNumber > 0.9800000000000000000 && fileBotANIDBJWDMatchDetails.dbid != anidbFirstMatchDetails.dbid ) {
-            if (fileBotANIDBJWDMatchNumber > 0.9800000000000000000 && fileBotANIDBJWDMatchDetails.dbid != anidbFirstMatchDetails.dbid) {
-              println "------- using Filebot match as it's 0.98+"
-              // Use Filebot AniDB Match if it's 0.98+
-              secondPassOptionsSet = true
-              renameDB = 'AniDB'
-              renameQuery = fileBotANIDBJWDMatchDetails.dbid
-              renameOrder = 'Absolute'
-              renameFilter = ''
-              if (useNonStrictOnAniDBFullMatch && fileBotANIDBJWDMatchNumber == 1) {
-                renameStrict = false
-              } else {
-                renameStrict = true
-              }
-              renameMapper = ''
-              // Since it's SxxExx file syntax, order.absolute.episode is needed to match if no entry in AnimeList
-              println "renameStrict: ${renameStrict}, renameQuery: ${renameQuery}, renameDB: ${renameDB}, renameOrder: ${renameOrder}, renameFilter: ${renameFilter}, renameMapper: ${renameMapper}"
-            }
-            if (secondANIDBWTMatchNumber > 0.9800000000000000000 && secondPassOptionsSet == false) {
-              println "------- using 2nd AniDB match as it's 0.98+"
-              // Use 2nd AniDB Match if it's above 0.98+
-              secondPassOptionsSet = true
-              renameDB = 'AniDB'
-              renameQuery = anidbSecondMatchDetails.dbid
-              renameOrder = 'Absolute'
-              renameFilter = ''
-              if (useNonStrictOnAniDBFullMatch && secondANIDBWTMatchNumber == 1) {
-                renameStrict = false
-              } else {
-                renameStrict = true
-              }
-              renameMapper = ''
-              // Since it's SxxExx file syntax, order.absolute.episode is needed to match if no entry in AnimeList
-              // Tho it may also mean that it could match even when there is an entry, which might affect metadata available?
-              println "renameStrict: ${renameStrict}, renameQuery: ${renameQuery}, renameDB: ${renameDB}, renameOrder: ${renameOrder}, renameFilter: ${renameFilter}, renameMapper: ${renameMapper}"
-            }
-            if (secondPassOptionsSet == false) {
-              println '//-----------------------------//'
-              println '//  STOP - absolute.2-2nd.3.1      //'
-              println '//-----------------------------//'
-              performRename = false
-              secondPassOptionsSet = true
-            }
-          }
-          // if ( firstANIDBWTMatchNumber < 0.9800000000000000000 && fileBotANIDBJWDMatchNumber > 0.9800000000000000000 && fileBotANIDBJWDMatchDetails.dbid != anidbFirstMatchDetails.dbid ) {
-          if (firstANIDBWTMatchNumber < 0.9800000000000000000 && fileBotANIDBJWDMatchNumber > 0.9800000000000000000) {
-            if (secondANIDBWTMatchNumber > 0.9800000000000000000 && firstPassOptionsSet == false) {
-              println "------- using 2nd AniDB match as it's 0.98+"
-              // Use 2nd AniDB Match if it's above 0.98+
-              secondPassOptionsSet = true
-              renameDB = 'AniDB'
-              renameQuery = anidbSecondMatchDetails.dbid
-              renameOrder = 'Absolute'
-              renameFilter = ''
-              if (useNonStrictOnAniDBFullMatch && secondANIDBWTMatchNumber == 1) {
-                renameStrict = false
-              } else {
-                renameStrict = true
-              }
-              renameMapper = ''
-              // Since it's SxxExx file syntax, order.absolute.episode is needed to match if no entry in AnimeList
-              // Tho it may also mean that it could match even when there is an entry, which might affect metadata available?
-              println "renameStrict: ${renameStrict}, renameQuery: ${renameQuery}, renameDB: ${renameDB}, renameOrder: ${renameOrder}, renameFilter: ${renameFilter}, renameMapper: ${renameMapper}"
-            }
-            if (secondPassOptionsSet == false) {
-              println '//-----------------------------//'
-              println '//  STOP - absolute.2-2nd.3.2      //'
-              println '//-----------------------------//'
-              performRename = false
-              secondPassOptionsSet = true
-            }
-          }
-          if (secondANIDBWTMatchNumber > 0.9800000000000000000 && firstPassOptionsSet == false) {
-            println '//-----------------------------//'
-            println '//  STOP - absolute.2-2nd.4.1      //'
-            println '//-----------------------------//'
-            performRename = false
-            secondPassOptionsSet = true
-          }
-          if (secondPassOptionsSet == false) {
-            println '//-----------------------------//'
-            println '//  STOP - absolute.2-2nd.5      //'
-            println '//-----------------------------//'
-            performRename = false
-            secondPassOptionsSet = true
-          }
-        }*/
-/*        if (secondPassOptionsSet == false) {
-          println '//-----------------------------//'
-          println '//  STOP - absolute.3-2nd.6      //'
-          println '//-----------------------------//'
-          performRename = false
-          secondPassOptionsSet = true
-        }*/
+        }
       }
     }
     // ---------- 3rd pass Renaming---------- //
@@ -4189,7 +3343,6 @@ groupsByManualThreeEpisodes.each { group, files ->
     if ( rfsIncomplete ) {
       unsortedFiles += files.getFiles { it.isFile() && it.isVideo() }
     }
-  // }
   // ---------- FINISH TV Mode ---------- //
 }
 
@@ -4347,7 +3500,7 @@ groupsByManualThreeMovies.each { group, files ->
 println '// ---------- END Renaming ---------- //'
 println "Total Files: ${input.size()-1}"
 println "   Processed files: ${destinationFiles.size()}"
-renameLog.sort().each { from, to ->
+renameLog.sort{it.value.parent}.each { from, to ->
   println "       [${to.parent}, ${from.name}, ${to.name} ]"
 }
 println '// ----------             ---------- //'
@@ -4363,13 +3516,10 @@ destinationFilesFilebot.each { file ->
 println '// ----------             ---------- //'
 println "   1st Pass Rename Missed Files: ${renameMissedFiles1stPass.size()}"
 println "   2nd Pass Rename Missed Files: ${renameMissedFiles2ndPass.size()}"
-//renameMissedFiles2ndPass.each { file ->
-//  println "       [${file.name}, ${file.parent}]"
-//}
 println "   Total Rename failure: ${unsortedFiles.size()}"
-/*unsortedFiles.each { file ->
+unsortedFiles.each { file ->
   println "       [${file.name}, ${file.parent}]"
-}*/
+}
 println '// ----------             ---------- //'
 println "Stats:"
 println "   Tier Names included Filebot Detected Anime Name:[${statsTierFilebotNameIncluded}]"
@@ -4381,248 +3531,14 @@ println "-----"
 println "   Groups using Script Name:[${statsGroupsFromScript}]"
 println "   Rename actions using Script JWD:[${statsRenamedUsingScript}]"
 println "   Script Rename Failure:[${failedFilesScript.size()}]"
-//failedFilesScript.each { file ->
-//  println "       [${file.name}, ${file.parent}]"
-//}
 println "-----"
 println "   Groups using Filebot Name:[${statsGroupsFromFilebot}]"
 println "   TVDB JWD found only from Filebot:[${statsTVDBJWDFilebotOnly}]"
 println "   AniDB JWD found only from Filebot:[${statsANIDBJWDFilebotOnly}]"
 println "   Rename actions using Filebot JWD:[${statsRenamedUsingFilebot}]"
 println "   Filebot Rename Failure:[${failedFilesFilebot.size()}]"
-//failedFilesFilebot.each { file ->
-//  println "       [${file.name}, ${file.parent}]"
-//}
-
-
-// ---------- POST PROCESSING ---------- //
-
-// process the remaining files that cannot be sorted automatically
-// if (unsorted) {
-//     // skip file paths that are no longer valid (e.g. due to a partially processed but ultimately failed group)
-//     unsortedFiles.removeAll{ f -> !f.exists() }
-
-//     if (unsortedFiles.size() > 0) {
-//         log.fine "Processing ${unsortedFiles.size()} unsorted files"
-
-//         def rfs = rename(map: unsortedFiles.collectEntries{ original ->
-//             def destination = getMediaInfo(original, unsortedFormat) as File
-
-//             // sanity check user-defined unsorted format
-//             if (destination == null) {
-//                 die "Invalid usage: unsorted format must yield valid a file path"
-//             }
-
-//             // resolve relative paths
-//             if (!destination.isAbsolute()) {
-//                 destination = outputFolder.resolve(destination.path)
-//             }
-
-//             return [original, destination]
-//         })
-
-//         if (rfs != null) {
-//             destinationFiles += rfs
-//         }
-//     }
-// }
-
-// run program on newly processed files
-// if (exec) {
-//     destinationFiles.collect{ getMediaInfo(it, exec) }.unique().each{ command ->
-//         log.fine "Execute: $command"
-//         execute(command)
-//     }
-// }
-
-// ---------- REPORTING ---------- //
-
-// if (getRenameLog().size() > 0) {
-//     // messages used for kodi / plex / emby pushover notifications
-//     def getNotificationTitle = {
-//         def count = getRenameLog().count{ k, v -> !v.isSubtitle() }
-//         return "FileBot finished processing $count files"
-//     }.memoize()
-
-//     def getNotificationMessage = { prefix = '• ', postfix = '\n' ->
-//         return ut.title ?: (input.findAll{ !it.isSubtitle() } ?: input).collect{ relativeInputPath(it) as File }.root.nameWithoutExtension.unique().collect{ prefix + it }.join(postfix).trim()
-//     }.memoize()
-
-//     // make Kodi scan for new content and display notification message
-//     if (kodi) tryLogCatch {
-//         kodi.each{ instance ->
-//             log.fine "Notify Kodi: $instance"
-//             showNotification(instance.host, instance.port, getNotificationTitle(), getNotificationMessage(), 'https://app.filebot.net/icon.png')
-//             scanVideoLibrary(instance.host, instance.port)
-//         }
-//     }
-
-//     // make Plex scan for new content
-//     if (plex) tryLogCatch {
-//         plex.each{ instance ->
-//             log.fine "Notify Plex: $instance"
-//             refreshPlexLibrary(instance.host, null, instance.token)
-//         }
-//     }
-
-//     // make Emby scan for new content
-//     if (emby) tryLogCatch {
-//         emby.each{ instance ->
-//             log.fine "Notify Emby: $instance"
-//             refreshEmbyLibrary(instance.host, null, instance.token)
-//         }
-//     }
-
-//     // mark episodes as 'acquired'
-//     if (myepisodes) tryLogCatch {
-//         log.fine 'Update MyEpisodes'
-//         executeScript('update-mes', [login:myepisodes.join(':'), addshows:true], getRenameLog().values())
-//     }
-
-//     // pushover only supports plain text messages
-//     if (pushover) tryLogCatch {
-//         log.fine 'Sending Pushover notification'
-//         Pushover(pushover[0], pushover[1] ?: 'wcckDz3oygHSU2SdIptvnHxJ92SQKK').send(getNotificationTitle(), getNotificationMessage())
-//     }
-
-//     // messages used for email / pushbullet reports
-//     def getReportSubject = { getNotificationMessage('', '; ') }
-//     def getReportTitle = { '[FileBot] ' + getReportSubject() }
-//     def getReportMessage = {
-//         def renameLog = getRenameLog()
-//         '''<!DOCTYPE html>\n''' + XML {
-//             html {
-//                 head {
-//                     meta(charset:'UTF-8')
-//                     style('''
-//                         p{font-family:Arial,Helvetica,sans-serif}
-//                         p b{color:#07a}
-//                         hr{border-style:dashed;border-width:1px 0 0 0;border-color:lightgray}
-//                         small{color:#d3d3d3;font-size:xx-small;font-weight:normal;font-family:Arial,Helvetica,sans-serif}
-//                         table a:link{color:#666;font-weight:bold;text-decoration:none}
-//                         table a:visited{color:#999;font-weight:bold;text-decoration:none}
-//                         table a:active,table a:hover{color:#bd5a35;text-decoration:underline}
-//                         table{font-family:Arial,Helvetica,sans-serif;color:#666;background:#eaebec;margin:15px;border:#ccc 1px solid;border-radius:3px;box-shadow:0 1px 2px #d1d1d1}
-//                         table th{padding:15px;border-top:1px solid #fafafa;border-bottom:1px solid #e0e0e0;background:#ededed}
-//                         table th{text-align:center;padding-left:20px}
-//                         table tr:first-child th:first-child{border-top-left-radius:3px}
-//                         table tr:first-child th:last-child{border-top-right-radius:3px}
-//                         table tr{text-align:left;padding-left:20px}
-//                         table td:first-child{text-align:left;padding-left:20px;border-left:0}
-//                         table td{padding:15px;border-top:1px solid #fff;border-bottom:1px solid #e0e0e0;border-left:1px solid #e0e0e0;background:#fafafa;white-space:nowrap}
-//                         table tr.even td{background:#f6f6f6}
-//                         table tr:last-child td{border-bottom:0}
-//                         table tr:last-child td:first-child{border-bottom-left-radius:3px}
-//                         table tr:last-child td:last-child{border-bottom-right-radius:3px}
-//                         table tr:hover td{background:#f2f2f2}
-//                     ''')
-//                     title(getReportTitle())
-//                 }
-//                 body {
-//                     p {
-//                         mkp.yield("FileBot finished processing ")
-//                         b(getReportSubject())
-//                         mkp.yield(" (${renameLog.size()} files).")
-//                     }
-//                     hr(); table {
-//                         tr { th('Original Name'); th('New Name'); th('New Location') }
-//                         renameLog.each{ from, to ->
-//                             tr { [from.name, to.name, to.parent].each{ cell -> td(cell) } }
-//                         }
-//                     }
-//                     hr(); small("// Generated by ${Settings.applicationIdentifier} on ${InetAddress.localHost.hostName} at ${now}")
-//                 }
-//             }
-//         }
-//     }
-
-//     // store processing report
-//     if (storeReport) {
-//         def reportName = [now.format(/[yyyy-MM-dd HH mm]/), getReportSubject().take(50)].join(' ').validateFileName().space('_')
-//         def reportFile = storeReport.resolve(reportName + '.html')
-//         log.fine "Saving HTML report to [$reportFile]"
-//         getReportMessage().saveAs(reportFile)
-//     }
-
-//     // send pushbullet report
-//     if (pushbullet) tryLogCatch {
-//         log.fine 'Sending PushBullet report'
-//         PushBullet(pushbullet).sendFile(getNotificationTitle() + '.html', getReportMessage(), 'text/html', getNotificationMessage(), any{ mailto }{ null })
-//     }
-
-//     // send gmail report
-//     if (gmail) tryLogCatch {
-//         log.fine 'Sending Gmail report'
-//         def account = gmail[0] =~ /@/ ? gmail[0] : gmail[0] + '@gmail.com'
-//         Gmail(account, gmail[1]).sendHtml(account, any{ mailto }{ account }, getReportTitle(), getReportMessage())
-//     }
-
-//     // send email report
-//     if (mail) tryLogCatch {
-//         log.fine 'Sending Email report'
-//         def account = mail[2]
-//         Email(mail[0], mail[1], mail[3], mail[4]).sendHtml(account, any{ mailto }{ account }, getReportTitle(), getReportMessage())
-//     }
-
-//     // use custom discord embeds since attachments do not play well with smart phones (i.e. Content-Disposition: attachment)
-//     if (discord) tryLogCatch {
-//         log.fine 'Calling Discord webhook'
-//         def json = [
-//             content: "FileBot finished processing **${getReportSubject()}** (${renameLog.size()} files).",
-//             embeds: renameLog.collect{ from, to -> [to.parentFile, from.name, to.name] }.groupBy{ it[0] }.collect{ group, names ->
-//                 [
-//                     "title": group.getStructurePathTail() as String,
-//                     "fields": names.collect{ parent, from, to -> ["name": from, "value": to, inline: true] },
-//                     "color": new Random().nextInt(0xFFFFFF)
-//                 ]
-//             } + ["footer": [text: "Generated by ${Settings.applicationIdentifier} on ${InetAddress.localHost.hostName} at ${now}", icon_url: 'https://app.filebot.net/avatar.png']]
-//         ]
-//         new URL(discord).post(JsonOutput.toJson(json).getBytes('UTF-8'), 'application/json', ['Content-Encoding':'gzip'])
-//     }
-// }
-
-// clean up temporary files that may be left behind after extraction
-// if (deleteAfterExtract) {
-//     extractedArchives.each{ a ->
-//         log.finest "Delete archive $a"
-//         a.delete()
-//         a.dir.listFiles().toList().findAll{ v -> v.name.startsWith(a.nameWithoutExtension) && v.extension ==~ /r\d+/ }.each{ v ->
-//             log.finest "Delete archive volume $v"
-//             v.delete()
-//         }
-//     }
-// }
 
 // abort and skip clean-up logic if we didn't process any files
 if (destinationFiles.size() == 0) {
   die 'Finished without processing any files'
 }
-
-// clean empty folders, clutter files, etc after move
-// if (clean) {
-//     if (_args.action ==~ /(?i:COPY|HARDLINK|DUPLICATE)/ && temporaryFiles.size() > 0) {
-//         log.fine 'Clean temporary extracted files'
-//         // delete extracted files
-//         temporaryFiles.findAll{ it.isFile() }.toSorted().each{
-//             log.finest "Delete $it"
-//             it.delete()
-//         }
-//         // delete remaining empty folders
-//         temporaryFiles.findAll{ it.isDirectory() }.toSorted().reverse().each{
-//             log.finest "Delete $it"
-//             if (it.getFiles().size() == 0) {
-//                 it.deleteDir()
-//             }
-//         }
-//     }
-
-//     // deleting remaining files only makes sense after moving files
-//     if (_args.action ==~ /(?i:MOVE)/) {
-//         def cleanerInput = args.size() > 0 ? args : ut.kind == 'multi' && ut.dir ? [ut.dir as File] : []
-//         cleanerInput = cleanerInput.findAll{ f -> f.exists() }
-//         if (cleanerInput.size() > 0) {
-//             log.fine 'Clean clutter files and empty folders'
-//             executeScript('cleaner', args.size() == 0 ? [root:true, ignore: ignore] : [root:false, ignore: ignore], cleanerInput)
-//         }
-//     }
-// }

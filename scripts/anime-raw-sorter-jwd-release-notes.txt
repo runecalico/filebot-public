@@ -1,0 +1,22 @@
+1.2.6
+- Fix error in - alt title check (groupGeneration)
+1.2.5
+- Removal of most commented out code (except println/log)
+1.2.4
+- Switch to using filebotAnimeListReturnFromAID to query filebot's version of AnimeLists to see if TVDB can be used and still get AniDB metadata
+1.2.3
+- Switch AniDB Romanisation case statements to use returnAniDBRomanization method instead
+- Adjust groupGeneration so it will work with series that have BOTH partial and Ordinal Seasonality Syntax (like re zero kara hajimeru isekai seikatsu 2nd season part 2)
+1.2.2
+- Adjust 3rd rename attempt for Absolute files using TVDB (Too many incorrect matches)
+1.2.1
+- GroupGeneration: Files that start with # to use FileBot Detected Anime Name by updating regex to /^([0-9]|#[0-9])/ (from: /^[0-9]/)
+1.2.0
+- Fixed issue where 3rd pass would always run instead of the few cases when it *should* run
+- Added Individual File Renaming to 2nd Pass RFSPartial Rename, except when useNonStrictPartialRenames is true
+- Since Individual File Renaming works VERY well, I defaulted the 1st pass to ALSo use Individual File Renaming 
+  - Added useIndividualFileRenaming option (Default true) which can turn that off if desired
+  - Using IFR dramatically improves matching when strict=true, as well as it seems to also reduce false matches in *some* instances
+- Added skipMovies option (default false) to allow skipping movie renaming.
+1.1.0
+- First Release
