@@ -1,5 +1,5 @@
 package lib
-//--- VERSION 1.0.2
+//--- VERSION 1.0.5
 
 import net.filebot.web.TheTVDBSeriesInfo
 import org.apache.commons.text.similarity.JaroWinklerDistance
@@ -18,10 +18,31 @@ ArrayList basenameGenerator ( LinkedHashMap group, Boolean useBaseAnimeNameWithS
     case ~/girl gaku ~hijiri girls square gakuin~/:
       baseAnimeName =  'Girl Gaku. Sei Girls Square Gakuin'
       break
+    case ~/digimon savers kyuukyoku power burst mode hatsudou!!/:
+      baseAnimeName =  'Digimon Savers The Movie: Kyuukyoku Power! Burst Mode Hatsudou!!'
+      break
     case ~/munou no nana/:
       baseAnimeName =  'Munou na Nana'
       break
+    case ~/hanaukyo maid tai/:
+      baseAnimeName =  'hanaukyou maid tai'
+      break
+    case ~/wixoss divalive/:
+      baseAnimeName =  'Wixoss Diva(A)Live'
+      break
+    case ~/2 43 seiin volley bu/:
+      baseAnimeName =  '2.43 Seiin Koukou Danshi Volley Bu'
+      break
+    case ~/the wonderful adventures of nils/:
+      baseAnimeName =  'Nils no Fushigi na Tabi'
+      break
+    case ~/tatoeba last dungeon/:
+      baseAnimeName = 'Tatoeba Last Dungeon Mae no Mura no Shounen ga Joban no Machi de Kurasu You na Monogatari'
+      break
     case ~/evangelion 1 0 you are alone/:
+      baseAnimeName =  'evangelion 1.0 you are not alone'
+      break
+    case ~/evangelion 1 11 - you are alone/:
       baseAnimeName =  'evangelion 1.0 you are not alone'
       break
     case ~/evangelion 2 0 you can advance/:
@@ -235,22 +256,23 @@ ArrayList basenameGenerator ( LinkedHashMap group, Boolean useBaseAnimeNameWithS
     // Particle は as wa (instead of ha)
     // Particle へ as e (instead of he)
     // Particle を as o (instead of wo)
-    if (tempname =~ /(?i)(\swo\s)/) {
-      println '---------- Adding Hepburn Romanisation of Particle を as o (instead of wo)'
-      baseGeneratedAnimeNames += tempname.replaceAll(/(?i)(\swo\s)/, ' o ')
-    }
-    if (tempname =~ /(?i)(\she\s)/) {
-      println '---------- Adding Hepburn Romanisation of Particle へ as e (instead of he)'
-      baseGeneratedAnimeNames += tempname.replaceAll(/(?i)(\she\s)/, ' e ')
-    }
-    if (tempname =~ /(?i)(\sha\s)/) {
-      println '---------- Adding Hepburn Romanisation of Particle は as wa (instead of ha)'
-      baseGeneratedAnimeNames += tempname.replaceAll(/(?i)(\sha\s)/, ' wa ')
-    }
-    if (tempname =~ /(?i)(\sand\s)/) {
-      println '---------- Adding AniDBSyntax variation of & instead of and'
-      baseGeneratedAnimeNames += tempname.replaceAll(/(?i)(\sand\s)/, ' & ')
-    }
+    baseGeneratedAnimeNames += ["${returnAniDBRomanization(tempname)}"]
+//    if (tempname =~ /(?i)(\swo\s)/) {
+//      println '---------- Adding Hepburn Romanisation of Particle を as o (instead of wo)'
+//      baseGeneratedAnimeNames += tempname.replaceAll(/(?i)(\swo\s)/, ' o ')
+//    }
+//    if (tempname =~ /(?i)(\she\s)/) {
+//      println '---------- Adding Hepburn Romanisation of Particle へ as e (instead of he)'
+//      baseGeneratedAnimeNames += tempname.replaceAll(/(?i)(\she\s)/, ' e ')
+//    }
+//    if (tempname =~ /(?i)(\sha\s)/) {
+//      println '---------- Adding Hepburn Romanisation of Particle は as wa (instead of ha)'
+//      baseGeneratedAnimeNames += tempname.replaceAll(/(?i)(\sha\s)/, ' wa ')
+//    }
+//    if (tempname =~ /(?i)(\sand\s)/) {
+//      println '---------- Adding AniDBSyntax variation of & instead of and'
+//      baseGeneratedAnimeNames += tempname.replaceAll(/(?i)(\sand\s)/, ' & ')
+//    }
     // I really can't figure out why this doesn't work
 //    switch(tempname) {
 //      case ~/(?i)(\swo\s)/:
