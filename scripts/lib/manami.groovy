@@ -1,5 +1,5 @@
 package lib
-//--- VERSION 1.0.0
+//--- VERSION 1.1.1
 // http://docs.groovy-lang.org/latest/html/documentation/grape.html
 // https://mvnrepository.com/artifact/org.apache.commons/commons-text
 @Grapes(
@@ -146,5 +146,30 @@ Boolean aodIsAIDTypeNotTV(JsonObject fileBotJsonCacheObject, Integer AID) {
     return true
   } else {
     return myAniDBEntry.type != 'TV'
+  }
+}
+
+String aodGetTypeForAID(JsonObject fileBotJsonCacheObject, Integer AnimeID) {
+  JsonObject myAniDBEntry = fileBotJsonCacheObject.data.find { aodentry ->
+    aodentry.sources.find { it ==~ /https:\/\/anidb\.net\/anime\/${AnimeID}$/ }
+  }
+  // --- It will be null if an AID is not in the AOD List --- //
+  if ( myAniDBEntry == null ) {
+    return true
+  } else {
+    // Types are "Special", "Movie", "OVA", "ONA", "TV" - It is unknown if it matches AniDB 100% however.
+    return myAniDBEntry.type
+  }
+}
+
+Integer aodGetEpisodeNumberForAID(JsonObject fileBotJsonCacheObject, Integer AnimeID) {
+  JsonObject myAniDBEntry = fileBotJsonCacheObject.data.find { aodentry ->
+    aodentry.sources.find { it ==~ /https:\/\/anidb\.net\/anime\/${AnimeID}$/ }
+  }
+  // --- It will be null if an AID is not in the AOD List --- //
+  if ( myAniDBEntry == null ) {
+    return 0
+  } else {
+    return myAniDBEntry.episodes
   }
 }
