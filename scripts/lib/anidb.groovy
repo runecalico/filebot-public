@@ -1,5 +1,8 @@
 package lib
-//--- VERSION 1.0.0
+
+import net.filebot.WebServices
+
+//--- VERSION 1.1.0
 // https://http-builder-ng.github.io/http-builder-ng/
 // I couldn't figure out how to use the URL method and set a User Agent string (as required by AniDB to download the file)
 // So we will use http-builder-ng instead.
@@ -430,4 +433,22 @@ Set aodReturnAllTitlesAndSynonyms(animeOfflinejsonObject, Set searchList) {
     }
   }
   return returnAsSet
+}
+
+def filebotAnimeListReturnFromAID(Integer aniDBID, Boolean tvdbIDOnly = false, Boolean tvdbSeasonOnly = false) {
+  def mySearchResult = tryQuietly {
+    WebServices.AnimeList.model.anime.find{
+      it.anidbid == aniDBID
+    }
+  }
+  if ( mySearchResult == null ) {
+    return null
+  }
+  if (tvdbIDOnly) {
+    return mySearchResult.tvdbid
+  }
+  if (tvdbSeasonOnly) {
+    return mySearchResult.defaulttvdbseason
+  }
+  return mySearchResult
 }
