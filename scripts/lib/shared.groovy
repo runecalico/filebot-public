@@ -1,5 +1,5 @@
 package lib
-//--- VERSION 1.0.1
+//--- VERSION 1.0.4
 
 import groovy.time.TimeCategory
 
@@ -119,12 +119,13 @@ def printAllMediaInfo(f) {
 //
 // Step #2 - Remove data infomation
 // - Remove File Extension ==> replaceAll(/(\.\d)?\.[^.]+$/, '')
+// TEST - (rev)?(\.\d)?\.[^.]+$
 // VOID - Remove Starting Bracket/Parenthesis info ==>  replaceAll(/^(\s?\[(?!\[\d\d\d\d\])[\w-\s\'&~.!#$%@]*\]|\s?\((?!\(\d\d\d\d\))[\w-\s\'&~.!#$%@]*\)){0,10}/, '')
 // VOID - replaceAll(/^(\s?\[(?!\[\d\d\d\d\])[\w-\s\'&\(\)~.!#$%@\+]*\]|\s?\((?!\(\d\d\d\d\))[\w-\s\'&~.!#$%@\+]*\)){0,10}/, '')
 // TEST - replaceAll(/(^(\s?\[(?!\[\d\d\d\d\])[^\]]*\]|\s?\((?!\(\d\d\d\d\))[^)]*\)){0,10})/, '')
 // VOID - Remove all Ending Bracket/Parenthesis info unless it's likely a 4 digit date ==> replaceAll(/(\s?(?!\[\d\d\d\d\])\[[\w-\s\'&~.!#$%@]*\]|\s?(?!\(\d\d\d\d\))\([\w-\s\'&~.!#$%@]*\)){0,10}$/, '')
 // TEST - replaceAll(/((\s?\[(?!\[\d\d\d\d\])[^\]]*\]|\s?\((?!\(\d\d\d\d\))[^)]*\)){0,10}$)/, '')
-// - Remove any leftover metadata keywords ==> replaceAll(/(?i)(\bbd remux\b|\bremux\b|\brestored\b|\bkorean\b|\b1448x1080\b|\b10-bit\b|\bh\s265\b|\bNVENC\b|\b1280x720\b|\sbd\sbox\s|\btri-audio\b|\buhd\b|\btruehd\b|\bttga\b|\bdvdrip\b|\bhr-sr\b|\bh264\b|\bh265\b|\brencode\b|\br2fr\b|\bdivx\b|\bvostfr\b|\brus\b|\bjap\b|\bdeadmauvlad\b|\bhd1080\b|\bnooped\b|\bMULTi\b|-sLaX|\b2ch\b|WEB-DL|800p|\bsubtitles\b|\btv\b|\bhr-rg\b|hd720blu|\bhd720\b|\bweb\b|\bopus\b|\bopus-m3d\b|\bDVD\b|\bAC3\b|\bAAC\b|1080p|BDRip|BluRay|720p|BD720p|x265|x264|10bit|8bit|english|60fps|HEVC|HDTV|Subbed|\bdts\b|\bita\b|\bEng\b|MultiSub|\bsub\b)/, '')
+// - Remove any leftover metadata keywords ==> replaceAll(/(?i)(\bFLAC\b|\b480p\b|\bAC-3\b|\bPromo\b}\bcht\b|\bchs\b|\bbd remux\b|\bremux\b|\brestored\b|\bkorean\b|\b1448x1080\b|\b10-bit\b|\bh\s265\b|\bNVENC\b|\b1280x720\b|\sbd\sbox\s|\btri-audio\b|\buhd\b|\btruehd\b|\bttga\b|\bdvdrip\b|\bhr-sr\b|\bh264\b|\bh265\b|\brencode\b|\br2fr\b|\bdivx\b|\bvostfr\b|\brus\b|\bjap\b|\bdeadmauvlad\b|\bhd1080\b|\bnooped\b|\bMULTi\b|-sLaX|\b2ch\b|WEB-DL|800p|\bsubtitles\b|\btv\b|\bhr-rg\b|hd720blu|\bhd720\b|\bweb\b|\bopus\b|\bopus-m3d\b|\bDVD\b|\bAC3\b|\bAAC\b|1080p|BDRip|BluRay|720p|BD720p|x265|x264|10bit|8bit|english|60fps|HEVC|HDTV|Subbed|\bdts\b|\bita\b|\bEng\b|MultiSub|\bsub\b)/, '')
 // VOID - Remove all brackets/paren that are not YYYY ==> replaceAll(/([\[\(](?!\d\d\d\d).*[\]\)])/, '')
 // TRIAL - replaceAll(/(\s?(?!\[\d\d\d\d\])\[[\w-\s\'&~.,!#$%@]*\]|\s?(?!\(\d\d\d\d\))\([\w-\s\'&,~.!#$%@]*\))/, '')
 // - Replace brackets around [YYYY] with (YYYY) ==> replaceAll(/\[/, '(').replaceAll(/\]/, ')')
@@ -177,6 +178,10 @@ String regexStep1(String name) {
   return name.replaceAll(/_/, ' ').replaceAll(/\{/, '[').replaceAll(/\}/, ']').replaceAll(/\.(?!(\d\.[^.]+$|[^.]+$))/, ' ')
 }
 
+String regexStep2(String name) {
+  return name.replaceAll(/(\.\d)?\.[^.]+$/, '').replaceAll(/(^(\s?\[(?!\[\d\d\d\d\])[^\]]*\]|\s?\((?!\(\d\d\d\d\))[^)]*\)){0,10})/, '').replaceAll(/((\s?\[(?!\[\d\d\d\d\])[^\]]*\]|\s?\((?!\(\d\d\d\d\))[^)]*\)){0,10}$)/, '').replaceAll(/(?i)(\bflac\b|\b480p\b|\bac-3\b|\bpromo\b|\bcht\b|\bchs\b|\bvp9\b|\bbd remux\b|\bremux\b|\brestored\b|\bkorean\b|\b1448x1080\b|\b10-bit\b|\bh\s265\b|\bNVENC\b|\b1280x720\b|\sbd\sbox\s|\btri-audio\b|\buhd\b|\btruehd\b|\bttga\b|\bdvdrip\b|\bhr-sr\b|\bh264\b|\bh265\b|\brencode\b|\br2fr\b|\bdivx\b|\bvostfr\b|\brus\b|\bjap\b|\bdeadmauvlad\b|\bhd1080\b|\bnooped\b|\bMULTi\b|-sLaX|\b2ch\b|WEB-DL|800p|\bsubtitles\b|\btv\b|\bhr-rg\b|hd720blu|\bhd720\b|\bweb\b|\bopus\b|\bopus-m3d\b|\bDVD\b|\bAC3\b|\bAAC\b|1080p|BDRip|BluRay|720p|BD720p|x265|x264|10bit|8bit|english|60fps|HEVC|HDTV|Subbed|\bdts\b|\bita\b|\bEng\b|MultiSub|\bsub\b)/, ' ').replaceAll(/(\s?(?!\[\d\d\d\d\])\[[\w-\s\'&~.,!#$%@]*\]|\s?(?!\(\d\d\d\d\))\([\w-\s\'&,~.!#$%@]*\))/, '').replaceAll(/\[/, '(').replaceAll(/\]/, ')')
+}
+
 String regexStep4(String name) {
   return name.replaceAll(/^([\s-])*/, '').replaceAll(/([\s-])*$/, '').replaceAll(/(\s){2,20}/, ' ').toLowerCase()
 }
@@ -184,7 +189,7 @@ String regexStep4(String name) {
 // TODO
 // Figure out how to use a variable for the keyword removal, and use that single variable here, and in RegexBlender
 String regexRemoveKeywords(String name) {
-  return name.replaceAll(/(?i)(\bvp9\b|\bbd remux\b|\bremux\b|\brestored\b|\bkorean\b|\b1448x1080\b|\b10-bit\b|\bh\s265\b|\bNVENC\b|\b1280x720\b|\sbd\sbox\s|\btri-audio\b|\buhd\b|\btruehd\b|\bttga\b|\bdvdrip\b|\bhr-sr\b|\bh264\b|\bh265\b|\brencode\b|\br2fr\b|\bdivx\b|\bvostfr\b|\brus\b|\bjap\b|\bdeadmauvlad\b|\bhd1080\b|\bnooped\b|\bMULTi\b|-sLaX|\b2ch\b|WEB-DL|800p|\bsubtitles\b|\btv\b|\bhr-rg\b|hd720blu|\bhd720\b|\bweb\b|\bopus\b|\bopus-m3d\b|\bDVD\b|\bAC3\b|\bAAC\b|1080p|BDRip|BluRay|720p|BD720p|x265|x264|10bit|8bit|english|60fps|HEVC|HDTV|Subbed|\bdts\b|\bita\b|\bEng\b|MultiSub|\bsub\b)/, ' ').replaceAll(/(\s){2,20}/, ' ')
+  return name.replaceAll(/(?i)(\bJPTVTS\b|\b4k\b|\bENGSUB\b|\bflac\b|\b480p\b|\bac-3\b|\bpromo\b|\bcht\b|\bchs\b|\bvp9\b|\bbd remux\b|\bremux\b|\brestored\b|\bkorean\b|\b1448x1080\b|\b10-bit\b|\bh\s265\b|\bNVENC\b|\b1280x720\b|\sbd\sbox\s|\btri-audio\b|\buhd\b|\btruehd\b|\bttga\b|\bdvdrip\b|\bhr-sr\b|\bh264\b|\bh265\b|\brencode\b|\br2fr\b|\bdivx\b|\bvostfr\b|\brus\b|\bjap\b|\bdeadmauvlad\b|\bhd1080\b|\bnooped\b|\bMULTi\b|-sLaX|\b2ch\b|WEB-DL|800p|\bsubtitles\b|\btv\b|\bhr-rg\b|hd720blu|\bhd720\b|\bweb\b|\bopus\b|\bopus-m3d\b|\bDVD\b|\bAC3\b|\bAAC\b|1080p|BDRip|BluRay|720p|BD720p|x265|x264|10bit|8bit|english|60fps|HEVC|HDTV|Subbed|\bdts\b|\bita\b|\bEng\b|MultiSub|\bsub\b)/, ' ').replaceAll(/(\s){2,20}/, ' ')
 }
 
 String regexBlender(String name) {
@@ -192,7 +197,7 @@ String regexBlender(String name) {
   // step1 = name.replaceAll(/_/, ' ').replaceAll(/\{/, '[').replaceAll(/\}/, ']').replaceAll(/\.(?!(\d\.[^.]+$|[^.]+$))/, ' ')
   step1 = regexStep1(name)
   // println "--- Step1: ${step1}"
-  step2 = step1.replaceAll(/(\.\d)?\.[^.]+$/, '').replaceAll(/(^(\s?\[(?!\[\d\d\d\d\])[^\]]*\]|\s?\((?!\(\d\d\d\d\))[^)]*\)){0,10})/, '').replaceAll(/((\s?\[(?!\[\d\d\d\d\])[^\]]*\]|\s?\((?!\(\d\d\d\d\))[^)]*\)){0,10}$)/, '').replaceAll(/(?i)(\bvp9\b|\bbd remux\b|\bremux\b|\brestored\b|\bkorean\b|\b1448x1080\b|\b10-bit\b|\bh\s265\b|\bNVENC\b|\b1280x720\b|\sbd\sbox\s|\btri-audio\b|\buhd\b|\btruehd\b|\bttga\b|\bdvdrip\b|\bhr-sr\b|\bh264\b|\bh265\b|\brencode\b|\br2fr\b|\bdivx\b|\bvostfr\b|\brus\b|\bjap\b|\bdeadmauvlad\b|\bhd1080\b|\bnooped\b|\bMULTi\b|-sLaX|\b2ch\b|WEB-DL|800p|\bsubtitles\b|\btv\b|\bhr-rg\b|hd720blu|\bhd720\b|\bweb\b|\bopus\b|\bopus-m3d\b|\bDVD\b|\bAC3\b|\bAAC\b|1080p|BDRip|BluRay|720p|BD720p|x265|x264|10bit|8bit|english|60fps|HEVC|HDTV|Subbed|\bdts\b|\bita\b|\bEng\b|MultiSub|\bsub\b)/, ' ').replaceAll(/(\s?(?!\[\d\d\d\d\])\[[\w-\s\'&~.,!#$%@]*\]|\s?(?!\(\d\d\d\d\))\([\w-\s\'&,~.!#$%@]*\))/, '').replaceAll(/\[/, '(').replaceAll(/\]/, ')')
+  step2 = step1.replaceAll(/(\.\d)?\.[^.]+$/, '').replaceAll(/(^(\s?\[(?!\[\d\d\d\d\])[^\]]*\]|\s?\((?!\(\d\d\d\d\))[^)]*\)){0,10})/, '').replaceAll(/((\s?\[(?!\[\d\d\d\d\])[^\]]*\]|\s?\((?!\(\d\d\d\d\))[^)]*\)){0,10}$)/, '').replaceAll(/(?i)(\bJPTVTS\b|\b4k\b|\bENGSUB\b|\bflac\b|\b480p\b|\bac-3\b|\bpromo\b|\bcht\b|\bchs\b|\bvp9\b|\bbd remux\b|\bremux\b|\brestored\b|\bkorean\b|\b1448x1080\b|\b10-bit\b|\bh\s265\b|\bNVENC\b|\b1280x720\b|\sbd\sbox\s|\btri-audio\b|\buhd\b|\btruehd\b|\bttga\b|\bdvdrip\b|\bhr-sr\b|\bh264\b|\bh265\b|\brencode\b|\br2fr\b|\bdivx\b|\bvostfr\b|\brus\b|\bjap\b|\bdeadmauvlad\b|\bhd1080\b|\bnooped\b|\bMULTi\b|-sLaX|\b2ch\b|WEB-DL|800p|\bsubtitles\b|\btv\b|\bhr-rg\b|hd720blu|\bhd720\b|\bweb\b|\bopus\b|\bopus-m3d\b|\bDVD\b|\bAC3\b|\bAAC\b|1080p|BDRip|BluRay|720p|BD720p|x265|x264|10bit|8bit|english|60fps|HEVC|HDTV|Subbed|\bdts\b|\bita\b|\bEng\b|MultiSub|\bsub\b)/, ' ').replaceAll(/(\s?(?!\[\d\d\d\d\])\[[\w-\s\'&~.,!#$%@]*\]|\s?(?!\(\d\d\d\d\))\([\w-\s\'&,~.!#$%@]*\))/, '').replaceAll(/\[/, '(').replaceAll(/\]/, ')')
   // println "--- Step2: ${step2}"
   step3 = step2.replaceFirst(/(?i)(?<=\d)(E\d{1,3}\s*v[\d]{1,2}\b|E\d{1,3}\b)\b.*$/, '').replaceAll(/(?i)([-\s]+Episode[s]?|[-\s]+ep|[-\s]+eps[s]?|[-\s]+#|[-\s]+e)(?<!Season)(?<!Part)([-\s#]*[\d]{1,3}\s{0,1}v[\d]{1,2}\b.*$|[-\s#]*[\d]{1,3}\b.*$)/, '').replaceAll(/(?i)(?<!Season)(?<!Part)(?<![a-z0-9])(-[\s]*[\d]{1,3}\s{0,1}v[\d]{1,2}\b.*$|-[\s]*[\d]{1,3}\b.*$)/, '').replaceAll(/(?i)(?<!Season)(?<!Part)(-[\s]+(vol|sp)\b.*$)/, '')
   // println "--- Step3: ${step3}"
