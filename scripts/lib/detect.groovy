@@ -1,13 +1,19 @@
 package lib
-//--- VERSION 1.1.1
+//--- VERSION 1.1.2
+
 Boolean detectAnimeMovie(File f) {
   return f.name =~ /(?i:Movie|Gekijouban)/ || ( f.isVideo() ? getMediaInfo(f, '{minutes}').toInteger() > 60 : false )
 }
 
 Boolean detectAirdateOrder(String filename) {
-  // Should work for SnnEnnn, SnnEnnnVnn, nmXnnn, nnXnnnVnn
+  // for text like:
+  // Kami-tachi ni Hirowareta Otoko - S01E02 also S01x02, S01S16 variations (and S01E02v2 or S01E02_v2 variations)
+  // Kami-tachi ni Hirowareta Otoko - 01E16, 01x16, 01S16 variations  (and 01E16v2 or 01E16_v2 variations)
+  // Kami-tachi ni Hirowareta Otoko - 01.E16, 01.x16, 01.S16 variations  (and 01.E16v2 or 01.E16_v2 variations
+  // Kami-tachi ni Hirowareta Otoko - 01 E16, 01 x16, 01 S16 variations  (and 01 E16v2 or 01 E16_v2 variations
   // VOID - return filename =~ /(?i)\b((S\d{1,2}|\d{1,2})(?>\.)?(E\d{1,3}\b|E\d{1,3}v[\d]{1,2}\b|x\d{1,3}\b|x\d{1,3}v[\d]{1,2}\b))/
-  return filename =~ /(?i)\b((S\d{1,2}|\d{1,2})(?>\.)?(E\d{1,3}[_]?v[\d]{1,2}\b|E\d{1,3}\b|x\d{1,3}\b|x\d{1,3}v[\d]{1,2}\b))/
+  // VOID - return filename =~ /(?i)\b((S\d{1,2}|\d{1,2})(?>\.)?(E\d{1,3}[_]?v[\d]{1,2}\b|E\d{1,3}\b|x\d{1,3}\b|x\d{1,3}v[\d]{1,2}\b))/
+  return filename =~ /(?i)\b((S\d{1,2}|\d{1,2})(?>\.|\s)?([ExS]\d{1,3})[_]?(?>v\d{1,2})?)/
 }
 
 // Some Forum posts about group matching .. Maybe sometime I'll look at them
