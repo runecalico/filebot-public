@@ -1,5 +1,5 @@
 #!/usr/bin/env filebot -script
-//--- VERSION 1.2.6
+//--- VERSION 1.2.7
 // http://docs.groovy-lang.org/latest/html/documentation/grape.html
 // https://mvnrepository.com/artifact/org.apache.commons/commons-text
 @Grapes(
@@ -438,6 +438,8 @@ LinkedHashMap groupGeneration( def input, Boolean useGroupByAutodection, Locale 
     }
     println "// ---------------- START -------------- //"
     println "//--- ${f.name}"
+    String releaseGroup = detectAnimeReleaseGroupFromFile(f)
+    println "//--- Release Group:${releaseGroup}"
     // myDotNameMatcher = f.name =~ /^([\w\.-]*)$/
     myFileNameForParsing = regexRemoveKeywords(regexStep1(f.name))
     println "//--- myFileNameForParsing: ${myFileNameForParsing}"
@@ -650,15 +652,16 @@ LinkedHashMap groupGeneration( def input, Boolean useGroupByAutodection, Locale 
       println "-------- Anime: $anime has airdate order"
       order = 'airdate'
       // VOID - (?i)\b((S\d{1,2}|\d{1,2})(?>\.)?(E\d{1,3}\b|E\d{1,3}v[\d]{1,2}\b|x\d{1,3}\b|x\d{1,3}v[\d]{1,2}\b))
-      myTVDBSeasonalityRegexMatcher = f.name =~ /(?i)\b((S\d{1,2}|\d{1,2})(?>\.)?(E\d{1,3}[_]?v[\d]{1,2}\b|E\d{1,3}\b|x\d{1,3}\b|x\d{1,3}v[\d]{1,2}\b))/
+      // VOID - (?i)\b((S\d{1,2}|\d{1,2})(?>\.)?(E\d{1,3}[_]?v[\d]{1,2}\b|E\d{1,3}\b|x\d{1,3}\b|x\d{1,3}v[\d]{1,2}\b))
+      myTVDBSeasonalityRegexMatcher = f.name =~ /(?i)\b((S\d{1,2}|\d{1,2})(?>\.|\s)?([ExS]\d{1,3})[_]?(?>v\d{1,2})?)/
       if ( myTVDBSeasonalityRegexMatcher.find() ) {
         airdateSeasonNumber = myTVDBSeasonalityRegexMatcher[0][2].replaceAll(/(S|s)/, '').toInteger()
       }
       if (!isFileBotDetectedName) {
-        // Remove the Sxx from the anime name if it's Airdate Order
+        // Remove only the Season from the Filename if it's Airdate order.
         // VOID - (?i)([-\s]*S)([\d]{1,2})\b
-        // TRIAL - (?i)\b([-\s]*S[\d]{1,2})|(\d{1,2}x\d{1,3}v\d{1,2}|\d{1,2}x\d{1,3})\b
-        anime = anime.replaceAll(/(?i)\b([-\s]*S[\d]{1,2})|(\d{1,2}x\d{1,3}v\d{1,2}|\d{1,2}x\d{1,3})\b/ , '').replaceAll(/(\s){2,20}/, ' ').replaceAll(/([\s-])*$/, '')
+        // VOID - (?i)\b([-\s]*S[\d]{1,2})|(\d{1,2}x\d{1,3}v\d{1,2}|\d{1,2}x\d{1,3})\b
+        anime = anime.replaceAll(/(?i)\b((S\d{1,2}|\d{1,2})(?>\.|\s)?(?>[ExS]\d{1,3})[_]?(?>v\d{1,2})?)/ , '').replaceAll(/(\s){2,20}/, ' ').replaceAll(/([\s-])*$/, '')
         println "---------- Anime Name is now: $anime"
       }
     }
@@ -685,6 +688,9 @@ LinkedHashMap groupGeneration( def input, Boolean useGroupByAutodection, Locale 
     // mySeasonalityRegexMatcher = anime =~ /(?i)(?<!\d)(?<!Season)(?<!\bS)(?<!Part)(\s[\d]{1,2}\s?$)/
     // mySeasonalityRegexMatcher = anime =~ /(?i)(?<!\d)(?<!Season)(?<!\bS)(?<!Part)(\s[\d]{1,3}(v[\d]{1,2}|[a-zA-Z])?\s?)$/
     mySeasonalityRegexMatcher = anime =~ /(?i)(?<!\d)(?<!Season)(?<!\bS)(?<!Part)(\s[\d]{1,3})(v[\d]{1,2}|[a-zA-Z])?\s?$/
+    // For text like:
+    // anime nnn to end of line
+    // anime nnnvnn to end of line
     if ( mySeasonalityRegexMatcher.find() && !isSpecial) {
       println "-------- ${anime}: has Numerical series Syntax"
       // There is in fact at least ONE Anime where it is 02 vs 2 ..
@@ -744,6 +750,9 @@ LinkedHashMap groupGeneration( def input, Boolean useGroupByAutodection, Locale 
 
     // mySeasonalityRegexMatcher = anime =~ /(?i)(?<!\d)(?<!Season)(?<!\bS)(?<!Part)(?<!I|II|III|IV|V|VI|VII|VIII|IX)(1st$|2nd$|3rd$|\dth$)/
     mySeasonalityRegexMatcher = anime =~ /(?i)(?<!\d)(?<!Season)(?<!\bS)(?<!Part)(\s(1st|2nd|3rd|\dth|I|II|III|IV|V|VI|VII|VIII|IX))$/
+    // for text
+    // Anime II
+    // Anime 2nd
     if ( mySeasonalityRegexMatcher.find() && !isSpecial) {
       println "-------- ${anime}: has Ordinal/Roman series Syntax"
       hasSeriesSyntax = true
@@ -758,6 +767,19 @@ LinkedHashMap groupGeneration( def input, Boolean useGroupByAutodection, Locale 
       println "---------- mySeriesNumber: ${seriesNumber}"
       println "---------- Anime Name is now: $anime"
     }
+
+
+    myOrdinalSeasonalityMatcher = anime =~ /(?i)(\s+(first|second|third|fourth|fith|sixth|seventh|eighth|ninth|tenth)\s+(Season|part))/ // first Season, second Season, third season etc.
+    if ( myOrdinalSeasonalityMatcher.find() ) {
+      println "--------${anime} name has word Seasonality (ugh)"
+      def wordSeasonNumberTEMP = myOrdinalSeasonalityMatcher[0][2]
+      hasOrdinalSeasonality = true
+      ordinalSeasonNumber = getWordNumber(wordSeasonNumberTEMP)
+      println "---------- ordinalSeasonNumber: ${ordinalSeasonNumber}"
+      anime = anime.replaceAll(/(?i)(\s+(first|second|third|fourth|fith|sixth|seventh|eighth|ninth|tenth)\s+(Season|part))/, '').replaceAll(/(\s){2,20}/, ' ').replaceAll(/([\s-])*$/, '')
+      println "---------- Anime Name is now: $anime"
+    }
+
 
     // void - myOrdinalSeasonalityMatcher = anime =~ /(?i)(\s+(\d|\d\d)[a-z]{2}\s+(Season|part)|\s+(part|season)\s*([\d]+))/ // 2nd Season, 3rd Season, Part 1, Part 2, 2nd part, Season 2 etc.
     // void - myOrdinalSeasonalityMatcher = anime =~ /(?i)(\s+(\d|\d\d)[a-z]{2}\s+(Season|part)|\s+(part)\s*([\d]+))/ // 2nd Season, 3rd Season, Part 1, Part 2, 2nd part, Season 2 etc.
@@ -894,14 +916,14 @@ LinkedHashMap groupGeneration( def input, Boolean useGroupByAutodection, Locale 
       }
     }
 
-    // (?i)(-\s(.*))$
-    mySanityRegexMatcher = anime =~ /(?i)(-\s(.*))$/
+    // VOID - (?i)(-\s(.*))$
+    mySanityRegexMatcher = anime =~ /(?i)(-\s([^-]*))$/
     if (mySanityRegexMatcher.find() && !mov) {
       mySanityAltTxt = mySanityRegexMatcher[0][2]
       println "-------- [${anime}] has possible additional text to remove: [${mySanityAltTxt}] using -"
       Set searchList = ["${anime}"]
       searchList += ["${returnAniDBRomanization(anime)}"]
-      animeTemp = anime.replaceAll(/(?i)(-\s(.*))$/, '').replaceAll(/(\s){2,20}/, ' ').replaceAll(/([\s-])*$/, '')
+      animeTemp = anime.replaceAll(/(?i)(-\s([^-]*))$/, '').replaceAll(/(\s){2,20}/, ' ').replaceAll(/([\s-])*$/, '')
       myGroup2AniDBOptions = anidbXMLTitleSearch(aniDBTitleXML, searchList, locale, false, false, false, true)
       myGroup2AniDBOptions2 = anidbXMLTitleSearch(aniDBSynonymXML, searchList, locale, false, false, false, true)
       if ( myGroup2AniDBOptions.isEmpty() && myGroup2AniDBOptions2.isEmpty() ) {
@@ -965,35 +987,42 @@ LinkedHashMap groupGeneration( def input, Boolean useGroupByAutodection, Locale 
     mySanityRegexMatcher = myFileNameForParsing =~ /(?i)(?<!^)(\(((?!((19|20)\d\d))[^)]*)\))(?!\.\w\w\w)/
     if (mySanityRegexMatcher.find()) {
       mySanityAltTxt = mySanityRegexMatcher[0][2]
-      if ( mySanityAltTxt.size() >= 2 ) {
-        println "-------- [${anime}] has possible Alternative Title: [${mySanityAltTxt}] using ()"
-        Set searchList = ["${mySanityAltTxt}"]
-        searchList += ["${returnAniDBRomanization(mySanityAltTxt)}"]
-        myGroup2AniDBOptions = anidbXMLTitleSearch(aniDBTitleXML, searchList, locale, false, false, false, true)
-        myGroup2AniDBOptions2 = anidbXMLTitleSearch(aniDBSynonymXML, searchList, locale, false, false, false, true)
-        if ( myGroup2AniDBOptions.isEmpty() && myGroup2AniDBOptions2.isEmpty() ) {
-          println "---------- Alternative Title not found in AniDB by AniDB XML Title/Synonym Search: ${mySanityAltTxt}"
-          animeTemp=anime + " " + mySanityAltTxt
-          searchList = ["${animeTemp}"]
-          println "---------- Insanity Check for Groups that use () for title subtext aka [anime: subtext] - ${animeTemp}"
-          searchList += ["${returnAniDBRomanization(animeTemp)}"]
+      if ( mySanityAltTxt.size() >= 2) {
+        if ( detectAnimeReleaseGroupFromFile(f) == "ASW" && mySanityAltTxt == "The Adventure of Dai") {
+          println "-------- [${anime}] has malformed title [ASW] - Should be: Dragon Quest: The Adventure of Dai"
+          anime = "Dragon Quest: The Adventure of Dai"
+          println "------------ New Anime name is ${anime}"
+        } else {
+          println "-------- [${anime}] has possible Alternative Title: [${mySanityAltTxt}] using ()"
+          Set searchList = ["${mySanityAltTxt}"]
+          searchList += ["${returnAniDBRomanization(mySanityAltTxt)}"]
           myGroup2AniDBOptions = anidbXMLTitleSearch(aniDBTitleXML, searchList, locale, false, false, false, true)
           myGroup2AniDBOptions2 = anidbXMLTitleSearch(aniDBSynonymXML, searchList, locale, false, false, false, true)
           if ( myGroup2AniDBOptions.isEmpty() && myGroup2AniDBOptions2.isEmpty() ) {
-            println "------------ Instanity Check failed :)"
+            println "---------- Alternative Title not found in AniDB by AniDB XML Title/Synonym Search: ${mySanityAltTxt}"
+            animeTemp=anime + " " + mySanityAltTxt
+            searchList = ["${animeTemp}"]
+            println "---------- Insanity Check for Groups that use () for title subtext aka [anime: subtext] - ${animeTemp}"
+            searchList += ["${returnAniDBRomanization(animeTemp)}"]
+            myGroup2AniDBOptions = anidbXMLTitleSearch(aniDBTitleXML, searchList, locale, false, false, false, true)
+            myGroup2AniDBOptions2 = anidbXMLTitleSearch(aniDBSynonymXML, searchList, locale, false, false, false, true)
+            if ( myGroup2AniDBOptions.isEmpty() && myGroup2AniDBOptions2.isEmpty() ) {
+              println "------------ Instanity Check failed :)"
+            } else {
+              println "------------ Insanity Found"
+              anime = "${anime} "+"${mySanityAltTxt}"
+              println "------------ New Anime name is ${anime}"
+            }
           } else {
-            println "------------ Insanity Found"
-            anime = "${anime} "+"${mySanityAltTxt}"
-            println "------------ New Anime name is ${anime}"
+            println "---------- Our Query Returned from AniDB: ${myGroup2AniDBOptions}:${myGroup2AniDBOptions2}"
+            println "-------------- Setting altTitle:[${mySanityAltTxt}]"
+            altTitle = mySanityAltTxt
           }
-        } else {
-          println "---------- Our Query Returned from AniDB: ${myGroup2AniDBOptions}:${myGroup2AniDBOptions2}"
-          println "-------------- Setting altTitle:[${mySanityAltTxt}]"
-          altTitle = mySanityAltTxt
         }
       }
     }
-    return [anime: anime, altTitle: altTitle, filebotMovieTitle: filebotMovieTitle, order: order, airdateSeasonNumber: airdateSeasonNumber, mov: mov, isFileBotDetectedName: isFileBotDetectedName, hasSeriesSyntax: hasSeriesSyntax, seriesNumber: seriesNumber, hasSeasonality: hasSeasonality, seasonNumber: seasonNumber, hasOrdinalSeasonality: hasOrdinalSeasonality, ordinalSeasonNumber: ordinalSeasonNumber, hasPartialSeasonality: hasPartialSeasonality, partialSeasonNumber: partialSeasonNumber, isSpecial: isSpecial, specialType: specialType, yearDateInName: yearDateInName]
+
+    return [anime: anime.toLowerCase(), altTitle: altTitle, filebotMovieTitle: filebotMovieTitle, order: order, airdateSeasonNumber: airdateSeasonNumber, mov: mov, isFileBotDetectedName: isFileBotDetectedName, hasSeriesSyntax: hasSeriesSyntax, seriesNumber: seriesNumber, hasSeasonality: hasSeasonality, seasonNumber: seasonNumber, hasOrdinalSeasonality: hasOrdinalSeasonality, ordinalSeasonNumber: ordinalSeasonNumber, hasPartialSeasonality: hasPartialSeasonality, partialSeasonNumber: partialSeasonNumber, isSpecial: isSpecial, specialType: specialType, yearDateInName: yearDateInName, releaseGroup: releaseGroup]
   }
   return groupsByManualThree
 }
@@ -1747,7 +1776,6 @@ groupsByManualThreeEpisodes.each { group, files ->
   println ''
   println '//-------------------------------------------'
   log.finest "${groupInfoGenerator(group)} => ${files*.name}"
-//  log.finest "${group}"
   // ---------- START TV Mode ---------- //
     // ---------- Reset Variables ---------- //
     // TODO
@@ -2554,7 +2582,9 @@ groupsByManualThreeEpisodes.each { group, files ->
       if ( firstANIDBWTMatchNumber > 0.9800000000000000000 && firstTVDBDWTMatchNumber > 0.9800000000000000000 && !group.isSpecial) {
         println '------- 1st AniDB match 0.98+'
         println '--------- We are going to try and validate TVDB Season (To see if we can use TVDB to lookup Anime)'
-        myanimeListXMLGetTVDBID = filebotAnimeListReturnFromAID(anidbFirstMatchDetails.dbid, true)
+        myanimeListXMLGetTVDBID = (hasPartialSeasonality && hasOrdinalSeasonality) == true ? null : filebotAnimeListReturnFromAID(anidbFirstMatchDetails.dbid, true)
+        // Anime with both Partial and Ordinal Seasonality if absolute ordered relative to that season generally don't match *correctly* on strict using TVDB
+        // Probably need to somehow do some episode number shifting based on the TVDB offset.. For now just skip TVDB mapping, and use AniDB
         if ( myanimeListXMLGetTVDBID == theTVDBFirstMatchDetails.dbid ) {
           println '--------- AnimeList AniDB to TVDB ID mapping found and matched.'
           // Since we got an ID, in theory that means there is always a mapping so we don't need to check if it's null..
@@ -3294,6 +3324,7 @@ groupsByManualThreeEpisodes.each { group, files ->
       if (group.order == 'Absolute') {
         println "//--- Absolute Ordering Detected"
         if (firstANIDBWTMatchNumber > 0.9800000000000000000 && firstTVDBDWTMatchNumber > 0.9800000000000000000) {
+          // Idea #1 - If the file's episode # is higher then the AniDB Series episode count, then it's likely using TVDB Absolute?
           println '------- 1st AniDB match 0.98+ and 1st TVDB match 0.98+'
           println '------- 1st AniDB match 0.98+'
           println '--------- We are going to try and validate TVDB Season'
@@ -3317,9 +3348,11 @@ groupsByManualThreeEpisodes.each { group, files ->
               thirdPassOptionsSet = true
               performRename = true
               renameDB = 'TheTVDB'
-              renameFilter = "s == ${myanimeListXMLGetTVDBSeason}"
-              renameMapper = '[AnimeList.AniDB, episode, order.absolute.episode]'
-              renameOrder = 'Airdate'
+              renameFilter = ''
+              renameOrder = 'Absolute'
+//              renameFilter = "s == ${myanimeListXMLGetTVDBSeason}"
+//              renameMapper = '[AnimeList.AniDB, episode, order.absolute.episode]'
+//              renameOrder = 'Airdate'
               renameStrict = true
             }
           }
