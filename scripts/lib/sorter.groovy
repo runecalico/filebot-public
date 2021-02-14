@@ -1,5 +1,5 @@
 package lib
-//--- VERSION 1.0.5
+//--- VERSION 1.0.6
 
 import net.filebot.web.TheTVDBSeriesInfo
 import org.apache.commons.text.similarity.JaroWinklerDistance
@@ -18,8 +18,23 @@ ArrayList basenameGenerator ( LinkedHashMap group, Boolean useBaseAnimeNameWithS
     case ~/girl gaku ~hijiri girls square gakuin~/:
       baseAnimeName =  'Girl Gaku. Sei Girls Square Gakuin'
       break
+    case ~/girl gaku/:
+      baseAnimeName =  'Girl Gaku. Sei Girls Square Gakuin'
+      break
+    case ~/sk/:
+      // while yes, sk is a short for Shaman King, however more recently it's a widely used short for SK8 The Infinity, so let's go with that for now.
+      // Tho why SK vs SK8 as the short name to use ... only the release groups using SK know ..
+      baseAnimeName =  'SK8 the Infinity'
+      break
+    case ~/rezero kara hajimeru break time/:
+      // AniDB has this as specials under Re:Zero kara Hajimeru Isekai Seikatsu
+      baseAnimeName =  'Re:Zero kara Hajimeru Isekai Seikatsu'
+      break
     case ~/digimon savers kyuukyoku power burst mode hatsudou!!/:
       baseAnimeName =  'Digimon Savers The Movie: Kyuukyoku Power! Burst Mode Hatsudou!!'
+      break
+    case ~/mushoku tensei/:
+      baseAnimeName =  'Mushoku Tensei: Isekai Ittara Honki Dasu'
       break
     case ~/munou no nana/:
       baseAnimeName =  'Munou na Nana'
@@ -139,6 +154,16 @@ ArrayList basenameGenerator ( LinkedHashMap group, Boolean useBaseAnimeNameWithS
       baseAnimeName = 'Made in Abyss: Dawn of the Deep Soul'
       group.isSpecial = true
       break
+  }
+  // Because relying on synonyms can be a hit or miss ..
+  if ( baseAnimeName == 'shokugeki no souma' && group.seasonNumber == 4 ) {
+    baseAnimeName = 'Food Wars! The Fourth Plate'
+    group.seasonNumber = null
+    group.hasSeasonality = false
+  }
+  // unfortunately it's still 2020 ..
+  if ( baseAnimeName == 'dragon quest dai no daibouken' && group.yearDateInName == "2021" ) {
+    group.yearDateInName = "2020"
   }
   // There is no such thing as a 3rd season on TheTVDB, or... technically on AniDB either.
   if ( baseAnimeName == 'mushishi' && group.airdateSeasonNumber == 3 ) {
@@ -314,6 +339,7 @@ String groupInfoGenerator ( def group ) {
   if ( group.hasPartialSeasonality ) { groupInfo = groupInfo + ", hasPartialSeasonality: $group.hasPartialSeasonality, partialSeasonNumber: $group.partialSeasonNumber" }
   if ( group.isSpecial ) { groupInfo = groupInfo + ", isSpecial: $group.isSpecial, specialType: $group.specialType" }
   if ( group.yearDateInName != null ) { groupInfo = groupInfo + ", yearDateInName: $group.yearDateInName" }
+  if ( group.releaseGroup != null ) { groupInfo = groupInfo + ", releaseGroup: $group.releaseGroup" }
   return groupInfo
 }
 
