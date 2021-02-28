@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial support for treating Episodes that are likely Specials vs Anime Series that are Special (OVA/ONA) using isMovieType, isSpecialType, isSpecialEpisode and specialType
 - Moved most of the code involving Episode decision tree work to methods in lib\sorter.groovy
 - Changed Episode renaming to rename by group, with the grouping be by rename options to pass to renameWrapper
+- Rename options are decided using Episode # of the file, File Ordering (Absolute/Airdate) and AnimeLists
+- Episodes over 99 almost always use episode filtering to that specific episode to deal with sporatic episode mismatches for triple digit episodes
 - Changed Episode renaming to rename until "done", so leftOver files get processed in subsequent passes
 - Removed 3rd Pass completely (The Edge cases it was used for no longer are valid)
 ### Added
