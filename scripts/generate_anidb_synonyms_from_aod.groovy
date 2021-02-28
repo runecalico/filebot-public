@@ -1,5 +1,5 @@
 #!/usr/bin/env filebot -script
-//--- VERSION 1.0.0
+//--- VERSION 1.0.1
 import groovy.json.JsonSlurper
 import groovy.xml.MarkupBuilder
 import groovy.xml.StreamingMarkupBuilder
@@ -29,7 +29,8 @@ args.withIndex().each { f, i -> if (f.exists()) { log.finest "Argument[$i]: $f" 
 
 // initialize variables
 failOnError = _args.conflict.equalsIgnoreCase('fail')
-testRun = license == null || _args.action.equalsIgnoreCase('test')
+testRun = _args.action.equalsIgnoreCase('test')
+//testRun = license == null || _args.action.equalsIgnoreCase('test')
 
 // extra options, myepisodes updates and email notifications
 String outputFilename         = tryQuietly { outputFilename.toString() }
