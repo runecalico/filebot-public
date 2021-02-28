@@ -4,12 +4,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2021-02-28
+- Major rewrite of the way episode renaming is done and rename option decision trees.
+- Initial switch from using XML searches (AniDB Title/Synonym) to LinkedHashMap Searches
+- Initial support for treating Episodes that are likely Specials vs Anime Series that are Special (OVA/ONA) using isMovieType, isSpecialType, isSpecialEpisode and specialType
+- Moved most of the code involving Episode decision tree work to methods in lib\sorter.groovy
+- Changed Episode renaming to rename by group, with the grouping be by rename options to pass to renameWrapper
+- Changed Episode renaming to rename until "done", so leftOver files get processed in subsequent passes
+- Removed 3rd Pass completely (The Edge cases it was used for no longer are valid)
+### Added
+- groupGeneration() - Removed group.releaseGroup (It caused way too many groups to form, which also greatly slowed down processing)
+- groupGeneration() - Added isMovieType, isSpecialType, isSpecialEpisode and specialType placeholders to group generation
+- groupGeneration() - Updated "Special" detection with rudimentary isSpecialType, isSpecialEpisode and specialType usage
+- groupGeneration() - Switched to use anidbHashTitleSearch (instead of anidbXMLTitleSearch)
+- groupGeneration() - Added Release Group Checks (ASW|DKB) for fixing improper file naming for dragon quest dai no daibouken 2020
+- renameWrapper() - Updated to use different formats based on isMovieType, isSpecialType, isSpecialEpisode (or default) 
+- seriesnameGenerator() - Added support for Partial Syntax WITH Seasonality/Airdate Syntax (Thanks to Re:Zero Season 2 Part 2)
+- seriesnameGenerator() - Updated for group.isSpecialType and group.isSpecialEpisode
+
+### Changed
+- Added metadata to Processed file output at end of script (it's cached even if I don't write the metadata to the file)
 
 ## [1.2.7] - 2021-02-14
 ### Added
 - groupGeneration() - Added Release Group (group.releaseGroup) detection/tracking using shared.detectAnimeReleaseGroupFromFile()
 - groupGeneration() - Added detection of word seasonality aka anime series second season, first season, third season etc. using ordinalSeasonality variables 
-- 
+
 ### Changed
 - groupGeneration() - airdate detection - updated regex for myTVDBSeasonalityRegexMatcher to improve detection of non-standard TVDB Syntax
 - groupGeneration() - AltText using - : Adjusted Regex to catch the "last" - and all text to the end of the line (vs the first - and all text till end of line)
