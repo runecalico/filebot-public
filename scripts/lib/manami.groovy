@@ -1,5 +1,5 @@
 package lib
-//--- VERSION 1.1.1
+//--- VERSION 1.2.0
 // http://docs.groovy-lang.org/latest/html/documentation/grape.html
 // https://mvnrepository.com/artifact/org.apache.commons/commons-text
 @Grapes(
@@ -172,4 +172,48 @@ Integer aodGetEpisodeNumberForAID(JsonObject fileBotJsonCacheObject, Integer Ani
   } else {
     return myAniDBEntry.episodes
   }
+}
+
+LinkedHashMap setAnimeTypeFromAID(JsonObject animeOfflineDatabase, Integer animeID, def specialType, Boolean isSpecialType, Boolean isMovieType) {
+  //--- Set options on if this is a Movie/ONA/OVA or Special/TV
+  def getAnimeType = aodGetTypeForAID(animeOfflineDatabase, animeID)
+  switch (getAnimeType) {
+    case ["Movie"]:
+      isMovieType = true
+      isSpecialType = false
+      break
+    case ["TV"]:
+      isMovieType = false
+      isSpecialType = false
+      specialType = null
+      break
+    case ["Special","OVA","ONA"]:
+      isMovieType = false
+      isSpecialType = true
+      specialType = getAnimeType
+      break
+    default:
+      break
+  }
+  return [ isSpecialType: isSpecialType, isMovieType: isMovieType, specialType: specialType]
+}
+
+/**
+ * Search Anime Offline Database using a set of search terms and return all the title and all synonyms for that entry.
+ * A literal match is used.
+ *
+ * @param animeOfflinejsonObject Json Object of the Anime Offline Database
+ * @param searchList A Set of names we will be searching for
+ * @return the search results as a set for all the search terms
+ */
+Set aodReturnAllTitlesAndSynonyms(animeOfflinejsonObject, Set searchList) {
+  HashSet returnAsSet = []
+  searchList.each { lead ->
+    // println "lead:${lead}"
+    returnAsSet << lead
+    animeOfflinejsonObject.data.find { it.title == lead }.synonyms.collect { it }.each {
+      returnAsSet << it.toLowerCase()
+    }
+  }
+  return returnAsSet
 }
