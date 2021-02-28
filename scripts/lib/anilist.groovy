@@ -1,5 +1,5 @@
 package lib
-//--- VERSION 1.0.0
+//--- VERSION 1.1.1
 // https://http-builder-ng.github.io/http-builder-ng/
 @Grab('io.github.http-builder-ng:http-builder-ng-core:1.0.4')
 
@@ -8,7 +8,13 @@ import static groovyx.net.http.HttpBuilder.configure
 import static groovyx.net.http.ContentTypes.JSON
 import groovyx.net.http.*
 
-// ---------- Function to LinkedHashMap of Anilist ID and Title ---------- //
+/**
+ * Function to LinkedHashMap of Anilist ID and Title
+ *
+ * @param animeSeason The Anime Season
+ * @param animeYear The Year
+ * @return Results
+ */
 Map anilistGetSeasonTitles(String animeSeason, Integer animeYear){
   // ---------- Variable Declaration ---------- //
   Integer queryPage = 1
@@ -37,7 +43,14 @@ Map anilistGetSeasonTitles(String animeSeason, Integer animeYear){
   return anilistSeasonTitles
 }
 
-// ---------- Function to return JSON results of Season Query ---------- //
+/**
+ * Function to return JSON results of Season Query
+ *
+ * @param queryPage Query Page
+ * @param animeSeason The Anime Season
+ * @param animeYear The Year
+ * @return Query results
+ */
 Map queryAnilistForSeason(Integer queryPage, String animeSeason, Integer animeYear ) {
   String query = """\
   query (\$season: MediaSeason, \$year: Int) {
