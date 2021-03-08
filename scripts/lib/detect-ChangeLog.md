@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.3] - 2012-03-06
+### Changed
+- detectAirdateOrder() - Added support for 4 digit episodes (Case Closed is now 999+)
+
+## [1.2.2] - 2012-02-28
+### Changed
+- detectEpisodeNumberFromFile() - fix missing \ from regex to match episodes with periods (aka 5.5)
+- detectEpisodeNumberFromFile() - Initial Update to support 4 digit episode # (and try to exclude 19/20 year dates) and 3 digit Season (airdate only)
+- detectEpisodeNumberFromFile() - Update aniadd to support returnSpecialsType Boolean
+
 ## [1.2.0] - 2012-02-28
 ### Added
 - detectEpisodeNumberFromFile() - Detect the Episode # from a file

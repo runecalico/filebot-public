@@ -1,5 +1,5 @@
 package lib
-//--- VERSION 1.2.0
+//--- VERSION 1.2.3
 
 /**
  * Determine if a file is a Movie.
@@ -30,7 +30,7 @@ Boolean detectAirdateOrder(String filename) {
   // VOID - return filename =~ /(?i)\b((S\d{1,2}|\d{1,2})(?>\.|\s)?([ExS]\d{1,3})[_]?(?>v\d{1,2})?)/
   // VOID - return filename =~ /(?i)\b(?<!\[)((S\d{1,2}|\d{1,2})(?>\.|\s)?([ExS]\d{1,3})[_]?(?>v\d{1,2})?)/
   // VOID - return filename =~ /(?i)\b(?<![\.\[(])((S\d{1,2}|\d{1,2})(?>\.|\s)?([ExS]\d{1,3})[_]?(?>v\d{1,2})?)/
-  return filename =~ /(?i)\b(?<![\.\[(])((S\d{1,2}|\d{1,2})(?>\.|\s)?([ExS]\d{1,3})[_]?(?>v\d{1,2})?)\b(?![\.\])=])/
+  return filename =~ /(?i)\b(?<![\.\[(])((S\d{1,2}|\d{1,2})(?>\.|\s)?([ExS]\d{1,4})[_]?(?>v\d{1,2})?)\b(?![\.\])=])/
 }
 
 // Some Forum posts about group matching .. Maybe sometime I'll look at them
@@ -146,7 +146,8 @@ def detectEpisodeNumberFromFile(File file, Boolean preferFilebotMetadata = false
   //  myRegexMatcher = myFileNameForParsing =~ /(?i)(^\d{1,3})\s[^-]*$/
   //  myRegexMatcher = myFileNameForParsing =~ /(?i)(^\d{1,3})(\s|\s-\s)[^-]*$/
   //  def myRegexMatcher = myFileNameForParsing =~ /(?i)(^\d{1,3})($|(\s|\s-\s)[^-]*$)/
-  def myRegexMatcher = myFileNameForParsing =~ /(?i)(^\d{1,3})(?>v\d)?($|\s-\s|\s)/
+  //  def myRegexMatcher = myFileNameForParsing =~ /(?i)(^\d{1,4})(?>v\d)?($|\s-\s|\s)/
+  def myRegexMatcher = myFileNameForParsing =~ /(?i)(^\d{1,4})(?<!(19\d\d|20\d\d))(?>v\d)?($|\s-\s|\s)/
   // For text like:
   // 01 The Lesson for Squirrel
   // 055 - The Stone Flower And Shippo s First Love
@@ -159,7 +160,8 @@ def detectEpisodeNumberFromFile(File file, Boolean preferFilebotMetadata = false
 
   // myRegexMatcher = myFileNameForParsing =~ /(?i)(?<!\d)(?<!Season)(?<!\bS)(?<!Part)\s([\d]{1,3}\s?$)/
   // myRegexMatcher = myFileNameForParsing =~ /(?i)(?<!\d)(?<!Season)(?<!\bS)(?<!Part)\sE?P?([\d]{1,3}$|[\d]{1,3})$/
-  myRegexMatcher = myFileNameForParsing =~ /(?i)(?<!\d\s)(?<!Season)(?<!\bS)(?<!Part)\sE?P?([\d]{1,3})$/
+  // myRegexMatcher = myFileNameForParsing =~ /(?i)(?<!\d\s)(?<!Season)(?<!\bS)(?<!Part)\sE?P?([\d]{1,4})$/
+  myRegexMatcher = myFileNameForParsing =~ /(?i)(?<!\d\s)(?<!Season)(?<!\bS)(?<!Part)\sE?P?([\d]{1,4})(?<!(19\d\d|20\d\d))$/
   // for text like:
   // Assault Lily - Bouquet 01
   // Wolfs Rain E01
@@ -169,7 +171,8 @@ def detectEpisodeNumberFromFile(File file, Boolean preferFilebotMetadata = false
     myDetectedEpisodeNumber = myRegexMatcher[0][1].replaceFirst(/^0+(?!$)/, "").replaceFirst(/(v[\d]{1,2}\b[^-]*$)/, '')
   }
 
-  myRegexMatcher = myFileNameForParsing =~ /(?i)(?<=\d[a-z][a-z]\sSeason)\s([\d]{1,3})$/
+  // myRegexMatcher = myFileNameForParsing =~ /(?i)(?<=\d[a-z][a-z]\sSeason)\s([\d]{1,4})$/
+  myRegexMatcher = myFileNameForParsing =~ /(?i)(?<=\d[a-z][a-z]\sSeason)\s([\d]{1,4})(?<!(19\d\d|20\d\d))$/
   // for text like:
   // ReZero kara Hajimeru Break Time 2nd Season 01 and variations of ordinal season syntax 1st, 2nd, 3rd, 4th, 5th, 6th, 7th, 8th, 9th
   if (myRegexMatcher) {
@@ -183,7 +186,8 @@ def detectEpisodeNumberFromFile(File file, Boolean preferFilebotMetadata = false
   // myRegexMatcher = myFileNameForParsing =~ /(?i)(?<!Season)(?<!Part)(?<![a-z0-9])(-[\s]*|-[\s]*Episode[\s]*)([\d]{1,3}\s{0,1}v[\d]{1,2}\b[^-]*$|[\d]{1,3}\b[^-]*$)/
   // myRegexMatcher = myFileNameForParsing =~ /(?i)(?<!Season)(?<!Part)(?<![a-z0-9])(-[\s]*|-[\s]*Episode[\s]*|-[\s]*#[\s]*)([\d]{1,3}\s{0,1}v[\d]{1,2}\b[^-]*$|[\d]{1,3}\b[^-]*$)/
   // myRegexMatcher = myFileNameForParsing =~ /(?i)(?<!Season)(?<!Part)(?<![a-z0-9])(-[\s]*|-[\s]*Episode[\s]*|-[\s]*#[\s]*)(SP\d{1,3}|\d{1,3})[_\s]?(?>v\d)?[^-]*$/
-  myRegexMatcher = myFileNameForParsing =~ /(?i)(?<!Season)(?<!Part)(?<![a-z0-9])(-[\s]*|-[\s]*Episode[\s]*|-[\s]*#[\s]*)(SP\d{1,3}|\d{1,3}\.\d|\d{1,3})[_\s]?(?>v\d)?[^-]*$/
+  // myRegexMatcher = myFileNameForParsing =~ /(?i)(?<!Season)(?<!Part)(?<![a-z0-9])(-[\s]*|-[\s]*Episode[\s]*|-[\s]*#[\s]*)(SP\d{1,4}|\d{1,4}\.\d|\d{1,4})[_\s]?(?>v\d)?[^-]*$/
+  myRegexMatcher = myFileNameForParsing =~ /(?i)(?<!Season)(?<!Part)(?<![a-z0-9])(-[\s]*|-[\s]*Episode[\s]*|-[\s]*#[\s]*)(SP\d{1,4}|\d{1,4}\.\d|\d{1,4})(?<!(19\d\d|20\d\d))[_\s]?(?>v\d)?[^-]*$/
   // for text like:
   // Grisaia no Kajitsu - SP1
   // Grisaia no Kajitsu - 1
@@ -201,47 +205,57 @@ def detectEpisodeNumberFromFile(File file, Boolean preferFilebotMetadata = false
 
   // myRegexMatcher = myFileNameForParsing =~ /(?i)(\s-[\s]*)([\d]{1,3}\s{0,1}v[\d]{1,2}|[\d]{1,3})(\s-\s)/
   // myRegexMatcher = myFileNameForParsing =~ /(?i)(\s-[\s]*)([\d]{1,4})\s{0,1}(?>v\d)?(\s?-\s)/
-  myRegexMatcher = myFileNameForParsing =~ /(?i)(\s-[\s]*)([\d]{1,4})\s{0,1}(?>v\d)?(\s?-)/
+  // myRegexMatcher = myFileNameForParsing =~ /(?i)(\s-[\s]*)([\d]{1,4})\s{0,1}(?>v\d)?(\s?-)/
+  myRegexMatcher = myFileNameForParsing =~ /(?i)(\s-[\s]*)([\d]{1,4})(?<!(19\d\d|20\d\d))\s{0,1}(?>v\d)?(\s?-)/
   // For text like:
   // Cap Kakumei Bottleman - 07 - A Battle! Clash between Soft and Hard!
   // Zoids Wild Zero - 01- Birth! Beast Liger
   // ZENONZARDTHE ANIMATION Episode - 04 -Ash Undercover
+  // Dragon`s Dogma - 03v2 - ONA
   if ( myRegexMatcher ) {
     //      myDetectedEpisodeNumber = myRegexMatcher[0][2].replaceFirst(/^0+(?!$)/, "").replaceFirst(/(v[\d]{1,2}\b[^-]*$)/, '')
     myDetectedEpisodeNumber = myRegexMatcher[0][2].replaceFirst(/^0+(?!$)/, "")
   }
 
-  myRegexMatcher = myFileNameForParsing =~ /(?i)(\s-[\s]*)([\d]{1,3}-[\d]{1,3})\s{0,1}(?>v\d)?(\s?-\s)/
+  myRegexMatcher = myFileNameForParsing =~ /(?i)(\s-[\s]*)([\d]{1,4}-[\d]{1,4})\s{0,1}(?>v\d)?(\s?-\s)/
   // for text like:
   // Taiko no Tatsujin - 01-07 - The Birth of Don and Katsu!!
   if ( myRegexMatcher ) {
     myDetectedEpisodeNumber = myRegexMatcher[0][2].replaceFirst(/^0+(?!$)/, "")
   }
 
-  myRegexMatcher = myFileNameForParsing =~ /(?i)S\d\s(\d{0,3})(?>v\d)?$/
+  // myRegexMatcher = myFileNameForParsing =~ /(?i)S\d\s(\d{0,4})(?>v\d)?$/
+  myRegexMatcher = myFileNameForParsing =~ /(?i)S\d\s(\d{0,4})(?<!(19\d\d|20\d\d))(?>v\d)?$/
   // For text like:
   // To LOVE-Ru Darkness Season S2 14
+  // To LOVE-Ru Darkness Season S2 14v2
   if ( myRegexMatcher ) {
     myDetectedEpisodeNumber = myRegexMatcher[0][1].replaceFirst(/^0+(?!$)/, "")
   }
 
   // myRegexMatcher = myFileNameForParsing =~ /(?i)Special\s(\d{1,3})(?>v\d)?$/
-  myRegexMatcher = myFileNameForParsing =~ /(?i)(Special\s?-?\s?\d{1,3}|SP\s?-?\s?\d{1,3}|OVA\s?-?\s?\d{1,3}|OAD\s?-?\s?\d{1,3})(?>v\d)?$/
+  // myRegexMatcher = myFileNameForParsing =~ /(?i)(Special\s?-?\s?\d{1,4}|SP\s?-?\s?\d{1,4}|OVA\s?-?\s?\d{1,4}|OAD\s?-?\s?\d{1,4})(?>v\d)?$/
+  myRegexMatcher = myFileNameForParsing =~ /(?i)(Special\s?-?\s?\d{1,4}|SP\s?-?\s?\d{1,4}|OVA\s?-?\s?\d{1,4}|OAD\s?-?\s?\d{1,4})(?<!(19\d\d|20\d\d))(?>v\d)?$/
   // for text like:
   // Hyakka Ryouran Samurai Bride Special 1
+  // Hyakka Ryouran Samurai Bride Special - 1
   // Hyakka Ryouran Samurai Bride Sp 1
+  // Hyakka Ryouran Samurai Bride Sp - 1
   // OVA - 1
   // OVA 1
+  // But NOT text like
+  // Special 2018
   if (myRegexMatcher) {
     if ( returnSpecialsType ) {
-      myDetectedEpisodeNumber = myRegexMatcher[0][1].replaceAll(/\s/, '')
+      myDetectedEpisodeNumber = myRegexMatcher[0][1].replaceAll(/\s/, '').replaceFirst(/^0+(?!$)/, "")
     } else {
-      myDetectedEpisodeNumber = myRegexMatcher[0][1].replaceAll(/\s/, '').replaceAll(/[a-zA-Z]/, '')
+      myDetectedEpisodeNumber = myRegexMatcher[0][1].replaceAll(/\s/, '').replaceAll(/[a-zA-Z-]/, '').replaceFirst(/^0+(?!$)/, "")
     }
 
   }
 
-  myRegexMatcher = file.name =~ /(?i)(\s-[\s]*)([\d]{1,3}.\d)\s{0,1}(?>v\d)?(\s?-\s)/
+  // myRegexMatcher = file.name =~ /(?i)(\s-[\s]*)([\d]{1,3}.\d)\s{0,1}(?>v\d)?(\s?-\s)/
+  myRegexMatcher = file.name =~ /(?i)(\s-[\s]*)([\d]{1,4}\.\d)\s{0,1}(?>v\d)?(\s?-\s)/
   // For text like:
   // [DeadFish] Kono Yo no Hate de Koi wo Utau Shoujo YU-NO - 26.5 - Special [720p][AAC].mp4
   if ( myRegexMatcher ) {
@@ -256,7 +270,8 @@ def detectEpisodeNumberFromFile(File file, Boolean preferFilebotMetadata = false
     }
   }
 
-  myRegexMatcher = myFileNameForParsing =~ /(?i)\s(\d{1,3})\s*-\s[^-0-9]*$/
+  // myRegexMatcher = myFileNameForParsing =~ /(?i)\s(\d{1,4})\s*-\s[^-0-9]*$/
+  myRegexMatcher = myFileNameForParsing =~ /(?i)\s(\d{1,4})(?<!(19\d\d|20\d\d))\s*-\s[^-0-9]*$/
   // For text like:
   // Code Geass - Boukoku no Akito 1 - Yokuryuu wa Maiorita
   // the Garden of sinners 08 - Epilogue
@@ -266,7 +281,7 @@ def detectEpisodeNumberFromFile(File file, Boolean preferFilebotMetadata = false
   }
 
   // myRegexMatcher = myFileNameForParsing =~ /(?i)\b((S\d{1,2}|\d{1,2})(?>\.)?(E\d{1,3}[_]?v[\d]{1,2}\b|E\d{1,3}\b|x\d{1,3}\b|x\d{1,3}v[\d]{1,2}\b))/
-  myRegexMatcher = myFileNameForParsing =~ /(?i)\b(?<![\.\[(])((S\d{1,2}|\d{1,2})(?>\.|\s)?([ExS]\d{1,3})[_]?(?>v\d{1,2})?)/
+  myRegexMatcher = myFileNameForParsing =~ /(?i)\b(?<![\.\[(])((S\d{1,3}|\d{1,3})(?>\.|\s)?([ExS]\d{1,4})[_]?(?>v\d{1,2})?)/
   // for text like:
   // Kami-tachi ni Hirowareta Otoko - S01E02 also S01x02, S01S16 variations (and S01E02v2 or S01E02_v2 variations)
   // Kami-tachi ni Hirowareta Otoko - 01E16, 01x16, 01S16 variations  (and 01E16v2 or 01E16_v2 variations)
@@ -289,7 +304,11 @@ def detectEpisodeNumberFromFile(File file, Boolean preferFilebotMetadata = false
   //    myRegexMatcher = file.name =~ /^(.+)\s-\s(\d{1,3}|S\d{1,3})(?>v\d)?\s-\s(.+)(\[[\w-\s\'&~.!#$%@]*\])(\[[\w-\s\'&~.!#$%@]*\])(\[[\w-\s\'&~.!#$%@]*\])(\[[\w-\s\'&~.!#$%@]*\])(\[[\w-\s\'&~.!#$%@]*\])(\.\d)?\.[^.]+$/
   myRegexMatcher = file.name =~ /^(.+)\s-\s(\d{1,4}|S\d{1,4})(?>v\d)?\s-\s(.+)(\[([^)\]]*)\])(\[([^)\]]*)\])(\[([^)\]]*)\])(\[([^)\]]*)\])(\[([^)\]]*)\])(\.\d)?\.[^.]+$/
   if ( myRegexMatcher ) {
-    myDetectedEpisodeNumber = myRegexMatcher[0][2].replaceFirst(/^0+(?!$)/, "") // Remove leading Zero's
+    if ( returnSpecialsType ) {
+      myDetectedEpisodeNumber = myRegexMatcher[0][2].replaceFirst(/^0+(?!$)/, "") // Remove leading Zero's
+    } else {
+      myDetectedEpisodeNumber = myRegexMatcher[0][2].replaceAll(/[a-zA-Z]/, '').replaceFirst(/^0+(?!$)/, "") // Remove Alpha then leading Zero's
+    }
   }
   if (myDetectedEpisodeNumber == null && episodeProcessing) {
     if ( file.metadata ) {
@@ -299,7 +318,7 @@ def detectEpisodeNumberFromFile(File file, Boolean preferFilebotMetadata = false
     }
   }
   if (myDetectedEpisodeNumber == null && episodeProcessing) {
-    myRegexMatcher = myFileNameForParsing =~ /(\d{1,3}$)/
+    myRegexMatcher = myFileNameForParsing =~ /(\d{1,4}(?<!(19\d\d|20\d\d))$)/
     // Matches up to 3 digits at the end of the line
     // TomicaKizunaGattaiEarthGranner45
     if ( myRegexMatcher ) {
