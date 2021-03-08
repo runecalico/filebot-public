@@ -6,7 +6,7 @@ import net.filebot.web.Episode
 import net.filebot.web.SeriesInfo
 import net.filebot.web.SortOrder
 
-//--- VERSION 1.3.0
+//--- VERSION 1.3.1
 // https://http-builder-ng.github.io/http-builder-ng/
 // I couldn't figure out how to use the URL method and set a User Agent string (as required by AniDB to download the file)
 // So we will use http-builder-ng instead.
@@ -620,6 +620,7 @@ Set anidbHashTitleSearch(LinkedHashMap aniDBCompleteXMLList, Set searchList, loc
     }
     searchList.each { searchItem ->
       searchItemString = searchItem.toString()
+      searchItemStringCompare = altjwdStringBlender(searchItemString)
       if ( values.titlescompare != null ) {
         titlesToSearch = values.titlescompare
       }
@@ -645,13 +646,13 @@ Set anidbHashTitleSearch(LinkedHashMap aniDBCompleteXMLList, Set searchList, loc
           // if ( searchItem.toString() == title.text() ) {
           //   returnAID == true ? (resultsAsSet << anidbID) : returnAllOM == false ? (resultsAsSet << "${officialTitle.text()}") : (resultsAsSet <<  officialTitle)
           // }
-          if ( altjwdStringBlender(searchItemString) == titleText ) {
+          if ( searchItemStringCompare == titleText ) {
             returnAID == true ? (resultsAsSet << anidbID) : returnAllOM == false ? (resultsAsSet << "${officialTitle}") : (resultsAsSet <<  officialTitle)
           }
         } else {
           // JWD Comparison
           // jwdcompare = jaroWinklerDistance.apply(altjwdStringBlender(searchItem.toString()), altjwdStringBlender(title.text()))
-          jwdcompare = jaroWinklerDistance.apply(altjwdStringBlender(searchItemString), titleText)
+          jwdcompare = jaroWinklerDistance.apply(searchItemStringCompare, titleText)
           if ( jwdcompare >= jwdCutoff ) {
             //            // println "Found this exact Match (${jwdcompare})? ${title.text()} for AID: ${anidbID} with OfficialTitle: ${searchItem.toString()}"
             // returnAID == true ? (resultsAsSet << anidbID) : (resultsAsSet << "${searchItem.toString()}")
