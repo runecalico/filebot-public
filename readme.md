@@ -29,35 +29,45 @@
     - WARNING!!!!! I HIGHLY recommend not adding XATTR information to the files (which adds episode info to them, and is likely not accurate)
     - I use this in steps (Powershell 7 btw)
   
-  Step #1 - Run the script in normal STRICT mode
+  Step #1 - Clear out any existing filebot xattr (Frequently it's wrong, and filebot seems to automatically use cache it for use with some methods)
+  ```powershell
+  $ACTION = "move"
+  $MYScriptPath = (Get-Location).Path
+  $FileBotSourceDirectory = "FULL PATH TO DIRECTORY WITH FILES"
+  $MyScript = "$MyScriptPath\clear_xattr_all_files.groovy"
+  filebot -script $MyScript $FileBotSourceDirectory --log all
+  ```  
+
+  Step #2 - Run Filebot to move Only Series/Movies/Specials using strict!
   ```powershell
   $ACTION = "move"
   $MYScriptPath = (Get-Location).Path
   $MyScript = "$MyScriptPath\anime-raw-sorter-jwd.groovy"
   $MYAnimeFormat= "$MYScriptPath\initialSort_strict_series.groovy"
-  $FileBotSourceDirectory = "..."
-  $FileBotDestDirectory = "..."
-  filebot -script $MyScript --action $ACTION -rename -no-xattr --conflict index -r --def animeFormat=@$MYAnimeFormat aniDBuserAgent="myanidbid/filebot" minFileSize=10 minLengthMS=5 aniDBXMLrefreshDays=1 $FileBotSourceDirectory --output $FileBotDestDirectory --log all --lang English
+  $FileBotSourceDirectory = "FULL PATH TO DIRECTORY WITH FILES"
+  $FileBotDestDirectory = "FULL PATH TO OUTPUT DIRECTORY"
+  filebot -script $MyScript --action $ACTION -rename -no-xattr --conflict index -r --def clearXattr=y aniDBuserAgent="nosuchuser/filebot" animeFormat=@$MYAnimeFormat minFileSize=10 minLengthMS=5 aniDBXMLrefreshDays=1  $FileBotSourceDirectory --output $FileBotDestDirectory --log all --lang English
   ```
-  Step #2 - Look at the output from Step 1 if you want to reduce false matches on movies/specials. Run the script in NON-STRICT mode for Movies and Specials. As Filebot doesn't have support for Movies, and OVA/ONA/OAD are .. kinda supported (even when the filename is useful)
-  
+ 
+  Step #3 - If you want to reduce false positivies, look at the output from step #2 prior to using non-strict with movies/specialTypes/Specials as Filebot doesn't have support for Movies, and OVA/ONA/OAD are .. kinda supported (even when the filename is useful) 
   ```powershell
     $ACTION = "move"
     $MYScriptPath = (Get-Location).Path
     $MyScript = "$MyScriptPath\anime-raw-sorter-jwd.groovy"
     $MYAnimeFormat= "$MYScriptPath\initialSort_strict_series.groovy"
-    $FileBotSourceDirectory = "..."
+    $FileBotSourceDirectory = "FULL PATH TO DIRECTORY WITH FILES"
     $FileBotDestDirectory = "..."
-    filebot -script $MyScript --action $ACTION -rename -no-xattr --conflict index -r --def animeFormat=@$MYAnimeFormat aniDBuserAgent="myanidbid/filebot" minFileSize=10 minLengthMS=5 aniDBXMLrefreshDays=1 useNonStrictOnAniDBMovies=y useNonStrictOnAniDBSpecials=y $FileBotSourceDirectory --output $FileBotDestDirectory --log all --lang English
+    filebot -script $MyScript --action $ACTION -rename -no-xattr --conflict index -r --def aniDBuserAgent="nosuchuser/filebot" animeFormat=@$MYAnimeFormat minFileSize=10 minLengthMS=5 aniDBXMLrefreshDays=1 useNonStrictOnAniDBSpecials=y useNonStrictOnAniDBMovies=y $FileBotSourceDirectory --output $FileBotDestDirectory --log all --lang English
   ```  
-  Step #3 - Look at the output from Step 1/2 if you want to reduce false matches on Anime Series. Run the script in NON-STRICT mode for "full AniDB matches" as well as 2nd rename rounds. This is the step most likely to produce incorrect matches. I do not recommend using these switches as your first step.
+
+  Step #4 - Look at the output from Step 2/3 if you want to reduce false matches on Anime Series. Run the script in NON-STRICT mode for "full AniDB matches". This is the step most likely to produce incorrect matches. I do not recommend using these switches as your first step. The primary reason to do the movies/specials non-strict prior is that movie detection kinda sucks and is primarily based on video length which can often not match series in AniDB that are classified as "movies", so they end up matching in the episode phase and using non-strict with episodes would match them :) this happens *more* often then the reverse.
   ```powershell
     $ACTION = "move"
     $MYScriptPath = (Get-Location).Path
     $MyScript = "$MyScriptPath\anime-raw-sorter-jwd.groovy"
     $MYAnimeFormat= "$MYScriptPath\initialSort_strict_series.groovy"
-    $FileBotSourceDirectory = "..."
+    $FileBotSourceDirectory = "FULL PATH TO DIRECTORY WITH FILES"
     $FileBotDestDirectory = "..."
-    filebot -script $MyScript --action $ACTION -rename -no-xattr --conflict index -r --def animeFormat=@$MYAnimeFormat aniDBuserAgent="myanidbid/filebot" minFileSize=10 minLengthMS=5 aniDBXMLrefreshDays=1 useNonStrictPartialRenames=y useNonStrictOnAniDBFullMatch=y $FileBotSourceDirectory --output $FileBotDestDirectory --log all --lang English
+    filebot -script $MyScript --action $ACTION -rename -no-xattr --conflict index -r --def aniDBuserAgent="nosuchuser/filebot" animeFormat=@$MYAnimeFormat  minFileSize=10 minLengthMS=5 aniDBXMLrefreshDays=1 useNonStrictOnAniDBFullMatch=y  $FileBotSourceDirectory --output $FileBotDestDirectory --log all --lang English
   ```  
-  Step #4 - Use AMC Non-Strict on whatever is left :) Tho I use a different path then normal, so I know those files are from AMC Non-Strict and require manual verification more often then not.
+  Step #4 - Use AMC Non-Strict on whatever is left :) Tho I use a different output path then normal, so I know those files are from AMC Non-Strict and require manual verification more often then not.
