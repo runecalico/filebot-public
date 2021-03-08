@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2021-03-06
+- groupGeneration() - switched airdate regex from f.name to myFileNameForParsing to align with detectAirdateOrder() usage
+- groupGeneration() - added missing \b to special work on OVA regex
+- renamewrapper() - Switched to LinkedHashMap for all rename Options, part of update to support isSpecialEpisode decision from GroupByRenameOptions decision tree's (non-persistant between passes)
+- renamewrapper() - Defaulted to animeformat, only isSpecialEpisode now uses specialFormat
+- renameMovieWrapper() - Added so movie renaming can keep old renameWrapper syntax
+- Episode Renaming - Instead of co-opting group values for isMovieType, isEpisodeType, isSpecialEpisode I am using groupByRenameOptions 
+LinkedHashMap with those values in it, which are used by renameWrapper(). Those values are set by the various groupByRename 
+methods in their respective decision tree's. Changes to groupByRenameOptions do not persist between rename passes, OR when processing passes between AniDB/TVDB within a decision tree. 
+- Script no longer die's if no files where matched as that would exit non-zero (error codition) to the shell.
+- Script "reporting" output changed to be easier to import into a spreadsheet.
+
 ## [2.0.0] - 2021-02-28
 - Major rewrite of the way episode renaming is done and rename option decision trees.
 - Initial switch from using XML searches (AniDB Title/Synonym) to LinkedHashMap Searches
