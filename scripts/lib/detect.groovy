@@ -1,5 +1,5 @@
 package lib
-//--- VERSION 1.2.3
+//--- VERSION 1.2.4
 
 /**
  * Determine if a file is a Movie.
@@ -44,6 +44,15 @@ Boolean detectAirdateOrder(String filename) {
  */
 String detectAnimeReleaseGroupFromFile(File file) {
   def myDetectedGroup = null
+
+  groupsThatJustUseSpaces = /SubsPlease/
+  if ( myDetectedGroup == null ) {
+    myRegexMatcher = file.name =~ /(?i)\b(/ + groupsThatJustUseSpaces + /)\b(\.\d)?\.[^.]+$/
+    if ( myRegexMatcher ) {
+      myDetectedGroup = myRegexMatcher[0][1]
+    }
+  }
+
   def myRegexMatcher = file.name =~ /^[\[(]([^)\]]*)[\])].*$/
   // For any file starting with [SomeReleaseGroupHere] or (SomeReleaseGroupHere)
   if ( myRegexMatcher ) {
@@ -180,7 +189,26 @@ def detectEpisodeNumberFromFile(File file, Boolean preferFilebotMetadata = false
     myDetectedEpisodeNumber = myRegexMatcher[0][1].replaceFirst(/^0+(?!$)/, "").replaceFirst(/(v[\d]{1,2}\b[^-]*$)/, '')
   }
 
-
+  // myRegexMatcher = myFileNameForParsing =~ /(?i)\b((S\d{1,2}|\d{1,2})(?>\.)?(E\d{1,3}[_]?v[\d]{1,2}\b|E\d{1,3}\b|x\d{1,3}\b|x\d{1,3}v[\d]{1,2}\b))/
+  myRegexMatcher = myFileNameForParsing =~ /(?i)\b(?<![\.\[(])((S\d{1,3}|\d{1,3})(?>\.|\s)?([ExS]\d{1,4})[_]?(?>v\d{1,2})?)/
+  // for text like:
+  // Kami-tachi ni Hirowareta Otoko - S01E02 also S01x02, S01S16 variations (and S01E02v2 or S01E02_v2 variations)
+  // Kami-tachi ni Hirowareta Otoko - 01E16, 01x16, 01S16 variations  (and 01E16v2 or 01E16_v2 variations)
+  // Kami-tachi ni Hirowareta Otoko - 01.E16, 01.x16, 01.S16 variations  (and 01.E16v2 or 01.E16_v2 variations
+  // Kami-tachi ni Hirowareta Otoko - 01 E16, 01 x16, 01 S16 variations  (and 01 E16v2 or 01 E16_v2 variations) - This is highly inaccurate ..
+  if (myRegexMatcher) {
+    myDetectedEpisodeNumber = myRegexMatcher[0][3].replaceFirst(/(?i)(E|x)/, "").replaceFirst(/^0+(?!$)/, "")  //.replaceFirst(/(v[\d]{1,2}\b[^-]*$)/, '')
+    myDetectedSeasonNumber = myRegexMatcher[0][2].replaceFirst(/(?i)(s)/, "").replaceFirst(/^0+(?!$)/, "")  //.replaceFirst(/(v[\d]{1,2}\b[^-]*$)/, '')
+//    log.finest "\t TVDB Detected episode[${myDetectedEpisodeNumber}]:(Filebot?${fileBotMetadataUsed}) for myFileNameForParsing:[${myFileNameForParsing}] RAW:[${file.name}]"
+    tvdbSeasonalityDetected = true
+    if ( myDetectedSeasonNumber.toString().toInteger() > 1 ) {
+      if ( file.metadata ) {
+        myDetectedEpisodeNumber = any { file.metadata.episode } {null}
+        fileBotMetadataUsed = true
+//        log.finest "\t Season[${myDetectedSeasonNumber}]: Detected episode[${myDetectedEpisodeNumber}]:(Filebot?${fileBotMetadataUsed}) for myFileNameForParsing:[${myFileNameForParsing}] RAW:[${file.name}]"
+      }
+    }
+  }
 
   // myRegexMatcher = myFileNameForParsing =~ /(?i)(?<!Season)(?<!Part)(?<![a-z0-9])-[\s]*([\d]{1,3}\s{0,1}v[\d]{1,2}\b[^-]*$|[\d]{1,3}\b[^-]*$)/
   // myRegexMatcher = myFileNameForParsing =~ /(?i)(?<!Season)(?<!Part)(?<![a-z0-9])(-[\s]*|-[\s]*Episode[\s]*)([\d]{1,3}\s{0,1}v[\d]{1,2}\b[^-]*$|[\d]{1,3}\b[^-]*$)/
@@ -251,7 +279,6 @@ def detectEpisodeNumberFromFile(File file, Boolean preferFilebotMetadata = false
     } else {
       myDetectedEpisodeNumber = myRegexMatcher[0][1].replaceAll(/\s/, '').replaceAll(/[a-zA-Z-]/, '').replaceFirst(/^0+(?!$)/, "")
     }
-
   }
 
   // myRegexMatcher = file.name =~ /(?i)(\s-[\s]*)([\d]{1,3}.\d)\s{0,1}(?>v\d)?(\s?-\s)/
@@ -260,14 +287,6 @@ def detectEpisodeNumberFromFile(File file, Boolean preferFilebotMetadata = false
   // [DeadFish] Kono Yo no Hate de Koi wo Utau Shoujo YU-NO - 26.5 - Special [720p][AAC].mp4
   if ( myRegexMatcher ) {
     myDetectedEpisodeNumber = myRegexMatcher[0][2].replaceFirst(/^0+(?!$)/, "")
-  }
-
-  if (!episodeProcessing) {
-    // AniAdd Format #2 - Movies
-    myRegexMatcher = file.name =~ /^(.+)(\[([^)\]]*)\])(\[([^)\]]*)\])(\[([^)\]]*)\])(\[([^)\]]*)\])(\[([^)\]]*)\])(\.\d)?\.[^.]+$/
-    if ( myRegexMatcher ) {
-      myDetectedEpisodeNumber = myRegexMatcher[0][1]
-    }
   }
 
   // myRegexMatcher = myFileNameForParsing =~ /(?i)\s(\d{1,4})\s*-\s[^-0-9]*$/
@@ -280,26 +299,6 @@ def detectEpisodeNumberFromFile(File file, Boolean preferFilebotMetadata = false
 //    log.finest "\t #13 Detected episode[${myDetectedEpisodeNumber}]:(Filebot?${fileBotMetadataUsed}) for myFileNameForParsing:[${myFileNameForParsing}] RAW:[${file.name}]"
   }
 
-  // myRegexMatcher = myFileNameForParsing =~ /(?i)\b((S\d{1,2}|\d{1,2})(?>\.)?(E\d{1,3}[_]?v[\d]{1,2}\b|E\d{1,3}\b|x\d{1,3}\b|x\d{1,3}v[\d]{1,2}\b))/
-  myRegexMatcher = myFileNameForParsing =~ /(?i)\b(?<![\.\[(])((S\d{1,3}|\d{1,3})(?>\.|\s)?([ExS]\d{1,4})[_]?(?>v\d{1,2})?)/
-  // for text like:
-  // Kami-tachi ni Hirowareta Otoko - S01E02 also S01x02, S01S16 variations (and S01E02v2 or S01E02_v2 variations)
-  // Kami-tachi ni Hirowareta Otoko - 01E16, 01x16, 01S16 variations  (and 01E16v2 or 01E16_v2 variations)
-  // Kami-tachi ni Hirowareta Otoko - 01.E16, 01.x16, 01.S16 variations  (and 01.E16v2 or 01.E16_v2 variations
-  if (myRegexMatcher) {
-    myDetectedEpisodeNumber = myRegexMatcher[0][3].replaceFirst(/(?i)(E|x)/, "").replaceFirst(/^0+(?!$)/, "")  //.replaceFirst(/(v[\d]{1,2}\b[^-]*$)/, '')
-    myDetectedSeasonNumber = myRegexMatcher[0][2].replaceFirst(/(?i)(s)/, "").replaceFirst(/^0+(?!$)/, "")  //.replaceFirst(/(v[\d]{1,2}\b[^-]*$)/, '')
-//    log.finest "\t TVDB Detected episode[${myDetectedEpisodeNumber}]:(Filebot?${fileBotMetadataUsed}) for myFileNameForParsing:[${myFileNameForParsing}] RAW:[${file.name}]"
-    tvdbSeasonalityDetected = true
-    if ( myDetectedSeasonNumber.toString().toInteger() > 1 ) {
-      if ( file.metadata ) {
-        myDetectedEpisodeNumber = any { file.metadata.episode } {null}
-        fileBotMetadataUsed = true
-//        log.finest "\t Season[${myDetectedSeasonNumber}]: Detected episode[${myDetectedEpisodeNumber}]:(Filebot?${fileBotMetadataUsed}) for myFileNameForParsing:[${myFileNameForParsing}] RAW:[${file.name}]"
-      }
-    }
-  }
-
   // AniAdd Format #1 - Series
   //    myRegexMatcher = file.name =~ /^(.+)\s-\s(\d{1,3}|S\d{1,3})(?>v\d)?\s-\s(.+)(\[[\w-\s\'&~.!#$%@]*\])(\[[\w-\s\'&~.!#$%@]*\])(\[[\w-\s\'&~.!#$%@]*\])(\[[\w-\s\'&~.!#$%@]*\])(\[[\w-\s\'&~.!#$%@]*\])(\.\d)?\.[^.]+$/
   myRegexMatcher = file.name =~ /^(.+)\s-\s(\d{1,4}|S\d{1,4})(?>v\d)?\s-\s(.+)(\[([^)\]]*)\])(\[([^)\]]*)\])(\[([^)\]]*)\])(\[([^)\]]*)\])(\[([^)\]]*)\])(\.\d)?\.[^.]+$/
@@ -310,6 +309,15 @@ def detectEpisodeNumberFromFile(File file, Boolean preferFilebotMetadata = false
       myDetectedEpisodeNumber = myRegexMatcher[0][2].replaceAll(/[a-zA-Z]/, '').replaceFirst(/^0+(?!$)/, "") // Remove Alpha then leading Zero's
     }
   }
+
+  if (!episodeProcessing) {
+    // AniAdd Format #2 - Movies
+    myRegexMatcher = file.name =~ /^(.+)(\[([^)\]]*)\])(\[([^)\]]*)\])(\[([^)\]]*)\])(\[([^)\]]*)\])(\[([^)\]]*)\])(\.\d)?\.[^.]+$/
+    if ( myRegexMatcher ) {
+      myDetectedEpisodeNumber = myRegexMatcher[0][1]
+    }
+  }
+
   if (myDetectedEpisodeNumber == null && episodeProcessing) {
     if ( file.metadata ) {
       myDetectedEpisodeNumber = any { file.metadata.episode } {null}
@@ -317,6 +325,7 @@ def detectEpisodeNumberFromFile(File file, Boolean preferFilebotMetadata = false
 //      log.finest "\t Metadata: Detected episode[${myDetectedEpisodeNumber}]:(Filebot?${fileBotMetadataUsed}) for myFileNameForParsing:[${myFileNameForParsing}] RAW:[${file.name}]"
     }
   }
+
   if (myDetectedEpisodeNumber == null && episodeProcessing) {
     myRegexMatcher = myFileNameForParsing =~ /(\d{1,4}(?<!(19\d\d|20\d\d))$)/
     // Matches up to 3 digits at the end of the line
@@ -325,6 +334,7 @@ def detectEpisodeNumberFromFile(File file, Boolean preferFilebotMetadata = false
       myDetectedEpisodeNumber = myRegexMatcher[0][1].replaceFirst(/^0+(?!$)/, "") // Remove leading Zero's
     }
   }
+
   log.fine "Final: Detected episode[${myDetectedEpisodeNumber}]:(Filebot?${fileBotMetadataUsed}) for myFileNameForParsing:[${myFileNameForParsing}] RAW:[${file.name}]"
   if ( returnSeasonToo ) {
     return [myDetectedEpisodeNumber: myDetectedEpisodeNumber, myDetectedSeasonNumber: myDetectedSeasonNumber]
