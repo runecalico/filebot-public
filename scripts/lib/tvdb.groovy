@@ -5,7 +5,7 @@ import net.filebot.web.Episode
 import net.filebot.web.SortOrder
 import net.filebot.web.TheTVDBSeriesInfo
 
-//--- VERSION 1.1.0
+//--- VERSION 1.2.0
 
 /**
  * Have filebot Search TVDB using a list, and return the results as a Set
@@ -48,7 +48,7 @@ Collection<Episode> filebotTVDBgetEpisodeList(Integer tvdbSeriesID) {
  * @return  Collection<Episode> of Episodes from TVDB
  */
 ArrayList filebotTVDBSeasonEpisodeRange(Collection<Episode> myTVDBEpisodes, Integer season, String order = 'absolute') {
-  return net.filebot.web.EpisodeUtilities.filterBySeason(myTVDBEpisodes, season).collect { it."${order}" }
+  return net.filebot.web.EpisodeUtilities.filterBySeason(myTVDBEpisodes, season).findAll { it."${order}" }
 }
 
 /**
