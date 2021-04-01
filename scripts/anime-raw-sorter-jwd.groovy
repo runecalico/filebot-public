@@ -1,5 +1,5 @@
 #!/usr/bin/env filebot -script
-//--- VERSION 2.1.0
+//--- VERSION 2.1.1
 // http://docs.groovy-lang.org/latest/html/documentation/grape.html
 // https://mvnrepository.com/artifact/org.apache.commons/commons-text
 @Grapes(
@@ -69,7 +69,7 @@ Integer aniDBXMLrefreshDays   = any { aniDBXMLrefreshDays.toInteger() } { 7 }
 Integer aniDBSynonymRefreshDays   = any { aniDBSynonymRefreshDays.toInteger() } { 7 }
 useFilebotAniDBAliases = any { useFilebotAniDBAliases.toBoolean() } { false }
 showMediaInfo      = any { showMediaInfo.toBoolean() } { false }
-ignoreOrphanSubtitles      = any { ignoreOrphanSubtitles.toBoolean() } { true }
+ignoreOrphanSubtitles      = any { ignoreOrphanSubtitles.toBoolean() } { false }
 // When filebot renames some files of a batch, normally the 2nd round inherits the strictness (by default strict)
 // This changes it so the 2nd round is non-strict. The theory is that
 // A) All the files in a batch share the same name
@@ -89,6 +89,7 @@ useNonStrictPartialRenames = any { useNonStrictPartialRenames.toBoolean() } { fa
 // Aka series x - 26.mkv where series x has 25 normal episodes and 1 special ...
 useNonStrictOnAniDBFullMatch = any { useNonStrictOnAniDBFullMatch.toBoolean() } { false }
 useNonStrictOnAniDBSpecials = any { useNonStrictOnAniDBSpecials.toBoolean() } { false }
+useNonStrictOnTVDBSpecials = any { useNonStrictOnTVDBSpecials.toBoolean() } { false }
 useNonStrictOnAniDBMovies = any { useNonStrictOnAniDBMovies.toBoolean() } { false }
 ignoreVideoExtraFoldersRegex    = any { ignoreVideoExtraFoldersRegex } { /(?i)^(extra[s]?|bonus)$/ }
 ignoreVideoExtraFilesRegex = any { ignoreVideoExtraFilesRegex } { /(?i:Sample|\b(NCOP|NCED)\d{0,3}\b|Clean\s*(ED|OP|Ending|Opening)|Creditless\s*(ED|OP|Ending|Opening)|Textless\s*(ED|OP|Ending|Opening)|\b(BD|Menu)\b\s*\b(BD|Menu)\b|Character\b.*\bPV\b.*\bCollection\b|ON\sAIR\sMaterials}Previews|PMV|\bPV\b|PV\d+)|Trailer|Extras|Featurettes|Extra.Episodes|Bonus.Features|Music.Video|Scrapbook|Behind.the.Scenes|Extended.Scenes|Deleted.Scenes|Mini.Series|s\d{2}c\d{2}|S\d+EXTRA|\d+xEXTRA|\b(OP|ED)\b(\d+)?|Formula.1.\d{4}(?=\b|_)/ }
@@ -1190,8 +1191,8 @@ def renameWrapper(LinkedHashMap group, def files, LinkedHashMap renameOptions) {
           rfs += rfsTemp
         }
       } catch (Exception IllegalStateException) {
-        println 'AniDB has already banned your IP. Please stop hitting AniDB for at least 24 hours'
-        aniDBBanHammer = true
+        println 'AniDB BanHammer Detected. Please stop hitting AniDB for at least 24 hours'
+        aniDBBanHammer = true as Boolean
         rfsIncomplete = false as Boolean
         rfs = []
       }
@@ -1200,8 +1201,8 @@ def renameWrapper(LinkedHashMap group, def files, LinkedHashMap renameOptions) {
     try {
       rfs = rename(*:wrapperArgs)
     } catch (Exception IllegalStateException) {
-      println 'AniDB has already banned your IP. Please stop hitting AniDB for at least 24 hours'
-      aniDBBanHammer = true
+      println 'AniDB BanHammer Detected. Please stop hitting AniDB for at least 24 hours'
+      aniDBBanHammer = true as Boolean
       rfsIncomplete = false as Boolean
       rfs = []
     }
@@ -1363,8 +1364,8 @@ def renameMovieWrapper(LinkedHashMap group, def files, Boolean renameStrict, def
           rfs += rfsTemp
         }
       } catch (Exception IllegalStateException) {
-        println 'AniDB has already banned your IP. Please stop hitting AniDB for at least 24 hours'
-        aniDBBanHammer = true
+        println 'AniDB BanHammer Detected. Please stop hitting AniDB for at least 24 hours'
+        aniDBBanHammer = true as Boolean
         rfsIncomplete = false as Boolean
         rfs = []
       }
@@ -1373,8 +1374,8 @@ def renameMovieWrapper(LinkedHashMap group, def files, Boolean renameStrict, def
       try {
         rfs = rename(*:wrapperArgs)
       } catch (Exception IllegalStateException) {
-        println 'AniDB has already banned your IP. Please stop hitting AniDB for at least 24 hours'
-        aniDBBanHammer = true
+        println 'AniDB BanHammer Detected. Please stop hitting AniDB for at least 24 hours'
+        aniDBBanHammer = true as Boolean
         rfsIncomplete = false as Boolean
         rfs = []
       }
@@ -2069,7 +2070,7 @@ tier2AnimeNames = [] as HashSet
 tier3AnimeNames = [] as HashSet
 myAniDBOMTitles = [] as HashSet
 mySeasonalityNumber = 0
-aniDBBanHammer = false
+aniDBBanHammer = false as Boolean
 println ''
 println ''
 println '***********************************'
@@ -2080,6 +2081,7 @@ println ''
 groupsByManualThreeEpisodes.each { group, files ->
   // ---------- Reset Variables ---------- //
   BigDecimal myMatchNumber = 0.9800000000000000000
+  mySeasonalityNumber = 0
   renamerSource = 'script'
   gotAniDBID = 0
   rfsLeftOver = []
@@ -2177,8 +2179,8 @@ groupsByManualThreeEpisodes.each { group, files ->
   returnThing = seriesnameGenerator(group, baseGeneratedAnimeNames)
   // END---------- Series Name Generation ---------- //
   //    log.finest "${groupInfoGenerator(group)}"
-  //    log.finest "hasSeasonlity:${hasSeasonality}"
-  //    log.finest "mySeasonalityNumber:${mySeasonalityNumber}"
+//      log.finest "hasSeasonlity:${hasSeasonality}"
+//      log.finest "mySeasonalityNumber:${mySeasonalityNumber}"
   println '-----'
   println '-----'
   println "  We are going to be searching for these Anime Series Names: ${tier1AnimeNames} with TheTVDB and AniDB"
@@ -2365,7 +2367,7 @@ groupsByManualThreeEpisodes.each { group, files ->
   // ---------- 1st Pass ---------- //
   // ------------------------------ //
   if ( performRename ) {
-    returnThing = episodeRenameOptionPassOne(1, group, files, hasSeasonality, mySeasonalityNumber, firstANIDBWTMatchNumber, secondANIDBWTMatchNumber, thirdANIDBWTMatchNumber, fileBotANIDBJWDMatchNumber, anidbFirstMatchDetails, anidbSecondMatchDetails, anidbThirdMatchDetails, fileBotANIDBJWDMatchDetails, firstTVDBDWTMatchNumber, secondTVDBDWTMatchNumber, thirdTVDBDWTMatchNumber, fileBotTheTVDBJWDMatchNumber, theTVDBFirstMatchDetails, theTVDBSecondMatchDetails, theTVDBThirdMatchDetails, fileBotTheTVDBJWDMatchDetails, performRename, fileBotAniDBMatchUsed, animeFoundInAniDB, animeFoundInTVDB, fileBotTheTVDBMatchUsed, statsRenamedUsingScript, statsRenamedUsingFilebot, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, animeOfflineDatabase)
+    returnThing = episodeRenameOptionPassOne(1, group, files, hasSeasonality, mySeasonalityNumber, firstANIDBWTMatchNumber, secondANIDBWTMatchNumber, thirdANIDBWTMatchNumber, fileBotANIDBJWDMatchNumber, anidbFirstMatchDetails, anidbSecondMatchDetails, anidbThirdMatchDetails, fileBotANIDBJWDMatchDetails, firstTVDBDWTMatchNumber, secondTVDBDWTMatchNumber, thirdTVDBDWTMatchNumber, fileBotTheTVDBJWDMatchNumber, theTVDBFirstMatchDetails, theTVDBSecondMatchDetails, theTVDBThirdMatchDetails, fileBotTheTVDBJWDMatchDetails, performRename, fileBotAniDBMatchUsed, animeFoundInAniDB, animeFoundInTVDB, fileBotTheTVDBMatchUsed, statsRenamedUsingScript, statsRenamedUsingFilebot, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, animeOfflineDatabase, useNonStrictOnTVDBSpecials)
     groupByRenameOptions = returnThing.groupByRenameOptions
     statsRenamedUsingScript = returnThing.statsRenamedUsingScript
     statsRenamedUsingFilebot = returnThing.statsRenamedUsingFilebot
@@ -2439,7 +2441,7 @@ groupsByManualThreeEpisodes.each { group, files ->
   // ---------- Setup 2nd Pass Options for Specific "types" ---------- //
   if ( performRename && rfsLeftOver.size() >= 1 ) {
     sleep(2000) // Pause 2 seconds in between Stages
-    returnThing = episodeRenameOptionPassOne(2, group, rfsLeftOver, hasSeasonality, mySeasonalityNumber, firstANIDBWTMatchNumber, secondANIDBWTMatchNumber, thirdANIDBWTMatchNumber, fileBotANIDBJWDMatchNumber, anidbFirstMatchDetails, anidbSecondMatchDetails, anidbThirdMatchDetails, fileBotANIDBJWDMatchDetails, firstTVDBDWTMatchNumber, secondTVDBDWTMatchNumber, thirdTVDBDWTMatchNumber, fileBotTheTVDBJWDMatchNumber, theTVDBFirstMatchDetails, theTVDBSecondMatchDetails, theTVDBThirdMatchDetails, fileBotTheTVDBJWDMatchDetails, performRename, fileBotAniDBMatchUsed, animeFoundInAniDB, animeFoundInTVDB, fileBotTheTVDBMatchUsed, statsRenamedUsingScript, statsRenamedUsingFilebot, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, animeOfflineDatabase)
+    returnThing = episodeRenameOptionPassOne(2, group, rfsLeftOver, hasSeasonality, mySeasonalityNumber, firstANIDBWTMatchNumber, secondANIDBWTMatchNumber, thirdANIDBWTMatchNumber, fileBotANIDBJWDMatchNumber, anidbFirstMatchDetails, anidbSecondMatchDetails, anidbThirdMatchDetails, fileBotANIDBJWDMatchDetails, firstTVDBDWTMatchNumber, secondTVDBDWTMatchNumber, thirdTVDBDWTMatchNumber, fileBotTheTVDBJWDMatchNumber, theTVDBFirstMatchDetails, theTVDBSecondMatchDetails, theTVDBThirdMatchDetails, fileBotTheTVDBJWDMatchDetails, performRename, fileBotAniDBMatchUsed, animeFoundInAniDB, animeFoundInTVDB, fileBotTheTVDBMatchUsed, statsRenamedUsingScript, statsRenamedUsingFilebot, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, animeOfflineDatabase, useNonStrictOnTVDBSpecials)
     groupByRenameOptions = returnThing.groupByRenameOptions
     statsRenamedUsingScript = returnThing.statsRenamedUsingScript
     statsRenamedUsingFilebot = returnThing.statsRenamedUsingFilebot
