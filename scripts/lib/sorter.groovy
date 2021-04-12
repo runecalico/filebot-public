@@ -1,5 +1,5 @@
 package lib
-//--- VERSION 1.4.1
+//--- VERSION 1.4.3
 
 import net.filebot.web.TheTVDBSeriesInfo
 import org.apache.commons.text.similarity.JaroWinklerDistance
@@ -191,7 +191,6 @@ ArrayList basenameGenerator ( LinkedHashMap group, Boolean useBaseAnimeNameWithS
       baseAnimeName = jwdStringBlender(group.anime)
       break
   }
-  println "----- baseAnimeName - ${baseAnimeName}"
   // ---------- Checking for Name Variations --- //
   // Anime names that don't really match well, so they need help
   // This could possibly be replaced by custom synonym file .. or maybe some kind of regex match this replace with this file?
@@ -200,6 +199,11 @@ ArrayList basenameGenerator ( LinkedHashMap group, Boolean useBaseAnimeNameWithS
       baseAnimeName = 'Made in Abyss: Dawn of the Deep Soul'
       group.isSpecialEpisode = true
       break
+  }
+  // Because the way I parse filenames nomad - megalo box 2 ends up nomad with alt title of megalo box ..
+  if ( baseAnimeName == 'nomad' && group.altTitle == 'megalo box') {
+    baseAnimeName = 'nomad: megalo box'
+    group.altTitle == null
   }
   // Because mirai nikki (2011) is the AniDB name of the regular season, while mirai nikki is just the OVA.
   if ( baseAnimeName == 'mirai nikki' && !group.isSpecialType) {
@@ -242,6 +246,7 @@ ArrayList basenameGenerator ( LinkedHashMap group, Boolean useBaseAnimeNameWithS
     baseAnimeName = 'To Love-Ru: Trouble - Darkness'
     group.seriesNumber = 2
   }
+  println "----- baseAnimeName - ${baseAnimeName}"
   // If it ends with Special or Bonus, remove that and add that as a basename.
   // VOID - myOVARegexMatcher = group.anime =~ /(?i)([-\s\(]+(\bOAV|\bOVA|\bONA|\bOAD|\bSPECIAL|\bsp\d{1,2}|\bbonus)(\b\d)?)[-\s\)]?$/
   myOVARegexMatcher = group.anime =~ /(?i)([-\s(]+(\bOAV|\bOVA|\bONA|\bOAD|\bSPECIAL|\bsp\d{1,2}|\bbonus)(\b\d)?)[-\s)]?$/
@@ -1566,6 +1571,7 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
         renameDB = 'TheTVDB'
         renameOrder = 'Airdate'
         renameMapper = renameMapperGenerator( group.order, 'tvdb' , doesItHaveAbsoluteNumbering, hasAnimeListMapping)
+        renameStrict = true
 //        renameMapper = group.order == 'airdate' ? '[episode, AnimeList.AniDB]' : '[order.absolute.episode, AnimeList.AniDB, episode]'
         renameFilter = ''
         if ( myanimeListGetTVDBSeason == 'n' || myanimeListGetTVDBSeason == 'a' ) {
@@ -2146,6 +2152,20 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
     }
     if ( !renameOptionsSet && myEpisodeSeason == myanimeListGetTVDBSeason.toInteger() ) {
       println "--------- Episode Season:[${myEpisodeSeason}] matches AnimeListSeason:[${myanimeListGetTVDBSeason}]"
+//      if (hasSeasonality) {
+//        if ( myEpisodeSeason < mySeasonalityNumber ) {
+          println "----------- Episode Season:[${myEpisodeSeason}] less then mySeasonalityNumber:[${mySeasonalityNumber}]"
+          if ( myAnimeListMapping.episodeoffset != null ) {
+            println "----------- myAnimeListMapping indicates an Episode Offset"
+            if ( myEpisodeNumber.toInteger() <= myAnimeListMapping.episodeoffset.toInteger() ) {
+              renameOptionsSet = true
+              println "------------- Probably Normal AniDB Absolute Ordering, which will likely not match correctly using TVDB"
+              println "------------- Send to renameOptionForAniDBAbsoluteEpisodes - anidbID:[${anidbID}], renamePass:[${renamePass}], tvdbID:[${tvdbID}]"
+              return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, renamePass, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score, animeOffLineDatabaseJsonObject, tvdbID, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+            }
+          }
+//        }
+//      }
       switch (renamePass) {
         case 1:
           // Possibly TVDB Absolute Ordering with the same Season as the map (Why didn't it already match?)
