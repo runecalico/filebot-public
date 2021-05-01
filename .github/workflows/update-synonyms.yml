@@ -12,9 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-        token: ${{ github.token }}
-        path: filebot-public
-        fetch-depth: 0
+        with:
+          token: ${{ github.token }}
+          path: filebot-public
+          fetch-depth: 0
       - name: Install Filebot
         shell: bash
         run: |
