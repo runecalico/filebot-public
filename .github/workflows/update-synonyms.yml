@@ -1,0 +1,25 @@
+# TODO:
+#  - Have this workflow kick off daily and update the synonyms ONLY if Anime Offline Database has been updated since last run
+#
+on:
+  schedule:
+  # Every Monday at 2:30 AM UTC
+  - cron: '30 2  * * 1'
+
+jobs:
+  generate-synonyms:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        token: ${{ github.token }}
+        path: filebot-public
+        fetch-depth: 0
+      - name: Install Filebot
+        shell: bash
+        run: |
+          mdkir $GITHUB_WORKSPACE\fbot && cd $GITHUB_WORKSPACE\fbot
+          sh -xu <<< "$(curl -fsSL https://raw.githubusercontent.com/filebot/plugins/master/installer/tar.sh)"
+      - name: generate-synonyms
+        shell: bash
+        run: |
+          $GITHUB_WORKSPACE\fbot\filebot -script fn:sysinfo 
