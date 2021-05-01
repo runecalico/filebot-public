@@ -16,20 +16,23 @@ jobs:
           token: ${{ github.token }}
           path: filebot-public
           fetch-depth: 0
-      - id: Install Filebot
+      - name: Install Filebot # A name for your step to display on GitHub. Can include spaces
+        id: step1 # A unique identifier for the step. You can use the id to reference the step in contexts. Can not include spaces
         shell: bash
         run: |
           mkdir $GITHUB_WORKSPACE/fbot && cd $GITHUB_WORKSPACE/fbot
           sh -xu <<< "$(curl -fsSL https://raw.githubusercontent.com/filebot/plugins/master/installer/tar.sh)"
-      - id: generate-synonyms
+      - name: generate-synonyms
+        id: step2
         shell: bash
         run: |
           #filebot -script $GITHUB_WORKSPACE/filebot-public/scripts/generate_anidb_synonyms_from_aod.groovy --log all --def outputFolder="$GITHUB_WORKSPACE/filebot-public/datafiles"  aniDBuserAgent="${{ secrets.ANIDBUSERAGENT }}"
           MYDATE=$(date +%Y_%m_%d)
           echo "::set-output name=mydate::$(echo $MYDATE)"
-      - id: Push changes
+      - name: Push changes
+        id: step3
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
-          commit_message: "${{ steps.generate-synonyms.outputs.mydate }} - anime-synonyms"
+          commit_message: "${{ steps.step2.outputs.mydate }} - anime-synonyms"
           repository: filebot-public
 
