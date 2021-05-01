@@ -5,6 +5,7 @@ on:
   schedule:
   # Every Monday at 2:30 AM UTC
   - cron: '30 2  * * 1'
+  workflow_dispatch: # Add's option to manually run workflow
 
 jobs:
   generate-synonyms:
