@@ -26,7 +26,7 @@ jobs:
         id: step2
         shell: bash
         run: |
-          #filebot -script $GITHUB_WORKSPACE/filebot-public/scripts/generate_anidb_synonyms_from_aod.groovy --log all --def outputFolder="$GITHUB_WORKSPACE/filebot-public/datafiles"  aniDBuserAgent="${{ secrets.ANIDBUSERAGENT }}"
+          filebot -script $GITHUB_WORKSPACE/filebot-public/scripts/generate_anidb_synonyms_from_aod.groovy --log all --def outputFolder="$GITHUB_WORKSPACE/filebot-public/datafiles"  aniDBuserAgent="${{ secrets.ANIDBUSERAGENT }}"
           MYDATE=$(date +%Y_%m_%d)
           echo "::set-output name=mydate::$(echo $MYDATE)"
       - name: Push changes
