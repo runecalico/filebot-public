@@ -31,4 +31,5 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: "${{ steps.generate-synonyms.outputs.mydate}} - anime-synonyms"
+          repository: filebot-public
 
