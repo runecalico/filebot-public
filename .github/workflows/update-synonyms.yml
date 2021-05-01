@@ -16,18 +16,18 @@ jobs:
           token: ${{ github.token }}
           path: filebot-public
           fetch-depth: 0
-      - name: Install Filebot
+      - id: Install Filebot
         shell: bash
         run: |
           mkdir $GITHUB_WORKSPACE/fbot && cd $GITHUB_WORKSPACE/fbot
           sh -xu <<< "$(curl -fsSL https://raw.githubusercontent.com/filebot/plugins/master/installer/tar.sh)"
-      - name: generate-synonyms
+      - id: generate-synonyms
         shell: bash
         run: |
           #filebot -script $GITHUB_WORKSPACE/filebot-public/scripts/generate_anidb_synonyms_from_aod.groovy --log all --def outputFolder="$GITHUB_WORKSPACE/filebot-public/datafiles"  aniDBuserAgent="${{ secrets.ANIDBUSERAGENT }}"
           MYDATE=$(date +%Y_%m_%d)
-          echo "::set-output name=mydate::$( echo "$MYDATE" )"
-      - name: Push changes
+          echo "::set-output name=mydate::$(echo $MYDATE)"
+      - id: Push changes
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: "${{ steps.generate-synonyms.outputs.mydate }} - anime-synonyms"
