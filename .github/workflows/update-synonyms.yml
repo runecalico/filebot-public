@@ -19,9 +19,9 @@ jobs:
       - name: Install Filebot
         shell: bash
         run: |
-          mdkir $GITHUB_WORKSPACE\fbot && cd $GITHUB_WORKSPACE\fbot
+          mkdir $GITHUB_WORKSPACE\fbot && cd $GITHUB_WORKSPACE\fbot
           sh -xu <<< "$(curl -fsSL https://raw.githubusercontent.com/filebot/plugins/master/installer/tar.sh)"
       - name: generate-synonyms
         shell: bash
         run: |
-          $GITHUB_WORKSPACE\fbot\filebot -script fn:sysinfo 
+          filebot -script fn:sysinfo 
