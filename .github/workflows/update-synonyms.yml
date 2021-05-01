@@ -24,4 +24,4 @@ jobs:
       - name: generate-synonyms
         shell: bash
         run: |
-          filebot -script fn:sysinfo 
+          filebot -script $GITHUB_WORKSPACE\filebot-public\scripts\generate_anidb_synonyms_from_aod.groovy --log warning --def outputFolder="$GITHUB_WORKSPACE\filebot-public\datafiles"  aniDBuserAgent="${{ secrets.ANIDBUSERAGENT }}"
