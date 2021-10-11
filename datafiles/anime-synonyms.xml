@@ -942,6 +942,7 @@
   </anime>
   <anime aid="318">
     <title xml:lang="en" type="official">tenshi no tamago</title>
+    <title xml:lang="en" type="syn">mystical egg of the angels</title>
     <title xml:lang="en" type="syn">in the aftermath: angels never sleep</title>
     <title xml:lang="en" type="syn">angel&amp;#39;s egg</title>
   </anime>
@@ -1259,6 +1260,7 @@
     <title xml:lang="en" type="syn">gensoumaden saiyuuki: requiem</title>
     <title xml:lang="en" type="syn">gensoumaden saiyuuki movie: requiem - erabarezaru mono e no chinkonka</title>
     <title xml:lang="en" type="syn">gensoumaden saiyuki: requiem - for the one not chosen</title>
+    <title xml:lang="en" type="syn">gensoumaden saiyuki movie: requiem - erabarezaru mono e no chinkonka</title>
     <title xml:lang="en" type="syn">gensoumaden saiyuuki: requiem - erabarezaru mono e no chinkonka</title>
   </anime>
   <anime aid="400">
@@ -2040,6 +2042,10 @@
     <title xml:lang="en" type="syn">denshin mamotte shugogetten</title>
     <title xml:lang="en" type="syn">guardian angel getten ova</title>
   </anime>
+  <anime aid="624">
+    <title xml:lang="en" type="official">e`s otherwise</title>
+    <title xml:lang="en" type="syn">e&amp;#39;s otherwise</title>
+  </anime>
   <anime aid="625">
     <title xml:lang="en" type="official">initial d: third stage</title>
     <title xml:lang="en" type="syn">initial d: tercera temporada</title>
@@ -2164,6 +2170,10 @@
     <title xml:lang="en" type="official">legend of crystania</title>
     <title xml:lang="en" type="syn">legend of crystania ova</title>
     <title xml:lang="en" type="syn">la leggenda di crystania</title>
+  </anime>
+  <anime aid="694">
+    <title xml:lang="en" type="official">ex-driver: nina &amp; rei danger zone</title>
+    <title xml:lang="en" type="syn">ex-driver: nina &amp;amp; rei danger zone</title>
   </anime>
   <anime aid="696">
     <title xml:lang="en" type="official">slam dunk: zenkoku seiha da! sakuragi hanamichi</title>
@@ -3294,6 +3304,7 @@
   </anime>
   <anime aid="1025">
     <title xml:lang="en" type="official">cat`s eye</title>
+    <title xml:lang="en" type="syn">cat&amp;#39;s eye</title>
     <title xml:lang="en" type="syn">ojos de gato</title>
   </anime>
   <anime aid="1028">
@@ -4757,6 +4768,7 @@
     <title xml:lang="en" type="syn">it`s my turn!!</title>
     <title xml:lang="en" type="syn">kyou kara ore wa</title>
     <title xml:lang="en" type="syn">from today on i am</title>
+    <title xml:lang="en" type="syn">due come noi!!</title>
     <title xml:lang="en" type="syn">kyou kara ore ha!!</title>
   </anime>
   <anime aid="1561">
@@ -6176,6 +6188,7 @@
     <title xml:lang="en" type="official">meitantei conan: meikyuu no crossroad</title>
     <title xml:lang="en" type="syn">detektiv conan film 7</title>
     <title xml:lang="en" type="syn">meitantei conan movie 07: meikyuu no crossroad</title>
+    <title xml:lang="en" type="syn">detective conan movie 7: meikyuu no crossroad</title>
     <title xml:lang="en" type="syn">case closed movie 07: crossroad in the ancient capital</title>
     <title xml:lang="en" type="syn">meitantei conan movie 7: meikyuu no crossroad</title>
     <title xml:lang="en" type="syn">detective conan movie 7: crossroad in the ancient capital</title>
@@ -7207,17 +7220,19 @@
   </anime>
   <anime aid="2328">
     <title xml:lang="en" type="official">meitantei conan: gin`yoku no magician</title>
-    <title xml:lang="en" type="syn">meitantei conan movie 08: ginyoku no magician</title>
     <title xml:lang="en" type="syn">case closed: magician of the silver sky</title>
-    <title xml:lang="en" type="syn">detective conan movie 08: magician of the silver sky</title>
-    <title xml:lang="en" type="syn">detektiv conan film 8</title>
     <title xml:lang="en" type="syn">meitantei conan movie 8</title>
-    <title xml:lang="en" type="syn">case closed movie 8</title>
     <title xml:lang="en" type="syn">detective conan movie 8: magician of the silver sky</title>
     <title xml:lang="en" type="syn">detective conan: ginyoku no magician</title>
+    <title xml:lang="en" type="syn">meitantei conan movie 8: ginyoku no kijutsushi</title>
     <title xml:lang="en" type="syn">detektiv conan: der magier mit den silberschwingen</title>
-    <title xml:lang="en" type="syn">dc m8</title>
     <title xml:lang="en" type="syn">case closed movie 08: magician of the silver sky</title>
+    <title xml:lang="en" type="syn">meitantei conan movie 08: ginyoku no magician</title>
+    <title xml:lang="en" type="syn">detective conan movie 08: magician of the silver sky</title>
+    <title xml:lang="en" type="syn">detektiv conan film 8</title>
+    <title xml:lang="en" type="syn">case closed movie 8</title>
+    <title xml:lang="en" type="syn">detective conan movie 08: ginyoku no magician</title>
+    <title xml:lang="en" type="syn">dc m8</title>
   </anime>
   <anime aid="2329">
     <title xml:lang="en" type="official">yume no hoshi no button nose</title>
@@ -7726,7 +7741,9 @@
   </anime>
   <anime aid="2498">
     <title xml:lang="en" type="official">dirty pair: with love from the lovely angels</title>
+    <title xml:lang="en" type="syn">dirty pair: r-really?! for beautiful women, "cannon" is the keyword to escape</title>
     <title xml:lang="en" type="syn">dirty pair: lovely angels yori ai wo komete</title>
+    <title xml:lang="en" type="syn">dirty pair: eek! the boy in the manor is a terminator</title>
   </anime>
   <anime aid="2504">
     <title xml:lang="en" type="official">yatterman</title>
@@ -8019,6 +8036,10 @@
     <title xml:lang="en" type="official">kore ga watashi no goshujin-sama</title>
     <title xml:lang="en" type="syn">that's my master</title>
     <title xml:lang="en" type="syn">he is my master: stets zu ihren diensten</title>
+  </anime>
+  <anime aid="2622">
+    <title xml:lang="en" type="official">dragon`s heaven</title>
+    <title xml:lang="en" type="syn">dragon&amp;#39;s heaven</title>
   </anime>
   <anime aid="2624">
     <title xml:lang="en" type="official">b`t x neo</title>
@@ -9612,7 +9633,6 @@
   <anime aid="3189">
     <title xml:lang="en" type="official">run! white wolf</title>
     <title xml:lang="en" type="syn">le loup blanc</title>
-    <title xml:lang="en" type="syn">flight of the white wolf</title>
   </anime>
   <anime aid="3193">
     <title xml:lang="en" type="official">the three-eyed one</title>
@@ -10537,13 +10557,17 @@
   </anime>
   <anime aid="3598">
     <title xml:lang="en" type="official">meitantei conan: hyouteki wa kogoro! shounen tanteidan maruhi chousa</title>
+    <title xml:lang="en" type="syn">meitantei conan: target wa kogorou! shounen tanteidan maruhi report</title>
     <title xml:lang="en" type="syn">detective conan ova 05: the target is kogoro! the detective boys' secret investigation</title>
     <title xml:lang="en" type="syn">meitantei conan: hyouteki wa kogoro! shounen tanteidan maruchichousa</title>
+    <title xml:lang="en" type="syn">meitantei conan ova 5</title>
     <title xml:lang="en" type="syn">detective conan ova 5: the target is kogoro! the detective boys' secret investigation</title>
     <title xml:lang="en" type="syn">meitantei conan ova 5: hyouteki wa kogoro! shounen tanteidan maruchichousa</title>
+    <title xml:lang="en" type="syn">detektiv conan ova 5</title>
     <title xml:lang="en" type="syn">detective conan: hyouteki wa kogoro! shounen tanteidan maruchichousa</title>
     <title xml:lang="en" type="syn">case closed ova 05: the target is kogoro! the detective boys' secret investigation</title>
     <title xml:lang="en" type="syn">case closed: the target is kogoro! the detective boys' secret investigation</title>
+    <title xml:lang="en" type="syn">detective conan ova 05: the target is kogoro! the detective boys&amp;#39; secret investigation</title>
   </anime>
   <anime aid="3600">
     <title xml:lang="en" type="official">tenkuu senki shurato: sousei e no antou</title>
@@ -10746,6 +10770,10 @@
   <anime aid="3654">
     <title xml:lang="en" type="official">ayakashi: japanese classic horror</title>
     <title xml:lang="en" type="syn">ayakashi: japanese classic horror - tenshu monogatari</title>
+  </anime>
+  <anime aid="3655">
+    <title xml:lang="en" type="official">angel`s feather</title>
+    <title xml:lang="en" type="syn">angel&amp;#39;s feather</title>
   </anime>
   <anime aid="3660">
     <title xml:lang="en" type="official">hakugei densetsu</title>
@@ -11002,10 +11030,6 @@
     <title xml:lang="en" type="syn">makaryudo</title>
     <title xml:lang="en" type="syn">makaryuudo demon hunter</title>
     <title xml:lang="en" type="syn">demon hunter</title>
-  </anime>
-  <anime aid="4001">
-    <title xml:lang="en" type="official">carol</title>
-    <title xml:lang="en" type="syn">carol: a day in a girl's life</title>
   </anime>
   <anime aid="4003">
     <title xml:lang="en" type="official">otome wa boku ni koi shiteru</title>
@@ -11557,10 +11581,12 @@
   </anime>
   <anime aid="4187">
     <title xml:lang="en" type="official">meitantei conan: tantei-tachi no requiem</title>
+    <title xml:lang="en" type="syn">detective conan movie 10: the private eyes&amp;#39; requiem</title>
     <title xml:lang="en" type="syn">case closed movie 10: requiem of the detectives</title>
     <title xml:lang="en" type="syn">the private eyes' requiem</title>
     <title xml:lang="en" type="syn">case closed: requiem of the detectives</title>
     <title xml:lang="en" type="syn">dc m10</title>
+    <title xml:lang="en" type="syn">detective conan movie 10: tantei-tachi no requiem</title>
     <title xml:lang="en" type="syn">detektiv conan: das requiem der detektive</title>
     <title xml:lang="en" type="syn">meitantei conan movie 10: tantei-tachi no requiem</title>
     <title xml:lang="en" type="syn">detective conan movie 10: requiem of the detectives</title>
@@ -11691,6 +11717,7 @@
   <anime aid="4231">
     <title xml:lang="en" type="official">jang geum ieui kkum</title>
     <title xml:lang="en" type="syn">dae jang geum: jang geum's dream</title>
+    <title xml:lang="en" type="syn">dae jang geum: jang geum&amp;#39;s dream</title>
   </anime>
   <anime aid="4232">
     <title xml:lang="en" type="official">majuu sensen</title>
@@ -12167,6 +12194,7 @@
   <anime aid="4504">
     <title xml:lang="en" type="official">meitantei conan: kieta daiya o oe! conan &amp; heiji vs kid!</title>
     <title xml:lang="en" type="syn">detective conan: kieta daiya wo oe! conan &amp; heiji vs kid!</title>
+    <title xml:lang="en" type="syn">detective conan ova 06: follow the vanished diamond! conan &amp;amp; heiji vs. kid!</title>
     <title xml:lang="en" type="syn">meitantei conan ova 6: kieta daiya wo oe! conan and heiji vs kid!</title>
     <title xml:lang="en" type="syn">meitantei conan: kieta daiya wo oe! conan &amp; heiji vs kid!</title>
     <title xml:lang="en" type="syn">detektiv conan: folge dem verschwundenen diamanten! - conan &amp; heiji vs. kid</title>
@@ -12555,6 +12583,7 @@
   <anime aid="4668">
     <title xml:lang="en" type="official">aesop world</title>
     <title xml:lang="en" type="syn">aesop's world</title>
+    <title xml:lang="en" type="syn">aesop&amp;#39;s world</title>
   </anime>
   <anime aid="4670">
     <title xml:lang="en" type="official">kocchi muite miiko</title>
@@ -12772,8 +12801,13 @@
   </anime>
   <anime aid="4731">
     <title xml:lang="en" type="official">gin`iro no olynssis: tokito</title>
+    <title xml:lang="en" type="syn">giniro no olynsis: tokito</title>
     <title xml:lang="en" type="syn">giniro no olysniss</title>
+    <title xml:lang="en" type="syn">gin&amp;#39;iro no olynsis: tokito</title>
+    <title xml:lang="en" type="syn">gin'iro no olynsis: tokito</title>
+    <title xml:lang="en" type="syn">olynssis the silver color</title>
     <title xml:lang="en" type="syn">tokito</title>
+    <title xml:lang="en" type="syn">gin'iro no olynssis: tokito, giniro no olynssis: tokito</title>
   </anime>
   <anime aid="4732">
     <title xml:lang="en" type="official">seikimatsu: humane society - jinrui ai ni michita shakai</title>
@@ -12856,6 +12890,7 @@
   <anime aid="4765">
     <title xml:lang="en" type="official">nobita no kekkon zen`ya: the night before a wedding</title>
     <title xml:lang="en" type="syn">doraemon: nobita no kekkon zenya</title>
+    <title xml:lang="en" type="syn">doraemon: nobita&amp;#39;s the night before a wedding</title>
     <title xml:lang="en" type="syn">doraemon: nobita's the night before a wedding</title>
   </anime>
   <anime aid="4771">
@@ -13283,17 +13318,18 @@
   </anime>
   <anime aid="4937">
     <title xml:lang="en" type="official">meitantei conan: konpeki no jolly roger</title>
+    <title xml:lang="en" type="syn">meitantei conan movie 11: konpeki no hitsugi (jolly roger)</title>
+    <title xml:lang="en" type="syn">case closed movie 11: jolly roger in the deep azure</title>
+    <title xml:lang="en" type="syn">detective conan 2007</title>
+    <title xml:lang="en" type="syn">meitantei conan: konpeki no hitsugi [jolly roger]</title>
+    <title xml:lang="en" type="syn">case closed movie 11</title>
     <title xml:lang="en" type="syn">case closed: jolly roger in the deep azure</title>
     <title xml:lang="en" type="syn">detektiv conan film 11</title>
-    <title xml:lang="en" type="syn">meitantei conan movie 11: konpeki no hitsugi (jolly roger)</title>
     <title xml:lang="en" type="syn">detektiv conan: die azurblaue piratenflagge</title>
     <title xml:lang="en" type="syn">detective conan movie 11: jolly roger in the deep azure</title>
     <title xml:lang="en" type="syn">dc m11</title>
-    <title xml:lang="en" type="syn">case closed movie 11: jolly roger in the deep azure</title>
-    <title xml:lang="en" type="syn">detective conan 2007</title>
+    <title xml:lang="en" type="syn">detective conan movie 11: konpeki no jolly roger</title>
     <title xml:lang="en" type="syn">meitantei conan movie 11: konpeki no jolly roger</title>
-    <title xml:lang="en" type="syn">meitantei conan: konpeki no hitsugi [jolly roger]</title>
-    <title xml:lang="en" type="syn">case closed movie 11</title>
     <title xml:lang="en" type="syn">meitantei conan movie 11</title>
   </anime>
   <anime aid="4938">
@@ -13399,6 +13435,7 @@
     <title xml:lang="en" type="official">gensou maden saiyuuki: kibou no zaika</title>
     <title xml:lang="en" type="syn">saiyuuki interactive ova</title>
     <title xml:lang="en" type="syn">gensomaden saiyuki: kibou no zaika</title>
+    <title xml:lang="en" type="syn">gensoumaden saiyuki: kibou no zaika</title>
   </anime>
   <anime aid="4976">
     <title xml:lang="en" type="official">sakura taisen: new york ny.</title>
@@ -15180,6 +15217,7 @@
   </anime>
   <anime aid="5801">
     <title xml:lang="en" type="official">chii`s sweet home</title>
+    <title xml:lang="en" type="syn">chi&amp;#39;s sweet home</title>
     <title xml:lang="en" type="syn">chiizu</title>
   </anime>
   <anime aid="5802">
@@ -15450,6 +15488,7 @@
     <title xml:lang="en" type="syn">meitantei conan movie 12: senritsu no gakufu</title>
     <title xml:lang="en" type="syn">case closed movie 12</title>
     <title xml:lang="en" type="syn">meitantei conan movie 12: senritsu no gakufu (full score)</title>
+    <title xml:lang="en" type="syn">detective conan movie 12: senritsu no full score</title>
     <title xml:lang="en" type="syn">detektiv conan film 12</title>
     <title xml:lang="en" type="syn">dc m12</title>
     <title xml:lang="en" type="syn">case closed movie 12: full score of fear</title>
@@ -16120,6 +16159,7 @@
     <title xml:lang="en" type="syn">meitantei conan ova 8: joshi kousein tantei suzuki sonoko no jikenbo</title>
     <title xml:lang="en" type="syn">meitantei conan: joshi kousein tantei suzuki sonoko no jikenbo</title>
     <title xml:lang="en" type="syn">detective conan ova 8: high school girl detective sonoko suzuki's case files</title>
+    <title xml:lang="en" type="syn">detective conan ova 08: high school girl detective sonoko suzuki&amp;#39;s case files</title>
     <title xml:lang="en" type="syn">detective conan: la detective studentessa liceale, il registro dei casi di sonoko suzuki</title>
     <title xml:lang="en" type="syn">detective conan ova 08: high school girl detective sonoko suzuki's case files</title>
     <title xml:lang="en" type="syn">case closed ova 08: high school girl detective sonoko suzuki's case files</title>
@@ -16130,6 +16170,7 @@
   <anime aid="6242">
     <title xml:lang="en" type="official">meitantei conan: conan vs kid - shark &amp; jewel</title>
     <title xml:lang="en" type="syn">case closed: conan vs. kid - shark &amp; jewel</title>
+    <title xml:lang="en" type="syn">detective conan: conan vs. kid - shark &amp;amp; jewel</title>
     <title xml:lang="en" type="syn">detective conan: conan vs. kid - shark &amp; jewel</title>
   </anime>
   <anime aid="6243">
@@ -16247,6 +16288,10 @@
   <anime aid="6286">
     <title xml:lang="en" type="official">to heart 2 ad plus</title>
     <title xml:lang="en" type="syn">toheart 2: another days plus</title>
+  </anime>
+  <anime aid="6287">
+    <title xml:lang="en" type="official">abunai sisters: koko &amp; mika</title>
+    <title xml:lang="en" type="syn">abunai sisters: koko &amp;amp; mika</title>
   </anime>
   <anime aid="6293">
     <title xml:lang="en" type="official">biohazard: 4d executer</title>
@@ -16435,6 +16480,7 @@
   <anime aid="6374">
     <title xml:lang="en" type="official">asura cryin`</title>
     <title xml:lang="en" type="syn">asura cryin</title>
+    <title xml:lang="en" type="syn">asura cryin&amp;#39;</title>
     <title xml:lang="en" type="syn">asura kurain</title>
   </anime>
   <anime aid="6376">
@@ -16593,6 +16639,7 @@
   <anime aid="6436">
     <title xml:lang="en" type="official">dogs: stray dogs howling in the dark</title>
     <title xml:lang="en" type="syn">dogs: bullets &amp; carnage</title>
+    <title xml:lang="en" type="syn">dogs: bullets &amp;amp; carnage</title>
   </anime>
   <anime aid="6440">
     <title xml:lang="en" type="official">hello kitty: stump village</title>
@@ -16619,7 +16666,9 @@
   </anime>
   <anime aid="6452">
     <title xml:lang="en" type="official">chii`s sweet home: atarashii o`uchi</title>
+    <title xml:lang="en" type="syn">chi&amp;#39;s sweet home: atarashii ouchi</title>
     <title xml:lang="en" type="syn">chii's sweet home 2</title>
+    <title xml:lang="en" type="syn">chi&amp;#39;s new address</title>
     <title xml:lang="en" type="syn">chi, une vie de chat (saison 2)</title>
     <title xml:lang="en" type="syn">chii's sweet home atarashi ouchi</title>
     <title xml:lang="en" type="syn">chi's sweet home: a new home</title>
@@ -16671,6 +16720,7 @@
   </anime>
   <anime aid="6474">
     <title xml:lang="en" type="official">cookin` idol ai! mai! main!</title>
+    <title xml:lang="en" type="syn">cookin&amp;#39; idol ai! mai! main!</title>
     <title xml:lang="en" type="syn">cookin` idol ai! mai! main</title>
     <title xml:lang="en" type="syn">cooking idol i! my! main!</title>
   </anime>
@@ -16920,7 +16970,6 @@
     <title xml:lang="en" type="syn">mai mai shinko and the millennium-old magic</title>
     <title xml:lang="en" type="syn">el milagro de mai mai</title>
     <title xml:lang="en" type="syn">mai mai atarashi to sennen no mahou</title>
-    <title xml:lang="en" type="syn">shinko e la magia millenaria</title>
   </anime>
   <anime aid="6590">
     <title xml:lang="en" type="official">doraemon: nobita no uchuu kaitakushi</title>
@@ -17129,6 +17178,10 @@
     <title xml:lang="en" type="syn">darker than black 2nd season</title>
     <title xml:lang="en" type="syn">darker than black second season</title>
   </anime>
+  <anime aid="6645">
+    <title xml:lang="en" type="official">black lagoon: roberta`s blood trail</title>
+    <title xml:lang="en" type="syn">black lagoon: roberta&amp;#39;s blood trail</title>
+  </anime>
   <anime aid="6647">
     <title xml:lang="en" type="official">ranpou</title>
     <title xml:lang="en" type="syn">rampoo</title>
@@ -17153,6 +17206,7 @@
     <title xml:lang="en" type="syn">jungle taitei: yuuki ga mirai wo kaeru</title>
     <title xml:lang="en" type="syn">jungle emperor leo (special)</title>
     <title xml:lang="en" type="syn">jungle emperor leo: the brave can change the future</title>
+    <title xml:lang="en" type="syn">jungle emperor: the brave can change the future</title>
     <title xml:lang="en" type="syn">jungle emperor leo: the brave changes the future</title>
     <title xml:lang="en" type="syn">jungle emperor remake</title>
   </anime>
@@ -17510,6 +17564,10 @@
     <title xml:lang="en" type="syn">kitten's scribbling</title>
     <title xml:lang="en" type="syn">the kitten artist</title>
   </anime>
+  <anime aid="6769">
+    <title xml:lang="en" type="official">asura cryin` 2</title>
+    <title xml:lang="en" type="syn">asura cryin&amp;#39; 2</title>
+  </anime>
   <anime aid="6770">
     <title xml:lang="en" type="official">souya monogatari</title>
     <title xml:lang="en" type="syn">soya monogatari</title>
@@ -17822,6 +17880,10 @@
     <title xml:lang="en" type="syn">cherry blossom: spring's fantasy</title>
     <title xml:lang="en" type="syn">haru no gensou</title>
   </anime>
+  <anime aid="6894">
+    <title xml:lang="en" type="official">fuku-chan no sensuikan</title>
+    <title xml:lang="en" type="syn">submariner fuku-chan</title>
+  </anime>
   <anime aid="6895">
     <title xml:lang="en" type="official">momotarou no umiwashi</title>
     <title xml:lang="en" type="syn">momotaro's sea eagle</title>
@@ -17919,6 +17981,7 @@
   </anime>
   <anime aid="6959">
     <title xml:lang="en" type="official">gekijouban bungaku shoujo</title>
+    <title xml:lang="en" type="syn">&amp;quot;bungaku shoujo&amp;quot; movie</title>
     <title xml:lang="en" type="syn">"bungaku shoujo" movie</title>
     <title xml:lang="en" type="syn">book girl</title>
     <title xml:lang="en" type="syn">bungaku shoujo</title>
@@ -18891,6 +18954,7 @@
   </anime>
   <anime aid="7294">
     <title xml:lang="en" type="official">bungaku shoujo: kyou no oyatsu - hatsukoi</title>
+    <title xml:lang="en" type="syn">&amp;quot;bungaku shoujo&amp;quot; kyou no oyatsu: hatsukoi</title>
     <title xml:lang="en" type="syn">literature girl ova</title>
     <title xml:lang="en" type="syn">book girl ova</title>
   </anime>
@@ -19291,6 +19355,7 @@
   </anime>
   <anime aid="7441">
     <title xml:lang="en" type="official">bungaku shoujo: memoire</title>
+    <title xml:lang="en" type="syn">&amp;quot;bungaku shoujo&amp;quot; memoire</title>
     <title xml:lang="en" type="syn">iii koi suru otome no rhapsody</title>
     <title xml:lang="en" type="syn">ii sora-mau tenshi no requiem</title>
     <title xml:lang="en" type="syn">bungaku shoujo memoire i yume-miru shoujo no prelude</title>
@@ -19577,6 +19642,7 @@
     <title xml:lang="en" type="syn">dr. slump movie 11: dr. mashirito &amp; abale-chan</title>
     <title xml:lang="en" type="syn">dr. mashirito and abale-chan</title>
     <title xml:lang="en" type="syn">dr. slump: dr. mashirito and abale-chan</title>
+    <title xml:lang="en" type="syn">dr. slump movie 11: dr. mashirito &amp;amp; abale-chan</title>
   </anime>
   <anime aid="7544">
     <title xml:lang="en" type="official">black jack (2001)</title>
@@ -19940,8 +20006,8 @@
     <title xml:lang="en" type="official">yosuga no sora: in solitude, where we are least alone.</title>
     <title xml:lang="en" type="syn">where we are least alone</title>
     <title xml:lang="en" type="syn">in solitude</title>
-    <title xml:lang="en" type="syn">yosuga no sora: in solitude where we are least alone</title>
     <title xml:lang="en" type="syn">sky of connection</title>
+    <title xml:lang="en" type="syn">yosuga no sora: in solitude, where we are least alone</title>
   </anime>
   <anime aid="7658">
     <title xml:lang="en" type="official">alps no shoujo heidi: alm no yama hen</title>
@@ -20280,10 +20346,12 @@
   </anime>
   <anime aid="7768">
     <title xml:lang="en" type="official">dorami &amp; doraemons: robot gakkou nanafushigi!?</title>
+    <title xml:lang="en" type="syn">dorami &amp;amp; doraemons: robot school&amp;#39;s seven mysteries</title>
     <title xml:lang="en" type="syn">dorami &amp; doraemons: robot school's seven mysteries</title>
   </anime>
   <anime aid="7769">
     <title xml:lang="en" type="official">eiga dorami &amp; doraemons: space land kiki ippatsu!</title>
+    <title xml:lang="en" type="syn">dorami &amp;amp; doraemons: space land&amp;#39;s critical event</title>
     <title xml:lang="en" type="syn">dorami &amp; doraemons: space land's critical event!</title>
     <title xml:lang="en" type="syn">dorami &amp; doraemons: space land kiki ippatsu!</title>
     <title xml:lang="en" type="syn">dorami &amp; doraemons: space land's critical event</title>
@@ -20866,6 +20934,7 @@
   </anime>
   <anime aid="7986">
     <title xml:lang="en" type="official">d.c. i&amp;ii p.s.p. re-animated</title>
+    <title xml:lang="en" type="syn">d.c.i&amp;amp;ii p.s.p. re-animated</title>
     <title xml:lang="en" type="syn">da capo: d.c. i &amp; ii p.s.p. ova</title>
   </anime>
   <anime aid="7991">
@@ -21176,6 +21245,7 @@
     <title xml:lang="en" type="syn">detektiv conan film 15</title>
     <title xml:lang="en" type="syn">case closed: quarter of silence</title>
     <title xml:lang="en" type="syn">case closed movie 15</title>
+    <title xml:lang="en" type="syn">detective conan movie 15: chinmoku no quarter</title>
     <title xml:lang="en" type="syn">case closed movie 15: quarter of silence</title>
   </anime>
   <anime aid="8122">
@@ -21193,6 +21263,7 @@
   <anime aid="8126">
     <title xml:lang="en" type="official">gintama`</title>
     <title xml:lang="en" type="syn">gintama (episodes 202-252)</title>
+    <title xml:lang="en" type="syn">gintama&amp;#39;</title>
   </anime>
   <anime aid="8130">
     <title xml:lang="en" type="official">hayate the combat butler: heaven is a place on earth</title>
@@ -22009,7 +22080,6 @@
   </anime>
   <anime aid="8437">
     <title xml:lang="en" type="official">passion</title>
-    <title xml:lang="en" type="syn">minna no uta: passion</title>
     <title xml:lang="en" type="syn">hikaru utada: passion</title>
   </anime>
   <anime aid="8438">
@@ -26115,6 +26185,7 @@
     <title xml:lang="en" type="syn">sekai-ichi hatsukoi: yokozawa takafumi no baai</title>
     <title xml:lang="en" type="syn">sekaiichi hatsukoi movie: yokozawa takafumi no baai</title>
     <title xml:lang="en" type="syn">eiga sekaiichi hatsukoi</title>
+    <title xml:lang="en" type="syn">sekai ichi hatsukoi: the case of takafumi yokozawa</title>
   </anime>
   <anime aid="9955">
     <title xml:lang="en" type="official">hozuki`s coolheadedness</title>
@@ -26516,6 +26587,11 @@
   <anime aid="10104">
     <title xml:lang="en" type="official">koe o kikasete</title>
     <title xml:lang="en" type="syn">koe wo kikasete</title>
+  </anime>
+  <anime aid="10105">
+    <title xml:lang="en" type="official">genkichi jii-san to kogitsune</title>
+    <title xml:lang="en" type="syn">minamoto kitchoan and kogitsune</title>
+    <title xml:lang="en" type="syn">minamoto kitchoan and his child</title>
   </anime>
   <anime aid="10107">
     <title xml:lang="en" type="official">ikitemasu, 15-sai.</title>
@@ -27425,6 +27501,7 @@
   <anime aid="10462">
     <title xml:lang="en" type="official">rowdy sumo wrestler matsutaro!!</title>
     <title xml:lang="en" type="syn">rowdy sumo wrestler matsutaro</title>
+    <title xml:lang="en" type="syn">abarenbou kishi!! matsutarou</title>
     <title xml:lang="en" type="syn">roughneck sumo wrestler!! matsutarou</title>
   </anime>
   <anime aid="10475">
@@ -27732,13 +27809,13 @@
     <title xml:lang="en" type="syn">ai mai mii season 2</title>
     <title xml:lang="en" type="syn">ai mai mii 2nd season</title>
     <title xml:lang="en" type="syn">ai mai mii (2014)</title>
-    <title xml:lang="en" type="syn">ai-mai-mi - mousou catastrophie</title>
     <title xml:lang="en" type="syn">i my me (2014)</title>
     <title xml:lang="en" type="syn">ai mai mii second season</title>
   </anime>
   <anime aid="10581">
     <title xml:lang="en" type="official">sore ike! anpanman: ringo bouya to minna no negai</title>
     <title xml:lang="en" type="syn">anpanman movie 26</title>
+    <title xml:lang="en" type="syn">anpanman: apple boy and everyone's hope</title>
     <title xml:lang="en" type="syn">go! anpanman: apple boy and the wishes for everyone</title>
     <title xml:lang="en" type="syn">sore ike! anpanman: ringo boy to minna no negai</title>
   </anime>
@@ -27988,7 +28065,6 @@
     <title xml:lang="en" type="syn">kuroko no basket 3rd season</title>
     <title xml:lang="en" type="syn">kuroko no basket season 3</title>
     <title xml:lang="en" type="syn">kuroko no basuke 3</title>
-    <title xml:lang="en" type="syn">kuroko's basketball: 3rd season</title>
     <title xml:lang="en" type="syn">the basketball which kuroko plays 3</title>
     <title xml:lang="en" type="syn">kuroko&amp;#39;s basketball 3rd season</title>
   </anime>
@@ -28086,6 +28162,7 @@
     <title xml:lang="en" type="syn">date a live movie: mayuri judgment</title>
     <title xml:lang="en" type="syn">date a live - the movie: mayuri judgement</title>
     <title xml:lang="en" type="syn">gekijouban date a live</title>
+    <title xml:lang="en" type="syn">date a live: mayuri judgement</title>
     <title xml:lang="en" type="syn">date a live movie: mayuri judgement</title>
   </anime>
   <anime aid="10691">
@@ -28187,6 +28264,7 @@
   </anime>
   <anime aid="10727">
     <title xml:lang="en" type="official">ai tenchi muyou!</title>
+    <title xml:lang="en" type="syn">ai tenchi muyo</title>
     <title xml:lang="en" type="syn">tenchi muyou! love</title>
     <title xml:lang="en" type="syn">ai tenchi muyou</title>
     <title xml:lang="en" type="syn">tenchi muyo! love</title>
@@ -28458,10 +28536,10 @@
   <anime aid="10809">
     <title xml:lang="en" type="official">brothers conflict ova</title>
     <title xml:lang="en" type="syn">brocon (2014)</title>
+    <title xml:lang="en" type="syn">brothers conflict: seiya</title>
     <title xml:lang="en" type="syn">brothers conflict ovas</title>
-    <title xml:lang="en" type="syn">brothers conflict: honmei</title>
+    <title xml:lang="en" type="syn">brothers conflict: holy night</title>
     <title xml:lang="en" type="syn">brocon ova</title>
-    <title xml:lang="en" type="syn">brothers conflict: favorite</title>
   </anime>
   <anime aid="10810">
     <title xml:lang="en" type="official">seitokai yakuindomo * ova</title>
@@ -28710,6 +28788,7 @@
     <title xml:lang="en" type="syn">dungeon ni deai wo motomeru no wa machigatteiru darou ka</title>
     <title xml:lang="en" type="syn">is it wrong that i want to meet you in a dungeon</title>
     <title xml:lang="en" type="syn">dungeon ni deai wo motomeru no wa machigatte iru darou ka</title>
+    <title xml:lang="en" type="syn">dungeon ni deai wo motomeru no wa machigatteiru no darou ka</title>
   </anime>
   <anime aid="10896">
     <title xml:lang="en" type="official">nihon anima(tor) mihon`ichi</title>
@@ -29689,10 +29768,6 @@
     <title xml:lang="en" type="official">chi jian chuan qi</title>
     <title xml:lang="en" type="syn">chii jiaan chuaanqii</title>
     <title xml:lang="en" type="syn">crimson sword quest</title>
-  </anime>
-  <anime aid="11170">
-    <title xml:lang="en" type="official">noragami aragoto</title>
-    <title xml:lang="en" type="syn">noragami 2</title>
   </anime>
   <anime aid="11171">
     <title xml:lang="en" type="official">hero company</title>
@@ -31602,6 +31677,16 @@
     <title xml:lang="en" type="official">tomboy angels</title>
     <title xml:lang="en" type="syn">the double lottie</title>
   </anime>
+  <anime aid="11809">
+    <title xml:lang="en" type="official">owari no seraph: kyuuketsuki shahar</title>
+    <title xml:lang="en" type="syn">owari no seraph (2016)</title>
+    <title xml:lang="en" type="syn">owari no seraph oad</title>
+    <title xml:lang="en" type="syn">owari no seraph: vampire shahar</title>
+    <title xml:lang="en" type="syn">seraph of the end oad</title>
+    <title xml:lang="en" type="syn">owari no seraph: jump festa 2015 special</title>
+    <title xml:lang="en" type="syn">owari no seraph ova</title>
+    <title xml:lang="en" type="syn">owari no seraph: vampire shahal</title>
+  </anime>
   <anime aid="11810">
     <title xml:lang="en" type="official">ensemble stars!</title>
     <title xml:lang="en" type="syn">ensemble stars: the animation</title>
@@ -31731,6 +31816,7 @@
     <title xml:lang="en" type="syn">lupin the third (2015): italian game</title>
     <title xml:lang="en" type="syn">lupin the third: italian game</title>
     <title xml:lang="en" type="syn">lupin sansei special 26</title>
+    <title xml:lang="en" type="syn">lupin the 3rd: la partita italiana</title>
   </anime>
   <anime aid="11840">
     <title xml:lang="en" type="official">yin zhi shoumuren</title>
@@ -32054,6 +32140,7 @@
     <title xml:lang="en" type="syn">is it wrong to try to pick up girls in a dungeon? ova</title>
     <title xml:lang="en" type="syn">danmachi: is it wrong to try to pick up girls in a dungeon? ova</title>
     <title xml:lang="en" type="syn">dungeon ni deai wo motomeru no wa machigatte iru darouka: familia myth ova</title>
+    <title xml:lang="en" type="syn">dungeon ni deai wo motomeru no wa machigatteiru no darou ka ova</title>
     <title xml:lang="en" type="syn">dungeon ni deai wo motomeru no wa machigatte iru darou ka ova</title>
     <title xml:lang="en" type="syn">dungeon ni deai wo motomeru no wa machigatteiru darou ka: dungeon ni onsen wo motomeru no wa machigatteiru darou ka</title>
     <title xml:lang="en" type="syn">dungeon ni deai wo motomeru no wa machigatteiru darou ka ova</title>
@@ -32226,6 +32313,10 @@
     <title xml:lang="en" type="official">konosuba: god`s blessing on this wonderful world! 2</title>
     <title xml:lang="en" type="syn">give blessings to this wonderful world! 2</title>
     <title xml:lang="en" type="syn">konosuba -god&amp;#39;s blessing on this wonderful world! 2</title>
+  </anime>
+  <anime aid="11993">
+    <title xml:lang="en" type="official">coco &amp; nico</title>
+    <title xml:lang="en" type="syn">coco &amp;amp; nico</title>
   </anime>
   <anime aid="11994">
     <title xml:lang="en" type="official">hikari: kariya o tsunagu monogatari</title>
@@ -32761,7 +32852,9 @@
   <anime aid="12142">
     <title xml:lang="en" type="official">"eiyuu" kaitai</title>
     <title xml:lang="en" type="syn">herors retirement</title>
+    <title xml:lang="en" type="syn">&amp;quot;eiyuu&amp;quot; kaitai</title>
     <title xml:lang="en" type="syn">eiyu kaitai</title>
+    <title xml:lang="en" type="syn">&amp;quot;heroes&amp;quot; dismissed</title>
     <title xml:lang="en" type="syn">heroes retirement</title>
   </anime>
   <anime aid="12146">
@@ -33157,7 +33250,7 @@
   </anime>
   <anime aid="12301">
     <title xml:lang="en" type="official">anime de training! xx</title>
-    <title xml:lang="en" type="syn">ani tore!! xx</title>
+    <title xml:lang="en" type="syn">anitore! xx</title>
   </anime>
   <anime aid="12307">
     <title xml:lang="en" type="official">soul buster: shousei ran</title>
@@ -33434,6 +33527,10 @@
     <title xml:lang="en" type="syn">100% pascal-sensei (tv)</title>
     <title xml:lang="en" type="syn">100% pasukaru-sensei</title>
   </anime>
+  <anime aid="12411">
+    <title xml:lang="en" type="official">akiba`s trip the animation</title>
+    <title xml:lang="en" type="syn">akiba&amp;#39;s trip the animation</title>
+  </anime>
   <anime aid="12414">
     <title xml:lang="en" type="official">berserk (season 2)</title>
     <title xml:lang="en" type="syn">berserk 2</title>
@@ -33647,6 +33744,8 @@
   <anime aid="12478">
     <title xml:lang="en" type="official">eiga crayon shin-chan shuurai! uchuujin shiriri</title>
     <title xml:lang="en" type="syn">shin-chan y kulete el extraterrestre</title>
+    <title xml:lang="en" type="syn">crayon shin-chan the movie 25: invasion! alien shiriri</title>
+    <title xml:lang="en" type="syn">crayon shin-chan movie 25: shuurai! uchuujin shiriri</title>
     <title xml:lang="en" type="syn">crayon shin-chan movie 25: shin-chan shuurai! uchuujin shiriri</title>
     <title xml:lang="en" type="syn">crayon shin-chan: shuurai!! uchuujin shiriri</title>
     <title xml:lang="en" type="syn">crayon shin-chan movie 25: shurai! uchujin shiriri</title>
@@ -33915,7 +34014,7 @@
   </anime>
   <anime aid="12556">
     <title xml:lang="en" type="official">monkeys fish the moon</title>
-    <title xml:lang="en" type="syn">a monkey scooping up the moon</title>
+    <title xml:lang="en" type="syn">fishing the moon from the pool</title>
   </anime>
   <anime aid="12558">
     <title xml:lang="en" type="official">nanbaka (2017)</title>
@@ -34257,6 +34356,8 @@
     <title xml:lang="en" type="syn">detektiv conan: episode one - der geschrumpfte meisterdetektiv</title>
     <title xml:lang="en" type="syn">detective conan episode "one": the great detective who shrank</title>
     <title xml:lang="en" type="syn">detective conan: episode 1 shrunk detective</title>
+    <title xml:lang="en" type="syn">detective conan episode &amp;quot;one&amp;quot;: the great detective who shrank</title>
+    <title xml:lang="en" type="syn">detective conan episode &amp;quot;one&amp;quot;: chiisaku natta meitantei</title>
     <title xml:lang="en" type="syn">case closed: episode one</title>
     <title xml:lang="en" type="syn">detective conan: episode one - chiisaku natta meitantei</title>
     <title xml:lang="en" type="syn">case closed: episode one - the great detective turned small</title>
@@ -34546,8 +34647,8 @@
   </anime>
   <anime aid="12727">
     <title xml:lang="en" type="official">eiga kuma no gakkou: patissier jackie to ohisama no sweets</title>
+    <title xml:lang="en" type="syn">kuma no gakkou movie 3: patissier jackie to ohisama no sweets</title>
     <title xml:lang="en" type="syn">kuma no gakkou: patissier jackie to ohisama no sweets</title>
-    <title xml:lang="en" type="syn">kuma no gakkou movie: patissier jackie to ohisama no sweets</title>
     <title xml:lang="en" type="syn">the bears&amp;#39; school the movie: the patissier jackie and the sun&amp;#39;s sweets</title>
   </anime>
   <anime aid="12728">
@@ -34844,6 +34945,8 @@
   <anime aid="12821">
     <title xml:lang="en" type="official">aikatsu! nerawareta mahou no aikatsu! card</title>
     <title xml:lang="en" type="syn">aikatsu! aiming for the magical aikatsu card</title>
+    <title xml:lang="en" type="syn">aikatsu! nerawreta mahou no aikatsu card</title>
+    <title xml:lang="en" type="syn">aikatsu! aiming for the magic aikatsu card</title>
     <title xml:lang="en" type="syn">aikatsu!: the pursuit of the magic aikatsu card!</title>
   </anime>
   <anime aid="12822">
@@ -35121,6 +35224,7 @@
     <title xml:lang="en" type="official">eureka seven ao: final episode - one more time - lord don`t slow me down</title>
     <title xml:lang="en" type="syn">eureka seven ao: one more time - lord don't slow me down</title>
     <title xml:lang="en" type="syn">eureka seven ao final episode</title>
+    <title xml:lang="en" type="syn">eureka seven ao final episode: one more time -lord don&amp;#39;t slow me down-</title>
   </anime>
   <anime aid="12920">
     <title xml:lang="en" type="official">zhandou wang: jufeng zhan hun</title>
@@ -35183,6 +35287,8 @@
   </anime>
   <anime aid="12936">
     <title xml:lang="en" type="official">"eikou naki tensai-tachi" kara no monogatari</title>
+    <title xml:lang="en" type="syn">&amp;quot;eikou naki tensai-tachi&amp;quot; kara no monogatari</title>
+    <title xml:lang="en" type="syn">stories from &amp;quot;geniuses without glory&amp;quot;</title>
     <title xml:lang="en" type="syn">stories from "geniuses without glory"</title>
   </anime>
   <anime aid="12942">
@@ -35584,6 +35690,7 @@
     <title xml:lang="en" type="official">cardcaptor sakura: clear card prologue - sakura and the two bears</title>
     <title xml:lang="en" type="syn">cardcaptor sakura: clear card prologo - sakura e i due orsi</title>
     <title xml:lang="en" type="syn">cardcaptor sakura: clear card prolog - sakura und die zwei teddys</title>
+    <title xml:lang="en" type="syn">cardcaptor sakura: clear card-hen - sakura to futatsu no kuma</title>
     <title xml:lang="en" type="syn">cardcaptor sakura: clear card arc - sakura and the two teddy bears</title>
     <title xml:lang="en" type="syn">card captor sakura: clear card chapter ova - sakura y los dos osos</title>
     <title xml:lang="en" type="syn">cardcaptor sakura: clear card prologue - sakura et les deux oursons</title>
@@ -36351,6 +36458,10 @@
     <title xml:lang="en" type="syn">rainy cocoa series ame-con!!</title>
     <title xml:lang="en" type="syn">ame-iro cocoa 4</title>
   </anime>
+  <anime aid="13283">
+    <title xml:lang="en" type="official">devils` line</title>
+    <title xml:lang="en" type="syn">devils&amp;#39; line</title>
+  </anime>
   <anime aid="13286">
     <title xml:lang="en" type="official">the seven deadly sins the movie: prisoners of the sky</title>
     <title xml:lang="en" type="syn">nanatsu no taizai movie: tenkuu no torawarebito</title>
@@ -36749,7 +36860,9 @@
   </anime>
   <anime aid="13409">
     <title xml:lang="en" type="official">kase-san and morning glories.</title>
+    <title xml:lang="en" type="syn">asagao to kase-san. (ova)</title>
     <title xml:lang="en" type="syn">kase-san und blaue blumen</title>
+    <title xml:lang="en" type="syn">kase-san and morning glories (ova)</title>
   </anime>
   <anime aid="13410">
     <title xml:lang="en" type="official">starship troopers: traitor of mars</title>
@@ -37117,6 +37230,7 @@
   </anime>
   <anime aid="13497">
     <title xml:lang="en" type="official">layton mystery tanteisha: katri no nazotoki file</title>
+    <title xml:lang="en" type="syn">lmda</title>
     <title xml:lang="en" type="syn">layton's mystery journey: katrielle and the millionaires' conspiracy</title>
     <title xml:lang="en" type="syn">layton-kyouju</title>
     <title xml:lang="en" type="syn">professor layton: the tv series</title>
@@ -37516,9 +37630,11 @@
   </anime>
   <anime aid="13606">
     <title xml:lang="en" type="official">eiga tomica hyper rescue drive head: kidou kyuukyuu keisatsu</title>
+    <title xml:lang="en" type="syn">drive head movie: tomika hyper rescue kidou kyuukyuu keisatsu</title>
     <title xml:lang="en" type="syn">tomica hyper rescue drive head kidou kyuukyuu keisatsu movie</title>
     <title xml:lang="en" type="syn">mobile emergency police movie</title>
     <title xml:lang="en" type="syn">tomica hyper rescue drive head: kidou kyuukyuu keisatsu movie</title>
+    <title xml:lang="en" type="syn">drive head the movie: tomika hyper rescue mobile emergency police</title>
   </anime>
   <anime aid="13607">
     <title xml:lang="en" type="official">tomica hyper rescue drive head: kidou kyuukyuu keisatsu (2018)</title>
@@ -37651,6 +37767,14 @@
     <title xml:lang="en" type="syn">100,000 bad jokes 2nd movie</title>
     <title xml:lang="en" type="syn">one hundred thousand bad jokes ii</title>
     <title xml:lang="en" type="syn">one hundred thousand bad jokes the movie 2</title>
+  </anime>
+  <anime aid="13644">
+    <title xml:lang="en" type="official">fate/grand order x himuro no tenchi: 7-nin no saikyou ijin hen</title>
+    <title xml:lang="en" type="syn">fate/grand order x himuro no tenchi</title>
+    <title xml:lang="en" type="syn">fate/grand order x himuro's world</title>
+    <title xml:lang="en" type="syn">fate/grand order: himuro no tenchi - 7-nin no saikyou ijin-hen</title>
+    <title xml:lang="en" type="syn">fate/grand order: himuro no tenchi - 7-nin no saikyou gijin-hen</title>
+    <title xml:lang="en" type="syn">fate/grand order x himuro's world - seven most powerful great figures</title>
   </anime>
   <anime aid="13647">
     <title xml:lang="en" type="official">wojia da shixiong naozi you keng</title>
@@ -38276,6 +38400,7 @@
     <title xml:lang="en" type="syn">danmachi: family myth ii</title>
     <title xml:lang="en" type="syn">is it wrong that i want to meet you in a dungeon 2nd season</title>
     <title xml:lang="en" type="syn">danmachi season 2</title>
+    <title xml:lang="en" type="syn">dungeon ni deai wo motomeru no wa machigatteiru no darou ka ii</title>
     <title xml:lang="en" type="syn">danmachi: is it wrong to try to pick up girls in a dungeon? ii</title>
     <title xml:lang="en" type="syn">is it wrong to try to pick up girls in a dungeon? 2</title>
     <title xml:lang="en" type="syn">dungeon ni deai wo motomeru no wa machigatteiru darou ka 2</title>
@@ -39211,7 +39336,6 @@
   <anime aid="14092">
     <title xml:lang="en" type="official">uchuu no hou: reimei hen</title>
     <title xml:lang="en" type="syn">the laws of the universe - part i</title>
-    <title xml:lang="en" type="syn">happy science movie 8</title>
   </anime>
   <anime aid="14093">
     <title xml:lang="en" type="official">nidome no jinsei o isekai de</title>
@@ -39375,6 +39499,10 @@
     <title xml:lang="en" type="official">hong mao lan tu ni wen wo da</title>
     <title xml:lang="en" type="syn">homer and landau's you asked me</title>
   </anime>
+  <anime aid="14145">
+    <title xml:lang="en" type="official">hong mao lan tu qi xia chuan</title>
+    <title xml:lang="en" type="syn">rainbow cat &amp; blue rabbit: legend of the seven swords</title>
+  </anime>
   <anime aid="14156">
     <title xml:lang="en" type="official">wataten! an angel flew down to me</title>
     <title xml:lang="en" type="syn">an angel swooped down on me!</title>
@@ -39456,6 +39584,7 @@
     <title xml:lang="en" type="official">jojo`s bizarre adventure: golden wind</title>
     <title xml:lang="en" type="syn">jojo no kimyou na bouken part 5: ougon no kaze</title>
     <title xml:lang="en" type="syn">jojo's bizarre adventure: vento aureo</title>
+    <title xml:lang="en" type="syn">le bizzarre avventure di giogio: vento aureo</title>
     <title xml:lang="en" type="syn">jojo no kimyou na bouken part 5</title>
     <title xml:lang="en" type="syn">jojo's bizarre adventure part 5: golden wind</title>
     <title xml:lang="en" type="syn">le bizzarre avventure di giogio parte 5: vento aureo</title>
@@ -39567,6 +39696,7 @@
   <anime aid="14195">
     <title xml:lang="en" type="official">dies irae: to the ring reincarnation</title>
     <title xml:lang="en" type="syn">dies irae season 2</title>
+    <title xml:lang="en" type="syn">dies irae (web)</title>
     <title xml:lang="en" type="syn">dies irae (stagione 2)</title>
     <title xml:lang="en" type="syn">dies irae (temporada 2)</title>
     <title xml:lang="en" type="syn">dies irae (staffel 2)</title>
@@ -39586,12 +39716,15 @@
   </anime>
   <anime aid="14199">
     <title xml:lang="en" type="official">aggretsuko (2019)</title>
+    <title xml:lang="en" type="syn">aggressive retsuko 2</title>
+    <title xml:lang="en" type="syn">aggretsuko 2nd season</title>
     <title xml:lang="en" type="syn">aggretsuko stagione 2</title>
     <title xml:lang="en" type="syn">aggretsuko season two</title>
     <title xml:lang="en" type="syn">aggretsuko: staffel 2</title>
     <title xml:lang="en" type="syn">aggretsuko: temporada 2</title>
     <title xml:lang="en" type="syn">aggressive retsuko (ona) 2nd season</title>
     <title xml:lang="en" type="syn">aggretsuko 2</title>
+    <title xml:lang="en" type="syn">aggressive retsuko season 2</title>
     <title xml:lang="en" type="syn">aggretsuko: season 2</title>
   </anime>
   <anime aid="14200">
@@ -39977,6 +40110,7 @@
   </anime>
   <anime aid="14304">
     <title xml:lang="en" type="official">long zhi gu: poxiao qibing</title>
+    <title xml:lang="en" type="syn">dragon nest: warriors&amp;#39; dawn</title>
     <title xml:lang="en" type="syn">dragon nest: rise of the black dragon</title>
   </anime>
   <anime aid="14305">
@@ -40252,7 +40386,6 @@
   </anime>
   <anime aid="14379">
     <title xml:lang="en" type="official">wu geng ji ii: tianqi</title>
-    <title xml:lang="en" type="syn">wu geng ji ii</title>
     <title xml:lang="en" type="syn">wu geng ji 2</title>
     <title xml:lang="en" type="syn">wu geng ji 2nd season</title>
     <title xml:lang="en" type="syn">wu geng ji: tian qi</title>
@@ -40650,6 +40783,10 @@
     <title xml:lang="en" type="syn">crayon shin-chan movie 27: honeymoon hurricane - lost hiroshi</title>
     <title xml:lang="en" type="syn">crayon shin-chan the movie 27: honeymoon hurricane - the lost hiroshi</title>
   </anime>
+  <anime aid="14476">
+    <title xml:lang="en" type="official">darwin`s game</title>
+    <title xml:lang="en" type="syn">darwin&amp;#39;s game</title>
+  </anime>
   <anime aid="14477">
     <title xml:lang="en" type="official">shinchou yuusha: kono yuusha ga ore tsueee kuse ni shinchou sugiru</title>
     <title xml:lang="en" type="syn">kono yuusha ga ore tueee kuse ni shinchou sugiru</title>
@@ -40790,6 +40927,7 @@
     <title xml:lang="en" type="official">meitantei conan: konjou no fist</title>
     <title xml:lang="en" type="syn">detektiv conan film 23</title>
     <title xml:lang="en" type="syn">detektiv conan: die stahlblaue faust</title>
+    <title xml:lang="en" type="syn">detective conan movie 23: konjou no fist</title>
     <title xml:lang="en" type="syn">detective conan movie 23</title>
     <title xml:lang="en" type="syn">dcm23</title>
     <title xml:lang="en" type="syn">meitantei conan movie 23: konjou no fist</title>
@@ -40948,6 +41086,7 @@
     <title xml:lang="en" type="syn">arad: gyakuten no gear</title>
     <title xml:lang="en" type="syn">dixia cheng yu yongshi: dungeon and fighter</title>
     <title xml:lang="en" type="syn">arad: gyakuten no wa</title>
+    <title xml:lang="en" type="syn">dixia cheng yu yongshi zhi nizhuan zhi lun</title>
   </anime>
   <anime aid="14560">
     <title xml:lang="en" type="official">arad: suming zhi men</title>
@@ -41265,6 +41404,7 @@
   </anime>
   <anime aid="14655">
     <title xml:lang="en" type="official">a3! season spring &amp; summer</title>
+    <title xml:lang="en" type="syn">a3! season spring &amp;amp; summer</title>
     <title xml:lang="en" type="syn">a3!</title>
     <title xml:lang="en" type="syn">act! addict! actors!</title>
   </anime>
@@ -41319,6 +41459,7 @@
     <title xml:lang="en" type="syn">douluo dalu 2</title>
     <title xml:lang="en" type="syn">douluo dalu part 2</title>
     <title xml:lang="en" type="syn">soul land 2nd season</title>
+    <title xml:lang="en" type="syn">douluo dalu season 2</title>
     <title xml:lang="en" type="syn">douluo dalu 2nd season</title>
   </anime>
   <anime aid="14677">
@@ -41565,6 +41706,7 @@
   </anime>
   <anime aid="14746">
     <title xml:lang="en" type="official">dragon`s dogma</title>
+    <title xml:lang="en" type="syn">dragon&amp;#39;s dogma</title>
     <title xml:lang="en" type="syn">doragonzudoguma</title>
   </anime>
   <anime aid="14750">
@@ -41622,7 +41764,6 @@
     <title xml:lang="en" type="official">aware! meisaku-kun (2019)</title>
     <title xml:lang="en" type="syn">ahare! meisaku-kun (2019)</title>
     <title xml:lang="en" type="syn">aware! meisakukun (season 4)</title>
-    <title xml:lang="en" type="syn">aware! meisaku-kun 4th season</title>
   </anime>
   <anime aid="14763">
     <title xml:lang="en" type="official">fragtime</title>
@@ -41813,8 +41954,10 @@
   <anime aid="14810">
     <title xml:lang="en" type="official">choujigen game neptune the animation: nep no natsuyasumi</title>
     <title xml:lang="en" type="syn">hyperdimension neptunia: neptune's summer vacation</title>
+    <title xml:lang="en" type="syn">hyperdimension neptunia the animation: neptune&amp;#39;s summer vacation</title>
     <title xml:lang="en" type="syn">choujigen game neptune the animation: nepu no natsuyasumi</title>
     <title xml:lang="en" type="syn">hyperdimension neptunia: nep's summer vacation</title>
+    <title xml:lang="en" type="syn">choujigen game neptune: nep no natsuyasumi</title>
     <title xml:lang="en" type="syn">hyperdimension neptunia: nepu summer vacation</title>
   </anime>
   <anime aid="14811">
@@ -42140,6 +42283,7 @@
   <anime aid="14940">
     <title xml:lang="en" type="official">sabiiro no armor: reimei</title>
     <title xml:lang="en" type="syn">sabiiro no armor</title>
+    <title xml:lang="en" type="syn">rusted armors: dawn</title>
   </anime>
   <anime aid="14941">
     <title xml:lang="en" type="official">mob psycho 100: spirits and such company trip - a journey that mends the heart and heals the soul</title>
@@ -42328,6 +42472,7 @@
   </anime>
   <anime aid="14992">
     <title xml:lang="en" type="official">akira (shin anime)</title>
+    <title xml:lang="en" type="syn">akira (new anime)</title>
     <title xml:lang="en" type="syn">akira (new)</title>
     <title xml:lang="en" type="syn">akira (tv)</title>
   </anime>
@@ -42500,6 +42645,7 @@
   <anime aid="15048">
     <title xml:lang="en" type="official">a3! season autumn &amp; winter</title>
     <title xml:lang="en" type="syn">a3! cour 2</title>
+    <title xml:lang="en" type="syn">a3! season autumn &amp;amp; winter</title>
   </anime>
   <anime aid="15054">
     <title xml:lang="en" type="official">kxdrop!!</title>
@@ -42686,18 +42832,19 @@
   </anime>
   <anime aid="15111">
     <title xml:lang="en" type="official">is it wrong to try to pick up girls in a dungeon? iii</title>
+    <title xml:lang="en" type="syn">danmachi iii</title>
+    <title xml:lang="en" type="syn">danmachi: is it wrong to try to pick up girls in a dungeon? iii</title>
+    <title xml:lang="en" type="syn">dungeon ni deai wo motomeru no wa machigatte iru darou ka iii: familia myth</title>
+    <title xml:lang="en" type="syn">dungeon ni deai wo motomeru no wa machigatteiru no darou ka iii</title>
+    <title xml:lang="en" type="syn">is it wrong that i want to meet you in a dungeon 3rd season</title>
+    <title xml:lang="en" type="syn">danmachi: family myth iii</title>
+    <title xml:lang="en" type="syn">dungeon ni deai wo motomeru no wa machigatte iru darouka 3</title>
     <title xml:lang="en" type="syn">dungeon ni deai wo motomeru no wa machigatteiru darou ka iii</title>
     <title xml:lang="en" type="syn">dungeon ni deai wo motomeru no wa machigatte iru darouka iii</title>
     <title xml:lang="en" type="syn">danmachi 3rd season</title>
     <title xml:lang="en" type="syn">danmachi: is it wrong to try to pick up girls in a dungeon? 3</title>
     <title xml:lang="en" type="syn">danmachi season 3</title>
     <title xml:lang="en" type="syn">is it wrong to try to pick up girls in a dungeon? 3</title>
-    <title xml:lang="en" type="syn">danmachi iii</title>
-    <title xml:lang="en" type="syn">danmachi: is it wrong to try to pick up girls in a dungeon? iii</title>
-    <title xml:lang="en" type="syn">dungeon ni deai wo motomeru no wa machigatte iru darou ka iii: familia myth</title>
-    <title xml:lang="en" type="syn">is it wrong that i want to meet you in a dungeon 3rd season</title>
-    <title xml:lang="en" type="syn">danmachi: family myth iii</title>
-    <title xml:lang="en" type="syn">dungeon ni deai wo motomeru no wa machigatte iru darouka 3</title>
   </anime>
   <anime aid="15112">
     <title xml:lang="en" type="official">sylvanian families: mini story - clover</title>
@@ -42735,10 +42882,6 @@
     <title xml:lang="en" type="official">the shy oriole</title>
     <title xml:lang="en" type="syn">le loriot timide</title>
     <title xml:lang="en" type="syn">pa xui de huang ying</title>
-  </anime>
-  <anime aid="15123">
-    <title xml:lang="en" type="official">who meowed?</title>
-    <title xml:lang="en" type="syn">who say 'meow'?</title>
   </anime>
   <anime aid="15125">
     <title xml:lang="en" type="official">mang nu yu huli</title>
@@ -42874,7 +43017,9 @@
   </anime>
   <anime aid="15157">
     <title xml:lang="en" type="official">"uchuu senkan yamato" to iu jidai: seireki 2202-nen no sentaku</title>
+    <title xml:lang="en" type="syn">&amp;quot;uchuu senkan yamato&amp;quot; to iu jidai: seireki 2202-nen no sentaku</title>
     <title xml:lang="en" type="syn">the "space battleship yamato" era: the choice in 2202</title>
+    <title xml:lang="en" type="syn">the &amp;quot;space battleship yamato&amp;quot; era: the choice in 2202</title>
     <title xml:lang="en" type="syn">uchuu senkan yamato 2202: ai no senshi-tachi summary</title>
     <title xml:lang="en" type="syn">"space battleship yamato" era: the choice in 2202</title>
     <title xml:lang="en" type="syn">uchuu senkan yamato 2202: ai no senshi-tachi soushuuhen</title>
@@ -42906,6 +43051,7 @@
   </anime>
   <anime aid="15198">
     <title xml:lang="en" type="official">lupin sansei: prison of the past</title>
+    <title xml:lang="en" type="syn">lupin the 3rd: prigioniero del passato</title>
     <title xml:lang="en" type="syn">lupin iii: prison of the past</title>
     <title xml:lang="en" type="syn">lupin iii special 28: prison of the past</title>
   </anime>
@@ -43379,6 +43525,7 @@
     <title xml:lang="en" type="syn">enen no shouboutai 2nd season</title>
     <title xml:lang="en" type="syn">enn enn no shouboutai 2nd season</title>
     <title xml:lang="en" type="syn">fire force season 2</title>
+    <title xml:lang="en" type="syn">enn enn no shouboutai: ni no shou</title>
     <title xml:lang="en" type="syn">fire force 2nd season</title>
   </anime>
   <anime aid="15336">
@@ -43693,6 +43840,7 @@
   <anime aid="15424">
     <title xml:lang="en" type="official">eiga fushigi dagashiya: zenitendou - tsuri taiyaki</title>
     <title xml:lang="en" type="syn">fushigi dagashiya: zenitendou movie - tsuri taiyaki</title>
+    <title xml:lang="en" type="syn">fushigi dakashiya movie: zenitendou - tsuritai yaki</title>
   </anime>
   <anime aid="15425">
     <title xml:lang="en" type="official">fanren xiuxian chuan: fanren feng qi tian nan</title>
@@ -43911,13 +44059,13 @@
   </anime>
   <anime aid="15478">
     <title xml:lang="en" type="official">aware! meisaku-kun (2020)</title>
-    <title xml:lang="en" type="syn">aware! meisaku-kun 5th season</title>
     <title xml:lang="en" type="syn">ahare! meisaku-kun (2020)</title>
   </anime>
   <anime aid="15479">
     <title xml:lang="en" type="official">aikatsu on parade! (2020)</title>
     <title xml:lang="en" type="syn">aikatsu on parade!: dream story</title>
     <title xml:lang="en" type="syn">aikatsu on parade! (ona)</title>
+    <title xml:lang="en" type="syn">aikatsu on parade! (web)</title>
   </anime>
   <anime aid="15480">
     <title xml:lang="en" type="official">cardfight!! vanguard gaiden: if</title>
@@ -43972,7 +44120,6 @@
   <anime aid="15489">
     <title xml:lang="en" type="official">future folktales</title>
     <title xml:lang="en" type="syn">future&amp;#39;s folktales</title>
-    <title xml:lang="en" type="syn">future's folktales</title>
   </anime>
   <anime aid="15492">
     <title xml:lang="en" type="official">talentless nana</title>
@@ -44061,6 +44208,7 @@
     <title xml:lang="en" type="syn">bang dream! poppin' dream!</title>
     <title xml:lang="en" type="syn">bang dream! movie: poppin' dream!</title>
     <title xml:lang="en" type="syn">gekijouban bang dream! poppin` dream</title>
+    <title xml:lang="en" type="syn">bang dream! movie: poppin&amp;#39; dream!</title>
   </anime>
   <anime aid="15519">
     <title xml:lang="en" type="official">iwakakeru: sport climbing girls</title>
@@ -44136,10 +44284,12 @@
     <title xml:lang="en" type="syn">magical legend: rise to immortality 2nd season</title>
     <title xml:lang="en" type="syn">magical legend: rise to immortality ii</title>
     <title xml:lang="en" type="syn">tai yi xian mo lu zhi ling fei ji 2nd season</title>
+    <title xml:lang="en" type="syn">magical legend: rise to immortality 2</title>
   </anime>
   <anime aid="15543">
     <title xml:lang="en" type="official">tai yi xian mo lu zhi ling fei ji iii</title>
     <title xml:lang="en" type="syn">magical legend: rise to immortality 3rd season</title>
+    <title xml:lang="en" type="syn">magical legend: rise to immortality 3</title>
     <title xml:lang="en" type="syn">magical legend: rise to immortality iii</title>
     <title xml:lang="en" type="syn">tai yi xian mo lu zhi ling fei ji 3rd season</title>
   </anime>
@@ -44494,6 +44644,7 @@
   </anime>
   <anime aid="15665">
     <title xml:lang="en" type="official">yuuki yuuna wa yuusha de aru: dai mankai no shou</title>
+    <title xml:lang="en" type="syn">yuki yuna is a hero: great mankai chapter</title>
     <title xml:lang="en" type="syn">yuki yuna is a hero: the great full blossom chapter</title>
     <title xml:lang="en" type="syn">yuki yuna is a hero: the great full blossom arc</title>
     <title xml:lang="en" type="syn">yuki yuna is a hero season 3</title>
@@ -44562,6 +44713,12 @@
   <anime aid="15686">
     <title xml:lang="en" type="official">lie yang tiandao i</title>
     <title xml:lang="en" type="syn">the rule of burning sun i</title>
+  </anime>
+  <anime aid="15687">
+    <title xml:lang="en" type="official">wu dong qiankun dier ji</title>
+    <title xml:lang="en" type="syn">wu dong qian kun 2nd season</title>
+    <title xml:lang="en" type="syn">earth-shattering martial arts 2nd season</title>
+    <title xml:lang="en" type="syn">martial movement upheaval 2nd season</title>
   </anime>
   <anime aid="15689">
     <title xml:lang="en" type="official">the gymnastics samurai</title>
@@ -44678,7 +44835,7 @@
     <title xml:lang="en" type="syn">space academy</title>
   </anime>
   <anime aid="15728">
-    <title xml:lang="en" type="official">ginga eiyuu densetsu: die neue these (zokuhen)</title>
+    <title xml:lang="en" type="official">ginga eiyuu densetsu: die neue these - gekitotsu</title>
     <title xml:lang="en" type="syn">ginga eiyuu densetsu: die neue these 3</title>
     <title xml:lang="en" type="syn">the legend of the galactic heroes: the new thesis 3</title>
     <title xml:lang="en" type="syn">legend of the galactic heroes: die neue these 2</title>
@@ -44984,7 +45141,6 @@
   <anime aid="15812">
     <title xml:lang="en" type="official">the way of the househusband</title>
     <title xml:lang="en" type="syn">la via del grembiule</title>
-    <title xml:lang="en" type="syn">way of the househusband</title>
     <title xml:lang="en" type="syn">yakuza goes houseman</title>
     <title xml:lang="en" type="syn">gokushufudou part 1</title>
     <title xml:lang="en" type="syn">gokushufudou: the way of the house husband</title>
@@ -45070,6 +45226,7 @@
   </anime>
   <anime aid="15852">
     <title xml:lang="en" type="official">eiga doraemon: nobita no little star wars 2021</title>
+    <title xml:lang="en" type="syn">doraemon: nobita&amp;#39;s little star wars 2021</title>
     <title xml:lang="en" type="syn">doraemon movie 41: nobita no little star wars</title>
     <title xml:lang="en" type="syn">doraemon the movie 2021: nobita's space war</title>
     <title xml:lang="en" type="syn">doraemon the movie 2021: nobita's space war, doraemon the movie 2021: nobita no uchuu shou sensou</title>
@@ -45117,7 +45274,6 @@
     <title xml:lang="en" type="syn">chu feng: eden zhi zi</title>
     <title xml:lang="en" type="syn">chu feng: soe</title>
     <title xml:lang="en" type="syn">school shock: son of eden</title>
-    <title xml:lang="en" type="syn">chu feng: yi dian shizi</title>
   </anime>
   <anime aid="15872">
     <title xml:lang="en" type="official">tropical-rouge! precure</title>
@@ -45125,8 +45281,10 @@
   </anime>
   <anime aid="15873">
     <title xml:lang="en" type="official">my hero academia: world heroes` mission</title>
+    <title xml:lang="en" type="syn">my hero academia the movie: world heroes&amp;#39; mission</title>
     <title xml:lang="en" type="syn">my hero academia the movie 3</title>
     <title xml:lang="en" type="syn">boku no hero academia the movie 3: world heroes' mission</title>
+    <title xml:lang="en" type="syn">boku no hero academia the movie: world heroes&amp;#39; mission</title>
     <title xml:lang="en" type="syn">my hero academia the movie: world heroes' mission</title>
     <title xml:lang="en" type="syn">boku no hero academia movie 3: world heroes' mission</title>
     <title xml:lang="en" type="syn">boku no hero academia the movie 3</title>
@@ -45265,11 +45423,13 @@
   </anime>
   <anime aid="15934">
     <title xml:lang="en" type="official">world trigger 3rd season</title>
+    <title xml:lang="en" type="syn">world trigger season 3</title>
     <title xml:lang="en" type="syn">world trigger 3</title>
   </anime>
   <anime aid="15938">
     <title xml:lang="en" type="official">taishou otome otogibanashi</title>
     <title xml:lang="en" type="syn">taishou maiden fairytale</title>
+    <title xml:lang="en" type="syn">taisho otome otogibanashi</title>
     <title xml:lang="en" type="syn">taishou wotome otogibanashi</title>
     <title xml:lang="en" type="syn">taisho wotome otogibanashi</title>
     <title xml:lang="en" type="syn">taisho maiden fairytale</title>
@@ -45318,8 +45478,9 @@
     <title xml:lang="en" type="syn">arknights 1st anniversary special animation</title>
   </anime>
   <anime aid="15954">
-    <title xml:lang="en" type="official">mushoku tensei: isekai ittara honki dasu (2021)</title>
+    <title xml:lang="en" type="official">mushoku tensei: jobless reincarnation (2021)</title>
     <title xml:lang="en" type="syn">mushoku tensei: jobless reincarnation part 2</title>
+    <title xml:lang="en" type="syn">mushoku tensei: jobless reincarnation cour 2</title>
     <title xml:lang="en" type="syn">mushoku tensei: isekai ittara honki dasu - part ii</title>
     <title xml:lang="en" type="syn">mushoku tensei: jobless reincarnation - part ii</title>
     <title xml:lang="en" type="syn">mushoku tensei: jobless reincarnation 2nd season</title>
@@ -45357,6 +45518,7 @@
     <title xml:lang="en" type="syn">wu liuqi zhi xuanwu guo pian</title>
     <title xml:lang="en" type="syn">scissor seven season 3</title>
     <title xml:lang="en" type="syn">scissor seven: the kingdom of xuanwu</title>
+    <title xml:lang="en" type="syn">scissor seven staffel 3</title>
   </anime>
   <anime aid="15963">
     <title xml:lang="en" type="official">gyokou no nikuko-chan</title>
@@ -45504,6 +45666,11 @@
     <title xml:lang="en" type="syn">xing hai qishi - jianglin</title>
     <title xml:lang="en" type="syn">xing hai qishi part 1</title>
   </anime>
+  <anime aid="16006">
+    <title xml:lang="en" type="official">dolls` frontline</title>
+    <title xml:lang="en" type="syn">dolls&amp;#39; frontline</title>
+    <title xml:lang="en" type="syn">girls&amp;#39; frontline</title>
+  </anime>
   <anime aid="16008">
     <title xml:lang="en" type="official">eiga tropical-rouge! precure: petit tobikome! collabo dance party!</title>
     <title xml:lang="en" type="syn">eiga tropical-rouge! precure: petit tobikome! collabo dance party</title>
@@ -45562,7 +45729,7 @@
     <title xml:lang="en" type="syn">goblin slayer season 2</title>
   </anime>
   <anime aid="16028">
-    <title xml:lang="en" type="official">tensai ouji no akaji kokka saiseijutsu</title>
+    <title xml:lang="en" type="official">the genius prince`s guide to raising a nation out of debt</title>
     <title xml:lang="en" type="syn">tensai ouji no akaji kokka saisei jutsu: souda, baikoku shiyou</title>
     <title xml:lang="en" type="syn">prince of genius rise worst kindom</title>
     <title xml:lang="en" type="syn">the genius prince&amp;#39;s guide to raising a nation out of debt</title>
@@ -45596,6 +45763,7 @@
     <title xml:lang="en" type="syn">dungeon ni deai wo motomeru no wa machigatteiru darou ka iv</title>
     <title xml:lang="en" type="syn">is it wrong that i want to meet you in a dungeon 4th season</title>
     <title xml:lang="en" type="syn">dungeon ni deai wo motomeru no wa machigatte iru darou ka: familia myth iv</title>
+    <title xml:lang="en" type="syn">dungeon ni deai wo motomeru no wa machigatteiru no darou ka iv</title>
     <title xml:lang="en" type="syn">danmachi 4th season</title>
     <title xml:lang="en" type="syn">dungeon ni deai wo motomeru no wa machigatte iru darou ka iv: familia myth</title>
   </anime>
@@ -45628,6 +45796,7 @@
   <anime aid="16040">
     <title xml:lang="en" type="official">gekijou tanpen macross frontier: toki no meikyuu</title>
     <title xml:lang="en" type="syn">macross frontier: toki no meikyuu</title>
+    <title xml:lang="en" type="syn">gekijou tanpen macross f: toki no meikyuu</title>
     <title xml:lang="en" type="syn">macross frontier short movie: toki no meikyuu</title>
     <title xml:lang="en" type="syn">gekijouu tanpen macross f: toki no meikyuu</title>
   </anime>
@@ -45761,6 +45930,7 @@
   <anime aid="16108">
     <title xml:lang="en" type="official">akuma-kun (shin series)</title>
     <title xml:lang="en" type="syn">akuma-kun (shin anime)</title>
+    <title xml:lang="en" type="syn">akuma-kun (new anime)</title>
     <title xml:lang="en" type="syn">akuma-kun (new)</title>
   </anime>
   <anime aid="16109">
@@ -45841,6 +46011,7 @@
     <title xml:lang="en" type="syn">hanyou no yashahime: sengoku otogizoushi 2nd season</title>
     <title xml:lang="en" type="syn">hanyou no yashahime: ni no shou</title>
     <title xml:lang="en" type="syn">hanyou no yashahime: sengoku otogizoushi - ni no shou</title>
+    <title xml:lang="en" type="syn">hanyou no yashahime: sengoku otogizoushi - the second act</title>
     <title xml:lang="en" type="syn">yashahime: princess half-demon 2</title>
     <title xml:lang="en" type="syn">yashahime: princess half-demon: the second act</title>
   </anime>
@@ -45864,6 +46035,8 @@
     <title xml:lang="en" type="syn">dr. stone: season 3</title>
     <title xml:lang="en" type="syn">doctor stone season 3</title>
     <title xml:lang="en" type="syn">dr. stone 3</title>
+    <title xml:lang="en" type="syn">dr. stone (sequel)</title>
+    <title xml:lang="en" type="syn">dr. stone (new)</title>
   </anime>
   <anime aid="16165">
     <title xml:lang="en" type="official">eiga go-toubun no hanayome</title>
@@ -45880,7 +46053,6 @@
   </anime>
   <anime aid="16168">
     <title xml:lang="en" type="official">takt op. destiny</title>
-    <title xml:lang="en" type="syn">takt op.</title>
     <title xml:lang="en" type="syn">takt op. unmei wa shin akaki senritsu no machi wo</title>
   </anime>
   <anime aid="16169">
@@ -45896,10 +46068,14 @@
     <title xml:lang="en" type="syn">86 eighty-six 2nd cour</title>
     <title xml:lang="en" type="syn">86 part 2</title>
     <title xml:lang="en" type="syn">86: eighty six (2 cour)</title>
-    <title xml:lang="en" type="syn">86 eighty-six season 2</title>
-    <title xml:lang="en" type="syn">eighty-six part 2</title>
+    <title xml:lang="en" type="syn">86 : eighty six (saison 2)</title>
+    <title xml:lang="en" type="syn">86: eighty six (season 2)</title>
     <title xml:lang="en" type="syn">86 2nd season</title>
-    <title xml:lang="en" type="syn">86: eighty six 2nd season</title>
+    <title xml:lang="en" type="syn">86: eighty six (stagione 2)</title>
+    <title xml:lang="en" type="syn">86: eighty-six 2nd season</title>
+    <title xml:lang="en" type="syn">86: eighty six (staffel 2)</title>
+    <title xml:lang="en" type="syn">86: eighty six (temporada 2)</title>
+    <title xml:lang="en" type="syn">eighty-six part 2</title>
     <title xml:lang="en" type="syn">86: eighty six part 2</title>
   </anime>
   <anime aid="16173">
@@ -45987,6 +46163,7 @@
   <anime aid="16200">
     <title xml:lang="en" type="official">the way of the househusband (2021)</title>
     <title xml:lang="en" type="syn">gokushufudou part 2</title>
+    <title xml:lang="en" type="syn">yakuza goes hausmann (teil 2)</title>
     <title xml:lang="en" type="syn">gokushufudou 2</title>
     <title xml:lang="en" type="syn">the way of the househusband 2</title>
     <title xml:lang="en" type="syn">the way of the househusband part 2</title>
@@ -46091,7 +46268,6 @@
   <anime aid="16265">
     <title xml:lang="en" type="official">build divide: code black</title>
     <title xml:lang="en" type="syn">build dive: #000000 - code black</title>
-    <title xml:lang="en" type="syn">build-divide -#000000- code black</title>
   </anime>
   <anime aid="16266">
     <title xml:lang="en" type="official">build divide</title>
@@ -46131,6 +46307,7 @@
   </anime>
   <anime aid="16274">
     <title xml:lang="en" type="official">restaurant to another world 2</title>
+    <title xml:lang="en" type="syn">restaurant to another world (saison 2)</title>
     <title xml:lang="en" type="syn">restaurant to another world season 2</title>
   </anime>
   <anime aid="16278">
@@ -46299,7 +46476,6 @@
     <title xml:lang="en" type="official">aware! meisaku-kun (2021)</title>
     <title xml:lang="en" type="syn">aware! meisaku-kun (saison 6)</title>
     <title xml:lang="en" type="syn">aware! meisaku-kun (season 6)</title>
-    <title xml:lang="en" type="syn">aware! meisaku-kun 6th season</title>
     <title xml:lang="en" type="syn">ahare! meisaku-kun (2021)</title>
     <title xml:lang="en" type="syn">aware! meisaku-kun (staffel 6)</title>
     <title xml:lang="en" type="syn">aware! meisaku-kun (stagione 6)</title>
@@ -46345,15 +46521,17 @@
     <title xml:lang="en" type="syn">grimms' fairy tales (new)</title>
     <title xml:lang="en" type="syn">grimm (provisional title)</title>
   </anime>
+  <anime aid="16384">
+    <title xml:lang="en" type="official">gundam breaker battlogue</title>
+    <title xml:lang="en" type="syn">gbb</title>
+  </anime>
   <anime aid="16389">
     <title xml:lang="en" type="official">isekai ojisan</title>
     <title xml:lang="en" type="syn">isekai uncle</title>
     <title xml:lang="en" type="syn">ojisan in another world</title>
   </anime>
   <anime aid="16390">
-    <title xml:lang="en" type="official">yakunara mug cup mo niban kama</title>
-    <title xml:lang="en" type="syn">let`s make a mug too (2021)</title>
-    <title xml:lang="en" type="syn">yakunara mug cup mo: niban gama</title>
+    <title xml:lang="en" type="official">yakunara mug cup mo nibangama</title>
     <title xml:lang="en" type="syn">let&amp;#39;s make a mug too: second kiln</title>
     <title xml:lang="en" type="syn">let's make a mug too: second kiln</title>
     <title xml:lang="en" type="syn">let's make a mug too 2nd season</title>
@@ -46422,7 +46600,6 @@
   <anime aid="16414">
     <title xml:lang="en" type="official">uchuu no hou: elohim hen</title>
     <title xml:lang="en" type="syn">uchuu no hou: erohim-hen</title>
-    <title xml:lang="en" type="syn">the laws of the universe: part 2</title>
     <title xml:lang="en" type="syn">the laws of the universe - the age of elohim</title>
   </anime>
   <anime aid="16417">
@@ -46469,7 +46646,6 @@
     <title xml:lang="en" type="official">koukaku kidoutai: sac_2045: jizoku kanou sensou</title>
     <title xml:lang="en" type="syn">ghost in the shell: sac_2045 - jizoku kanou sensou</title>
     <title xml:lang="en" type="syn">ghost in the shell: sac_2045 - sustainable war</title>
-    <title xml:lang="en" type="syn">koukaku kidoutai: sac_2045 (2021)</title>
     <title xml:lang="en" type="syn">ghost in the shell: sac_2045 - sustainable warfare</title>
     <title xml:lang="en" type="syn">ghost in the shell: sac_2045 movie</title>
     <title xml:lang="en" type="syn">koukaku kidoutai: sac_2045 movie</title>
@@ -46706,7 +46882,6 @@
   </anime>
   <anime aid="16536">
     <title xml:lang="en" type="official">ganbare doukichan</title>
-    <title xml:lang="en" type="syn">ganbare doki-chan</title>
     <title xml:lang="en" type="syn">do your best, douki-chan</title>
     <title xml:lang="en" type="syn">senpai is mine</title>
     <title xml:lang="en" type="syn">you can do it, douki-chan</title>
@@ -46902,6 +47077,8 @@
   <anime aid="16605">
     <title xml:lang="en" type="official">fei ren zai (5)</title>
     <title xml:lang="en" type="syn">non-human 5</title>
+    <title xml:lang="en" type="syn">shenme gui 5</title>
+    <title xml:lang="en" type="syn">fei ren zai 5th season</title>
   </anime>
   <anime aid="16610">
     <title xml:lang="en" type="official">jue ding</title>
@@ -47094,6 +47271,8 @@
     <title xml:lang="en" type="syn">hitori no shita: the outcast 4th season</title>
     <title xml:lang="en" type="syn">the outcast season 4</title>
     <title xml:lang="en" type="syn">hitori no shita: the outcast season 4</title>
+    <title xml:lang="en" type="syn">the outcast 4th season</title>
+    <title xml:lang="en" type="syn">yi ren zhi xia 4th season</title>
   </anime>
   <anime aid="16724">
     <title xml:lang="en" type="official">huanji 45 miao</title>
@@ -47158,12 +47337,11 @@
   <anime aid="16747">
     <title xml:lang="en" type="official">xuyuan shen long</title>
     <title xml:lang="en" type="syn">der wunschdrache</title>
+    <title xml:lang="en" type="syn">il drago dei desideri</title>
   </anime>
   <anime aid="16749">
     <title xml:lang="en" type="official">wan jie fa shen</title>
     <title xml:lang="en" type="syn">god of all world</title>
-    <title xml:lang="en" type="syn">god of ten thousand realms</title>
-    <title xml:lang="en" type="syn">the god of all realms</title>
   </anime>
   <anime aid="16750">
     <title xml:lang="en" type="official">tian huang zhan shen</title>
@@ -47223,10 +47401,6 @@
     <title xml:lang="en" type="official">liu yi chuanqi</title>
     <title xml:lang="en" type="syn">legend of liu yi</title>
   </anime>
-  <anime aid="16780">
-    <title xml:lang="en" type="official">xian feng jian yu lu</title>
-    <title xml:lang="en" type="syn">chronicles of everlasting wind and sword rain</title>
-  </anime>
   <anime aid="16782">
     <title xml:lang="en" type="official">qing chi hong xiaodou ba! di san ji</title>
     <title xml:lang="en" type="syn">beanie's daily iii</title>
@@ -47285,9 +47459,8 @@
     <title xml:lang="en" type="official">how a realist hero rebuilt the kingdom (2022)</title>
     <title xml:lang="en" type="syn">how a realist hero rebuilt the kingdom: part ii</title>
     <title xml:lang="en" type="syn">how a realist hero rebuilt the kingdom part 2</title>
-    <title xml:lang="en" type="syn">the realist hero that rebuilt the kingdom</title>
+    <title xml:lang="en" type="syn">genjitsu shugi yuusha no oukoku saikenki part 2</title>
     <title xml:lang="en" type="syn">genjitsushugisha no oukokukaizouki (2022)</title>
-    <title xml:lang="en" type="syn">'genjitsu shugi yuusha no oukoku saikenki' part 2</title>
     <title xml:lang="en" type="syn">genjitsu shugi yuusha no oukoku saikenki: dai ni-bu</title>
     <title xml:lang="en" type="syn">genkoku (2022)</title>
   </anime>
@@ -47298,5 +47471,49 @@
   <anime aid="16812">
     <title xml:lang="en" type="official">yoshida katsuko no yabai wa! sdgs: araburu! trouble! sustainable!</title>
     <title xml:lang="en" type="syn">yoshida katsuko no yabai wa! sdgs: araburu! trouble! sustainable</title>
+  </anime>
+  <anime aid="16824">
+    <title xml:lang="en" type="official">choujigen game neptune the animation: nepu nepu darake no festival</title>
+    <title xml:lang="en" type="syn">choujigen game neptune ova</title>
+    <title xml:lang="en" type="syn">hyperdimension neptunia: nepu nepu darake no festival</title>
+    <title xml:lang="en" type="syn">hyperdimension neptunia ova</title>
+  </anime>
+  <anime aid="16826">
+    <title xml:lang="en" type="official">akuyaku reijou nano de last boss o katte mimashita</title>
+    <title xml:lang="en" type="syn">i`m the villainess</title>
+    <title xml:lang="en" type="syn">akuyaku reijo nano de last boss wo kattemimashita</title>
+    <title xml:lang="en" type="syn">akuyaku reijou nanode last boss wo kattemimashita</title>
+    <title xml:lang="en" type="syn">akuyaku reijou nano de last boss wo katte mimashita</title>
+    <title xml:lang="en" type="syn">so i`m taming the final boss</title>
+  </anime>
+  <anime aid="16828">
+    <title xml:lang="en" type="official">our last crusade or the rise of a new world 2</title>
+    <title xml:lang="en" type="syn">kimi to boku no saigo no senjou, arui wa sekai ga hajimaru seisen 2nd season</title>
+    <title xml:lang="en" type="syn">kimi to boku no saigo no senjou, aruiwa sekai ga hajimaru seisen (zoku-hen)</title>
+    <title xml:lang="en" type="syn">our last crusade or the rise of a new world (sequel)</title>
+    <title xml:lang="en" type="syn">the last battlefield between you and i, or perhaps the beginning of the world's holy war 2nd season,</title>
+    <title xml:lang="en" type="syn">kimisen 2nd season</title>
+    <title xml:lang="en" type="syn">kimi to boku no saigo no senjou, aruiwa sekai ga hajimaru seisen season 2</title>
+    <title xml:lang="en" type="syn">our last crusade or the rise of a new world 2nd season</title>
+    <title xml:lang="en" type="syn">our last crusade or the rise of a new world season 2</title>
+  </anime>
+  <anime aid="16841">
+    <title xml:lang="en" type="official">meitantei conan: hannin no hanzawa-san</title>
+    <title xml:lang="en" type="syn">detective conan: the culprit hanzawa</title>
+    <title xml:lang="en" type="syn">detective conan: hannin no hanzawa-san</title>
+    <title xml:lang="en" type="syn">the culprit hanazawa</title>
+  </anime>
+  <anime aid="16842">
+    <title xml:lang="en" type="official">meitantei conan: zero no tea time</title>
+    <title xml:lang="en" type="syn">zero's daily life</title>
+    <title xml:lang="en" type="syn">meitantei conan: zero no nichijou</title>
+    <title xml:lang="en" type="syn">meitantei conan: zero no nichijou (tea time)</title>
+    <title xml:lang="en" type="syn">detective conan: zero no tea time</title>
+    <title xml:lang="en" type="syn">detective conan: zero's daily life</title>
+    <title xml:lang="en" type="syn">zero's tea time</title>
+  </anime>
+  <anime aid="16848">
+    <title xml:lang="en" type="official">toushinki g`s frame</title>
+    <title xml:lang="en" type="syn">toujinki g`s frame</title>
   </anime>
 </animetitles>
