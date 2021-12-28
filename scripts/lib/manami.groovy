@@ -1,5 +1,10 @@
+//file:noinspection unused
+//file:noinspection GrMethodMayBeStatic
 package lib
-//--- VERSION 1.2.0
+
+import net.filebot.Logging
+
+//--- VERSION 1.2.2
 // http://docs.groovy-lang.org/latest/html/documentation/grape.html
 // https://mvnrepository.com/artifact/org.apache.commons/commons-text
 @Grapes(
@@ -20,6 +25,7 @@ Set aodJWDSearchOnlyAniDB(JsonObject fileBotJsonCacheObject, Set searchList, loc
   fileBotJsonCacheObject.data.each { aodentry ->
     if (aodentry.sources =~ /anidb/) {
       Matcher matcher = aodentry.sources =~ /https:\/\/anidb\.net\/anime\/(\d+)/
+      //noinspection GroovyAssignabilityCheck
       anidbID = matcher[0][1].toInteger()
       if ( includeSynonyms ) {
         aodtitles = []
@@ -32,16 +38,16 @@ Set aodJWDSearchOnlyAniDB(JsonObject fileBotJsonCacheObject, Set searchList, loc
             jwdcompare = jaroWinklerDistance.apply(altjwdStringBlender(searchItem), altjwdStringBlender(title))
             // At some point I may add a "fuzzy" vs "strict" matcher, aka 1 vs > .98
             if ( jwdcompare == 1 ) {
-              // println "Found this exact Match (1.0) in title entry? ${aodentry.title}"
+               Logging.log.finest "Found this exact Match (1.0) in title entry? ${aodentry.title}"
               returnAID == true ? (resultsAsSet += anidbID) : (resultsAsSet += aodentry.title)
               // resultsAsSet += aodentry.title
               } else if ( strictJWDMatch == false ) {
               if ( jwdcompare > 0.990000000 ) {
-                // println "Found this Likely Match (0.99+)? ${aodentry.title}"
+                Logging.log.finest "Found this Likely Match (0.99+)? ${aodentry.title}"
                 returnAID == true ? (resultsAsSet += anidbID) : (resultsAsSet += aodentry.title)
               // resultsAsSet += aodentry.title
               } else if ( jwdcompare > 0.980000000 ) {
-                // println "Found this Possible Match (0.98+)? ${aodentry.title} "
+                Logging.log.finest"Found this Possible Match (0.98+)? ${aodentry.title} "
                 returnAID == true ? (resultsAsSet += anidbID) : (resultsAsSet += aodentry.title)
               // resultsAsSet += aodentry.title
               }
@@ -51,16 +57,16 @@ Set aodJWDSearchOnlyAniDB(JsonObject fileBotJsonCacheObject, Set searchList, loc
           jwdcompare = jaroWinklerDistance.apply(altjwdStringBlender(searchItem), altjwdStringBlender(aodentry.title))
           // At some point I may add a "fuzzy" vs "strict" matcher, aka 1 vs > .98
           if ( jwdcompare == 1 ) {
-            // println "Found this exact Match (1.0) in title entry? ${aodentry.title}"
+            Logging.log.finest"Found this exact Match (1.0) in title entry? ${aodentry.title}"
             returnAID == true ? (resultsAsSet += anidbID) : (resultsAsSet += aodentry.title)
             // resultsAsSet += aodentry.title
             } else if ( strictJWDMatch == false ) {
             if ( jwdcompare > 0.990000000 ) {
-              // println "Found this Likely Match (0.99+)? ${aodentry.title}"
+              Logging.log.finest "Found this Likely Match (0.99+)? ${aodentry.title}"
               returnAID == true ? (resultsAsSet += anidbID) : (resultsAsSet += aodentry.title)
             // resultsAsSet += aodentry.title
             } else if ( jwdcompare > 0.980000000 ) {
-              // println "Found this Possible Match (0.98+)? ${aodentry.title} "
+              Logging.log.finest "Found this Possible Match (0.98+)? ${aodentry.title} "
               returnAID == true ? (resultsAsSet += anidbID) : (resultsAsSet += aodentry.title)
             // resultsAsSet += aodentry.title
             }
@@ -97,14 +103,14 @@ Set aodJWDSearchExcludeAniDB(JsonObject fileBotJsonCacheObject, Set searchList, 
             jwdcompare = jaroWinklerDistance.apply(altjwdStringBlender(searchItem), altjwdStringBlender(title))
             // At some point I may add a "fuzzy" vs "strict" matcher, aka 1 vs > .98
             if ( jwdcompare == 1 ) {
-            // println "Found this exact Match (1.0) in title entry? ${aodentry.title}"
+              Logging.log.finest "Found this exact Match (1.0) in title entry? ${aodentry.title}"
             resultsAsSet += aodentry.title
             } else if ( strictJWDMatch == false ) {
             if ( jwdcompare > 0.990000000 ) {
-              // println "Found this Likely Match (0.99+)? ${aodentry.title}"
+              Logging.log.finest "Found this Likely Match (0.99+)? ${aodentry.title}"
               resultsAsSet += aodentry.title
               } else if ( jwdcompare > 0.980000000 ) {
-              // println "Found this Possible Match (0.98+)? ${aodentry.title} "
+              Logging.log.finest "Found this Possible Match (0.98+)? ${aodentry.title} "
               resultsAsSet += aodentry.title
             }
             }
@@ -113,14 +119,14 @@ Set aodJWDSearchExcludeAniDB(JsonObject fileBotJsonCacheObject, Set searchList, 
         jwdcompare = jaroWinklerDistance.apply(altjwdStringBlender(searchItem), altjwdStringBlender(aodentry.title))
         // At some point I may add a "fuzzy" vs "strict" matcher, aka 1 vs > .98
         if ( jwdcompare == 1 ) {
-          // println "Found this exact Match (1.0) in title entry? ${aodentry.title}"
+          Logging.log.finest "Found this exact Match (1.0) in title entry? ${aodentry.title}"
           resultsAsSet += aodentry.title
             } else if ( strictJWDMatch == false ) {
           if ( jwdcompare > 0.990000000 ) {
-            // println "Found this Likely Match (0.99+)? ${aodentry.title}"
+            Logging.log.finest "Found this Likely Match (0.99+)? ${aodentry.title}"
             resultsAsSet += aodentry.title
               } else if ( jwdcompare > 0.980000000 ) {
-            // println "Found this Possible Match (0.98+)? ${aodentry.title} "
+            Logging.log.finest "Found this Possible Match (0.98+)? ${aodentry.title} "
             resultsAsSet += aodentry.title
           }
         }
@@ -134,13 +140,13 @@ Set aodJWDSearchExcludeAniDB(JsonObject fileBotJsonCacheObject, Set searchList, 
 // --- Return true if it's type is Not "TV"
 // --- Return false if the type is "TV"
 Boolean aodIsAIDTypeNotTV(JsonObject fileBotJsonCacheObject, Integer AID) {
-//  println "The AID I'm Searching for is:[${AID}]"
+  Logging.log.finest "The AID I'm Searching for is:[${AID}]"
   JsonObject myAniDBEntry = fileBotJsonCacheObject.data.find { aodentry ->
     // https://anidb.net/anime/1
     aodentry.sources.find { it ==~ /https:\/\/anidb\.net\/anime\/${AID}$/ }
-  }
-  //  println "myAniDBEntry.getclass:[${myAniDBEntry.getClass()}]"
-//  println "myAniDBEntry:${myAniDBEntry}"
+  } as JsonObject
+  Logging.log.finest "myAniDBEntry.getclass:[${myAniDBEntry.getClass()}]"
+  Logging.log.finest "myAniDBEntry:${myAniDBEntry}"
   // --- It will be null if an AID is not in the AOD List --- //
   if ( myAniDBEntry == null ) {
     return true
@@ -152,7 +158,7 @@ Boolean aodIsAIDTypeNotTV(JsonObject fileBotJsonCacheObject, Integer AID) {
 String aodGetTypeForAID(JsonObject fileBotJsonCacheObject, Integer AnimeID) {
   JsonObject myAniDBEntry = fileBotJsonCacheObject.data.find { aodentry ->
     aodentry.sources.find { it ==~ /https:\/\/anidb\.net\/anime\/${AnimeID}$/ }
-  }
+  } as JsonObject
   // --- It will be null if an AID is not in the AOD List --- //
   if ( myAniDBEntry == null ) {
     return true
@@ -165,20 +171,20 @@ String aodGetTypeForAID(JsonObject fileBotJsonCacheObject, Integer AnimeID) {
 Integer aodGetEpisodeNumberForAID(JsonObject fileBotJsonCacheObject, Integer AnimeID) {
   JsonObject myAniDBEntry = fileBotJsonCacheObject.data.find { aodentry ->
     aodentry.sources.find { it ==~ /https:\/\/anidb\.net\/anime\/${AnimeID}$/ }
-  }
+  } as JsonObject
   // --- It will be null if an AID is not in the AOD List --- //
   if ( myAniDBEntry == null ) {
     return 0
   } else {
-    return myAniDBEntry.episodes
+    return myAniDBEntry.episodes as Integer
   }
 }
 
 LinkedHashMap setAnimeTypeFromAID(JsonObject animeOfflineDatabase, Integer animeID, def specialType, Boolean isSpecialType, Boolean isMovieType) {
   //--- Set options on if this is a Movie/ONA/OVA or Special/TV
   def getAnimeType = aodGetTypeForAID(animeOfflineDatabase, animeID)
-  switch (getAnimeType) {
-    case ["Movie"]:
+  switch (getAnimeType.toUpperCase()) {
+    case ["MOVIE"]:
       isMovieType = true
       isSpecialType = false
       break
@@ -187,7 +193,12 @@ LinkedHashMap setAnimeTypeFromAID(JsonObject animeOfflineDatabase, Integer anime
       isSpecialType = false
       specialType = null
       break
-    case ["Special","OVA","ONA"]:
+    case ["UNKNOWN"]:
+      isMovieType = false
+      isSpecialType = false
+      specialType = null
+      break
+    case ["SPECIAL","OVA","ONA"]:
       isMovieType = false
       isSpecialType = true
       specialType = getAnimeType
@@ -209,7 +220,7 @@ LinkedHashMap setAnimeTypeFromAID(JsonObject animeOfflineDatabase, Integer anime
 Set aodReturnAllTitlesAndSynonyms(animeOfflinejsonObject, Set searchList) {
   HashSet returnAsSet = []
   searchList.each { lead ->
-    // println "lead:${lead}"
+    Logging.log.finest "lead:${lead}"
     returnAsSet << lead
     animeOfflinejsonObject.data.find { it.title == lead }.synonyms.collect { it }.each {
       returnAsSet << it.toLowerCase()
