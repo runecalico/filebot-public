@@ -1,5 +1,11 @@
 package lib
-//--- VERSION 1.4.3
+
+import groovy.transform.Field
+import net.filebot.Logging
+import net.filebot.WebServices
+import net.filebot.web.SearchResult
+
+//--- VERSION 1.7.2
 
 import net.filebot.web.TheTVDBSeriesInfo
 import org.apache.commons.text.similarity.JaroWinklerDistance
@@ -7,8 +13,54 @@ import com.cedarsoftware.util.io.JsonObject
 import net.filebot.web.Episode
 import java.util.regex.Matcher
 
+// VOID - /(?i)((^[a-z\s]+)\(?((19\d\d|20\d\d)\)?\s))/
+// VOID - /(?i)((^[a-z\s-]+)\(?((19\d\d|20\d\d)\)?\b))/
+// VOID - /(?i)((^[^\d\(]+)\(?((19\d\d|20\d\d)\)?\b))/ // Thank you Intellij, but the escape is needed
+// VOID - /(?i)((^[^\(]+)\(?((19\d\d|20\d\d)\)?\b))/
+@Field String stripYearDateRegex = /(?i)[\.\(|\s|\[]((19|20)\d\d)(?!\w)[\)|\s|\]|\r|\n|\t|\W]?/
+// alt matcher - (?i)((^[^\(]+)\(?((19\d\d|20\d\d)\)?\b))
+// alt matcher 2 - (?i)((^[a-z\s-]+)\(?((19\d\d|20\d\d)\)?\s))
+// OVA, ONA or Special and all spaces, dashes etc around them. It also requires at least one around the word.
+// Match 1 - The "Type" aka ova, ONA, OAD, SPECIAL, bsp, bspe, bonus etc. with spaces
+// Match 2 - The "Type" aka ova, ONA, OAD, SPECIAL, bsp, bspe, bonus etc. without spaces :)
+// VOID - /(?i)([-\s(]+(\bOAV|\bOVA|\bONA|\bOAD|\bSPECIAL\b|\bsp\d{1,2}|\bspe\d{1,2}|\bbonus)(\b\d)?)[-\s\)]?/
+@Field String ovaOnaOadSpecialBonusSyntaxMatcher = /(?i)([-\s(]+(\bOAV|\bOVA|\bONA|\bOAD|\bSPECIAL\b|\bsp\d{1,2}|\bspe\d{1,2}|\bbonus)([\s]\d)?)[-\s\)]?/
+@Field String matchEndOfLineVersion = /v(\d{1,2})\s?$/
+@Field String stripTrailingSpacesDashRegex = /([\s-])*$/
+
+/**
+ * Generate the possible "series" anime names
+ * Interger Series Syntax (series 1), Roman Ordinal Series Syntax (series i), or Ordinal Series Syntax (series 2nd)
+ *
+ * @param String animeName
+ * @return  HashSet of [seriesGeneratedNames]
+ */
+HashSet seriesNameGenerator ( String baseAnimeName, Integer mySeasonalityNumber, Boolean hasRomanSeries ) {
+  HashSet tempBaseGeneratedAnimeNames = []
+  String generatedAnimeName
+  if ( mySeasonalityNumber > 1 ) {
+    // ---------- Add Series Name Varients as options ---------- //
+    generatedAnimeName = baseAnimeName + ' ' + getOrdinalNumber(mySeasonalityNumber) // anime 2nd
+    Logging.log.info "----- Adding Ordinal Seasonality Anime Name to Anime Name List - ${generatedAnimeName}"
+    tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
+    if ( mySeasonalityNumber < 10 ) {
+      generatedAnimeName = baseAnimeName + ' ' + getRomanOrdinal(mySeasonalityNumber) // anime II
+      Logging.log.info "----- Adding Seasonality Anime Name to Anime Name List - ${generatedAnimeName}"
+      tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
+    }
+    generatedAnimeName = baseAnimeName + ' ' + mySeasonalityNumber // anime 2
+    Logging.log.info "----- Adding Series # Anime Name to Anime Name List - ${generatedAnimeName}"
+    tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
+  } else if ( hasRomanSeries )  {
+    generatedAnimeName = baseAnimeName + ' ' + group.seriesNumber // anime I/II/III/IV/V
+    Logging.log.info "----- Adding Series Anime Name to Anime Name List - ${generatedAnimeName}"
+    tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
+  }
+  return tempBaseGeneratedAnimeNames
+}
 /**
  * Generate the base anime names we will be using to build possible Anime Series names to search for
+ * Basenames are the base part of the series name, later we add/modify based on things like the various seasonality syntax (Partial, Ordinal etc)
  *
  * @param group The LinkedHashMap for this group of files
  * @param useBaseAnimeNameWithSeriesSyntax Should we add the Base Anime Name when the Series has "Series" Syntax
@@ -17,11 +69,86 @@ import java.util.regex.Matcher
 ArrayList basenameGenerator ( LinkedHashMap group, Boolean useBaseAnimeNameWithSeriesSyntax ) {
   tempBaseGeneratedAnimeNames = [] as HashSet
   baseGeneratedAnimeNames = [] as HashSet
-  println '// START---------- Basename Generation ---------- //'
-  //  log.finest "${groupInfoGenerator(group)}"
-  // println "group.class:${group.getClass()}"
-  println "--- group.anime - ${group.anime}"
+  String baseAnimeName
+  Logging.log.info '// START---------- Basename Generation ---------- //'
+  Logging.log.finest "${groupInfoGenerator(group)}"
+  Logging.log.finest "group.class:${group.getClass()}"
+  Logging.log.info "--- group.anime - ${group.anime}"
   switch(group.anime) {
+    // How is this supposed to actually find something?
+    case ~/fanrenxiuxianzhuan mdzf/:
+      baseAnimeName =  'Fanren Xiuxian Chuan Mo Dao Zheng Feng'
+      break
+    // Huh.  It actually DOES have TV in the official name
+    case ~/yarou nanana kaibutsu kraken o oe!/:
+      baseAnimeName =  'TV Yarou Nanana: Kaibutsu Kraken o Oe!'
+      break
+    // the duke and his maid
+    case ~/the duke and his maid/:
+      baseAnimeName =  'The Duke of Death and His Maid'
+      break
+    // tdg
+    case ~/tdg/:
+      baseAnimeName =  'Tales of Demons and Gods'
+      break
+    // Taishou Otome Otogibanashi
+    case ~/taishou otome/:
+      baseAnimeName =  'Taishou Otome Otogibanashi'
+      break
+    // Lion Force
+    case ~/lion force/:
+      baseAnimeName =  'Hyakujuu Ou Golion'
+      break
+    // Iruma-kun is not an accepted short
+    case ~/iruma-kun/:
+      baseAnimeName =  'Mairimashita! Iruma-kun'
+      break
+    // Mini Dragon (Miss Kobayashi's Dragon Maid S Short Animation Series) is considered special episodes
+    case ~/mini dragon/:
+      baseAnimeName =  'Kobayashi-san Chi no Maidragon S'
+      group.isSpecialEpisode = true
+      break
+    case ~/stellar transformations/:
+      baseAnimeName =  'stellar transformation'
+      break
+    // Monster Farm in TVDB is not anime
+    case ~/monster farm/:
+      baseAnimeName =  'monster rancher'
+      break
+    // Filebot detected name is *almost* there ..
+    case ~/kmplx m3 the dark metal/:
+      baseAnimeName =  'M3 the dark metal'
+      break
+    // Close ..
+    case ~/granblue/:
+      baseAnimeName =  'Granblue Fantasy The Animation'
+      break
+    // Close ..
+    case ~/hige wo soru soshite joshikousei wo hirou/:
+      baseAnimeName =  'Hige o Soru. Soshite Joshikousei o Hirou.'
+      break
+    // Considered a Special, not a "Real" series
+    case ~/mobile suit gundam zz frag/:
+      baseAnimeName =  'Kidou Senshi Gundam ZZ'
+      group.isSpecialEpisode = true
+      break
+    // Not a common short name for it..
+    case ~/kono sekai the animation/:
+      baseAnimeName =  'The World Ends with You the Animation'
+      break
+    // Close, and yet so far ..
+    case ~/jiranaide, nagatoro-san/:
+      baseAnimeName =  'Ijiranaide, Nagatoro-san'
+      break
+    // Special Name != Anime name
+    case ~/sk crazy rock jam/:
+      baseAnimeName =  'SK8 the Infinity'
+      group.isSpecialEpisode = true
+      break
+    // Special Name != Anime name
+    case ~/himouto! umaru-chans/:
+      baseAnimeName =  'Himouto! Umaru-chan'
+      break
     // Spelling is important
     case ~/nejimaki seirei senki tenkyo no aruderamin/:
       baseAnimeName =  'Nejimaki Seirei Senki: Tenkyou no Alderamin'
@@ -246,107 +373,171 @@ ArrayList basenameGenerator ( LinkedHashMap group, Boolean useBaseAnimeNameWithS
     baseAnimeName = 'To Love-Ru: Trouble - Darkness'
     group.seriesNumber = 2
   }
-  println "----- baseAnimeName - ${baseAnimeName}"
+  Logging.log.info "----- baseAnimeName - ${baseAnimeName}"
   // If it ends with Special or Bonus, remove that and add that as a basename.
   // VOID - myOVARegexMatcher = group.anime =~ /(?i)([-\s\(]+(\bOAV|\bOVA|\bONA|\bOAD|\bSPECIAL|\bsp\d{1,2}|\bbonus)(\b\d)?)[-\s\)]?$/
-  myOVARegexMatcher = group.anime =~ /(?i)([-\s(]+(\bOAV|\bOVA|\bONA|\bOAD|\bSPECIAL|\bsp\d{1,2}|\bbonus)(\b\d)?)[-\s)]?$/
+  // VOID - myOVARegexMatcher = group.anime =~ /(?i)([-\s(]+(\bOAV|\bOVA|\bONA|\bOAD|\bSPECIAL|\bsp\d{1,2}|\bbonus)(\b\d)?)[-\s)]?$/
+  myOVARegexMatcher = group.anime =~ /${ovaOnaOadSpecialBonusSyntaxMatcher}/
   if ( myOVARegexMatcher.find() ) {
-    generatedAnimeName = group.anime.replaceAll(/(?i)([-\s\(]+(\bOAV|\bOVA|\bONA|\bOAD|\bSPECIAL|\bsp\d{1,2}|\bbonus)(\b\d)?)[-\s\)]?$/, '')
+    generatedAnimeName = group.anime.replaceAll(/${ovaOnaOadSpecialBonusSyntaxMatcher}/, '')
     tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
-    println "//--- TEMP: Adding to base Name List - [${generatedAnimeName}] "
+    Logging.log.info "----- TEMP: OVAMatcher - Adding to base Name List - [${generatedAnimeName}] "
+  }
+  // Unfortunately there is at *least* one anime that officially ends with v3, so I can't just ignore the "version" and the end.
+  // - https://anidb.net/anime/5078
+  myRegexMatcher = group.anime =~ /${matchEndOfLineVersion}/
+  if ( myRegexMatcher.find() ) {
+    generatedAnimeName = group.anime.replaceAll(/${matchEndOfLineVersion}/, '')
+    tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
+    Logging.log.info "----- TEMP: End of Line Version - Adding to base Name List - [${generatedAnimeName}] "
   }
   if (!group.hasSeriesSyntax || (group.hasSeriesSyntax && useBaseAnimeNameWithSeriesSyntax) || (group.hasSeriesSyntax && group.order == 'airdate')) {
-    println "//--- TEMP: Adding to base Name List - [${baseAnimeName}] "
+    Logging.log.info "----- TEMP: Adding to base Name List - [${baseAnimeName}] "
     tempBaseGeneratedAnimeNames += ["${baseAnimeName}"]
   }
+  if ( baseAnimeName =~ /(?i)^the\s/ ) {
+    Logging.log.info "----- TEMP: 'the' prefix - Adding to base Name List - [${baseAnimeName}] "
+    tempBaseGeneratedAnimeNames += ["${baseAnimeName.replaceFirst(/(?i)^the\s/, '')}"]
+  }
+  // If it has "series" syntax that can mean series 1 (Interger Series Syntax), series i (Roman Ordinal Series Syntax), or series 2nd (Ordinal Series Syntax)
+  // Note: Ordinal Series Syntax is NOT the same as Ordinal Seasonality Syntax (series 2nd Season).  While it's more common to see Ordinal Seasonality Syntax
+  // There are some anime that actually use Ordinal Series Syntax.
   if ( group.hasSeriesSyntax ) {
-    println "//--- hasSeriesSyntax detected"
+    Logging.log.info "----- hasSeriesSyntax detected"
     hasSeasonality = true
     switch (group.seriesNumber) {
       case ~/[0-9]/:
         mySeasonalityNumber = group.seriesNumber.toInteger()
-        println "----- Numerical Series - mySeasonalityNumber: ${mySeasonalityNumber}"
+        Logging.log.info "----- Numerical Series - mySeasonalityNumber: ${mySeasonalityNumber}"
         hasRomanSeries = false
         break
       default:
-        mySeasonalityNumber = group.seriesNumber
-        println "----- Roman Series - mySeasonalityNumber: ${mySeasonalityNumber}"
+//        mySeasonalityNumber = group.seriesNumber
+        mySeasonalityNumber = getNumberFromRomanOrdinal(group.seriesNumber)
+        Logging.log.info "----- Roman Series - Ordinal: ${group.seriesNumber}"
+        Logging.log.info "----- Roman Series - mySeasonalityNumber: ${mySeasonalityNumber}"
         hasRomanSeries = true
         break
     }
-    // baseAnimeName = "${jwdStringBlender(group.anime)}" // Always add the group.anime name
-    // println "----- Adding Base Anime Name to base Name List - ${baseAnimeName}  - Season 1/0"
-    // tempBaseGeneratedAnimeNames += ["${baseAnimeName}"]
-    if ( !hasRomanSeries ) {
-      if ( mySeasonalityNumber > 1 ) {
-        // ---------- Add Series Name Varients as options ---------- //
-        generatedAnimeName = baseAnimeName + ' ' + getOrdinalNumber(mySeasonalityNumber) // anime 2nd
-        println "----- Adding Ordinal Seasonality Anime Name to Anime Name List - ${generatedAnimeName}"
-        tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
-        if ( mySeasonalityNumber < 10 ) {
-          generatedAnimeName = baseAnimeName + ' ' + getRomanOrdinal(mySeasonalityNumber) // anime II
-          println "----- Adding Seasonality Anime Name to Anime Name List - ${generatedAnimeName}"
-          tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
-        }
-        generatedAnimeName = baseAnimeName + ' ' + mySeasonalityNumber // anime 2
-        println "----- Adding Series # Anime Name to Anime Name List - ${generatedAnimeName}"
-        tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
+    tempBaseGeneratedAnimeNames += seriesNameGenerator(baseAnimeName, mySeasonalityNumber, hasRomanSeries)
+    if ( group.altTitle != null ) {
+      Logging.log.info "----- Alternative Title Detected:[${group.altTitle}]"
+//      Logging.log.info "----- Adding Alternative Title to Anime Name List - ${group.altTitle}"
+      tempBaseGeneratedAnimeNames += seriesNameGenerator(group.altTitle as String, mySeasonalityNumber, hasRomanSeries)
+//      tempBaseGeneratedAnimeNames += ["${group.altTitle}"]
+      // Unfortunately there is at *least* one anime that officially ends with v3, so I can't just ignore the "version" and the end.
+      // - https://anidb.net/anime/5078
+      myRegexMatcher = group.altTitle =~ /${matchEndOfLineVersion}/
+      if ( myRegexMatcher.find() ) {
+        Logging.log.info "----- TEMP: End of Line Version - Adding to base Name List"
+        generatedAnimeName = group.altTitle.replaceAll(/${matchEndOfLineVersion}/, '')
+        tempBaseGeneratedAnimeNames += seriesNameGenerator(generatedAnimeName as String, mySeasonalityNumber, hasRomanSeries)
       }
-    } else {
-      generatedAnimeName = baseAnimeName + ' ' + mySeasonalityNumber // anime I/II/III/IV/V
-      println "----- Adding Series Anime Name to Anime Name List - ${generatedAnimeName}"
-      tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
-      switch (mySeasonalityNumber) {
-        case ~/i/:
-          mySeasonalityNumber = 1
-          break
-        case ~/ii/:
-          mySeasonalityNumber = 2
-          break
-        case ~/iii/:
-          mySeasonalityNumber = 3
-          break
-        case ~/iv/:
-          mySeasonalityNumber = 4
-          break
-        case ~/v/:
-          mySeasonalityNumber = 5
-          break
-        case ~/vi/:
-          mySeasonalityNumber = 6
-          break
-        case ~/vii/:
-          mySeasonalityNumber = 7
-          break
-        case ~/viii/:
-          mySeasonalityNumber = 8
-          break
-        case ~/ix/:
-          mySeasonalityNumber = 9
-          break
-        case ~/x/:
-          mySeasonalityNumber = 10
-          break
-        default:
-          mySeasonalityNumber = group.seriesNumber
-          break
-      }
-      println "----- Roman Series - mySeasonalityNumber is now: ${mySeasonalityNumber}"
     }
+    if ( baseAnimeName =~ /(?i)^the\s/ ) {
+      Logging.log.info "----- 'the' prefix detected':[${baseAnimeName}]"
+      tempBaseGeneratedAnimeNames += seriesNameGenerator(baseAnimeName.replaceFirst(/(?i)^the\s/, ''), mySeasonalityNumber, hasRomanSeries)
+      // Unfortunately there is at *least* one anime that officially ends with v3, so I can't just ignore the "version" and the end.
+      // - https://anidb.net/anime/5078
+      myRegexMatcher = baseAnimeName =~ /${matchEndOfLineVersion}/
+      if ( myRegexMatcher.find() ) {
+        Logging.log.info "----- TEMP: End of Line Version - Adding to base Name List"
+        generatedAnimeName = baseAnimeName.replaceAll(/${matchEndOfLineVersion}/, '')
+        tempBaseGeneratedAnimeNames += seriesNameGenerator(generatedAnimeName as String, mySeasonalityNumber, hasRomanSeries)
+
+      }
+    }
+    // baseAnimeName = "${jwdStringBlender(group.anime)}" // Always add the group.anime name
+    // Logging.log.info "----- Adding Base Anime Name to base Name List - ${baseAnimeName}  - Season 1/0"
+    // tempBaseGeneratedAnimeNames += ["${baseAnimeName}"]
+//    if ( mySeasonalityNumber > 1 ) {
+//      // ---------- Add Series Name Varients as options ---------- //
+//      generatedAnimeName = baseAnimeName + ' ' + getOrdinalNumber(mySeasonalityNumber) // anime 2nd
+//      Logging.log.info "----- Adding Ordinal Seasonality Anime Name to Anime Name List - ${generatedAnimeName}"
+//      tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
+//      if ( mySeasonalityNumber < 10 ) {
+//        generatedAnimeName = baseAnimeName + ' ' + getRomanOrdinal(mySeasonalityNumber) // anime II
+//        Logging.log.info "----- Adding Seasonality Anime Name to Anime Name List - ${generatedAnimeName}"
+//        tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
+//      }
+//      generatedAnimeName = baseAnimeName + ' ' + mySeasonalityNumber // anime 2
+//      Logging.log.info "----- Adding Series # Anime Name to Anime Name List - ${generatedAnimeName}"
+//      tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
+//    } else if ( hasRomanSeries )  {
+//      generatedAnimeName = baseAnimeName + ' ' + group.seriesNumber // anime I/II/III/IV/V
+//      Logging.log.info "----- Adding Series Anime Name to Anime Name List - ${generatedAnimeName}"
+//      tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
+//    }
+//    if ( !hasRomanSeries ) {
+//      if ( mySeasonalityNumber > 1 ) {
+//        // ---------- Add Series Name Varients as options ---------- //
+//        generatedAnimeName = baseAnimeName + ' ' + getOrdinalNumber(mySeasonalityNumber) // anime 2nd
+//        Logging.log.info "----- Adding Ordinal Seasonality Anime Name to Anime Name List - ${generatedAnimeName}"
+//        tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
+//        if ( mySeasonalityNumber < 10 ) {
+//          generatedAnimeName = baseAnimeName + ' ' + getRomanOrdinal(mySeasonalityNumber) // anime II
+//          Logging.log.info "----- Adding Seasonality Anime Name to Anime Name List - ${generatedAnimeName}"
+//          tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
+//        }
+//        generatedAnimeName = baseAnimeName + ' ' + mySeasonalityNumber // anime 2
+//        Logging.log.info "----- Adding Series # Anime Name to Anime Name List - ${generatedAnimeName}"
+//        tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
+//      }
+//    } else {
+//      generatedAnimeName = baseAnimeName + ' ' + mySeasonalityNumber // anime I/II/III/IV/V
+//      Logging.log.info "----- Adding Series Anime Name to Anime Name List - ${generatedAnimeName}"
+//      tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
+//      switch (mySeasonalityNumber) {
+//        case ~/i/:
+//          mySeasonalityNumber = 1
+//          break
+//        case ~/ii/:
+//          mySeasonalityNumber = 2
+//          break
+//        case ~/iii/:
+//          mySeasonalityNumber = 3
+//          break
+//        case ~/iv/:
+//          mySeasonalityNumber = 4
+//          break
+//        case ~/v/:
+//          mySeasonalityNumber = 5
+//          break
+//        case ~/vi/:
+//          mySeasonalityNumber = 6
+//          break
+//        case ~/vii/:
+//          mySeasonalityNumber = 7
+//          break
+//        case ~/viii/:
+//          mySeasonalityNumber = 8
+//          break
+//        case ~/ix/:
+//          mySeasonalityNumber = 9
+//          break
+//        case ~/x/:
+//          mySeasonalityNumber = 10
+//          break
+//        default:
+//          mySeasonalityNumber = group.seriesNumber
+//          break
+//      }
+//      Logging.log.info "----- Roman Series - mySeasonalityNumber is now: ${mySeasonalityNumber}"
+//    }
   }
-  if ( group.altTitle != null ) {
-    println "----- Alternative Title Detected:[${group.altTitle}]"
-    println "----- Adding Alternative Title to Anime Name List - ${group.altTitle}"
-    tempBaseGeneratedAnimeNames += ["${group.altTitle}"]
-  }
+//  if ( group.altTitle != null ) {
+//    Logging.log.info "----- Alternative Title Detected:[${group.altTitle}]"
+//    Logging.log.info "----- Adding Alternative Title to Anime Name List - ${group.altTitle}"
+//    tempBaseGeneratedAnimeNames += ["${group.altTitle}"]
+//  }
   tempBaseGeneratedAnimeNames.each { tempname ->
-    println "----- BASE: Adding [${tempname}]"
+    Logging.log.info "----- BASE: Adding [${tempname}]"
     baseGeneratedAnimeNames += tempname
     baseGeneratedAnimeNames += ["${returnAniDBRomanization(tempname)}"]
   }
   // baseGeneratedAnimeNames = baseAnimeNameGenerator()
-  //  log.finest "${groupInfoGenerator(group)}"
-  println '// END---------- Basename Generation ---------- //'
+  Logging.log.finest "${groupInfoGenerator(group)}"
+  Logging.log.info '// END---------- Basename Generation ---------- //'
   return [[group], baseGeneratedAnimeNames ]
 }
 
@@ -357,9 +548,11 @@ ArrayList basenameGenerator ( LinkedHashMap group, Boolean useBaseAnimeNameWithS
  * @param group The LinkedHashMap for this group of files
  * @return  String containing the group values that are set (not null)
  */
+@SuppressWarnings('GrMethodMayBeStatic')
 String groupInfoGenerator ( def group ) {
   def groupInfo = "Group: $group.anime, order: $group.order"
   if ( group.altTitle != null ) { groupInfo = groupInfo + ", altTitle: $group.altTitle" }
+  if ( group.animeDetectedName != null ) { groupInfo = groupInfo + ", animeDetectedName: $group.animeDetectedName" }
   if ( group.filebotMovieTitle != null ) { groupInfo = groupInfo + ", filebotMovieTitle: $group.filebotMovieTitle" }
   if ( group.order == 'airdate') { groupInfo = groupInfo + ", airdateSeasonNumber: $group.airdateSeasonNumber" }
   if ( group.isMovieType ) { groupInfo = groupInfo + ", mov: $group.isMovieType" }
@@ -385,6 +578,7 @@ String groupInfoGenerator ( def group ) {
  * @param hasAnimeListMapping Does it have an AnimeList mapping entry?
  * @return renameMapper String [ mapper1, mapper2 ]
  */
+@SuppressWarnings('GrMethodMayBeStatic')
 String renameMapperGenerator( String order, String db , Boolean dbHasAbsoluteNumbering, Boolean hasAnimeListMapping) {
   String renameMapper = ""
   switch (db){
@@ -435,136 +629,137 @@ LinkedHashMap filebotAnidbJWDSearch(HashSet animeSeriesNames, LinkedHashMap aniD
     // ---------------------------------- //
     // ---------- Search AniDB ---------- //
     // ---------------------------------- //
-    // println "...AniDB"
+    Logging.log.finest "...AniDB"
     animeANIDBSearchFound = false
     myQueryAniDB = series
-    myOptionsAniDB = AniDB.search(myQueryAniDB, locale) as HashSet
-//    println "myOptionsAniDB Class : ${myOptionsAniDB.getClass()}"
+    myOptionsAniDB = WebServices.AniDB.search(myQueryAniDB, locale) as HashSet
+    Logging.log.finest "myOptionsAniDB Class : ${myOptionsAniDB.getClass()}"
     if (myOptionsAniDB.isEmpty()) {
-//       log.finest "TV Series not found in AniDB by FileBot: $myQueryAniDB"
+      Logging.log.finest "TV Series not found in AniDB by FileBot: $myQueryAniDB"
       // --- We are searching AniDB XML Titles because occationally filebot will not find something, but the Title search will.
       // --- And while it's slow as hell, I'm not going to do this all the time ..
-//      myOptionsAniDB += anidbXMLTitleSearch(aniDBTitleXML, ["${myQueryAniDB}"] as Set, locale, false, false, false, 3)
-//      myOptionsAniDB += anidbXMLTitleSearch(aniDBSynonymXML, ["${myQueryAniDB}"] as Set, locale, false, false, false, 3)
       myOptionsAniDB += anidbHashTitleSearch(aniDBCompleteXMLList, ["${myQueryAniDB}"] as Set, locale, false, false, false, 3)
       if (myOptionsAniDB.isEmpty()) {
-//         log.finest "TV Series not found in AniDB by AniDB XML Title Search: $myQueryAniDB"
+        Logging.log.finest "TV Series not found in AniDB by AniDB XML Title Search: $myQueryAniDB"
       } else {
-//         log.fine "Our Query Returned from AniDB: ${myOptionsAniDB}"
+        Logging.log.finest "Our Query Returned from AniDB: ${myOptionsAniDB}"
         animeANIDBSearchFound = true
       }
     } else {
       // TODO
       // Filebot returns ' while AniDB returns `, so sometimes *effective* duplicates will occur in myOptionsAniDB
       // which waste processing time.
-//       log.fine "Our Query Returned from AniDB: ${myOptionsAniDB}"
+      Logging.log.finest "Our Query Returned from AniDB: ${myOptionsAniDB}"
       animeANIDBSearchFound = true
-//       println "Filebot Returned ${myOptionsAniDB.size()} Titles:${myOptionsAniDB} :::FOR::: ${myQueryAniDB}"
+      Logging.log.finest "Filebot Returned ${myOptionsAniDB.size()} Titles:${myOptionsAniDB} :::FOR::: ${myQueryAniDB}"
       // --- Return AID as there are a few edge cases where there are in fact multiple titles with the EXACT same words, but
       // --- one might be the Official title, while the Other the Main Title, or set as different languages etc.
       // --- So returning only the title will mean we *might* not get the actual AID from the query, so return the AID
       // --- This also means we don't have to lookup the AID in the next stage as well :)
-//      myOptionsAniDB += anidbXMLTitleSearch(aniDBTitleXML, ["${myQueryAniDB}"] as Set, locale, true, false, false, 3)
-//      myOptionsAniDB += anidbXMLTitleSearch(aniDBSynonymXML, ["${myQueryAniDB}"] as Set, locale, true, false, false, 3)
       myOptionsAniDB += anidbHashTitleSearch(aniDBCompleteXMLList, ["${myQueryAniDB}"] as Set, locale, true, false, false, 3)
-//       println "After XMLTitleSearch ${myOptionsAniDB.size()} Titles:${myOptionsAniDB} :::FOR::: ${myQueryAniDB}"
+      Logging.log.finest "After XMLTitleSearch ${myOptionsAniDB.size()} Titles:${myOptionsAniDB} :::FOR::: ${myQueryAniDB}"
     }
     if ( animeANIDBSearchFound ) {
       animeFoundInAniDB = true
       // ---------- Parse Series Results ---------- //
       myOptionsAniDB.each { results ->
-//         log.fine "Comparing Search Result - ${results}"
+        Logging.log.finer "Comparing Search Result - ${results}"
         // ---------- START - Compile Aliases for Current Result ---------- //
         try {
-          // println "Get Series Information for Aliases"
+          // Logging.log.info "Get Series Information for Aliases"
           // Between some wierdness with the Aliases returned and wanting to reduce the API call's to AniDB
           // Switch to getting the Series info from AniDB Title XML
           // Filebot doesn't return aliases for AniDB when using query by ID
           if ( useFilebotAniDBAliases ) {
-            myTVDBseriesInfo = AniDB.getSeriesInfo(results, locale)
+            try {
+              myTVDBseriesInfo = WebServices.AniDB.getSeriesInfo(results as SearchResult, locale)
+            } catch (e) {
+              Logging.log.severe "filebotAnidbJWDSearch() - getSeriesInfo() - Caught error:[${e}]"
+              myTVDBseriesInfo = []
+            }
           }
-          // myTVDBseriesInfo = AniDB.getSeriesInfo(results, locale)
+          if ( useFilebotAniDBAliases && myTVDBseriesInfo != [] ) {
+            myTBDBSeriesInfoAliasNames = myTVDBseriesInfo.aliasNames // Unfortunately this does NOT always include Synonyms! (but sometimes it does)
+          } else {
+            // For some reason beyond my comprehension, Filebot includes aliases for multiple seasons of My Teen Romantic Comedy: SNAFU aka Yahari Ore no Seishun LoveCome wa Machigatte Iru.
+            // So just zero them out and let the XML take over..
+            myTBDBSeriesInfoAliasNames = []
+          }
           // Literal Match will not work as Filebot Search returns are *slightly* different (encoding differences?) aka filebot uses ', while AniDB XML is `
           // So we need to change it to suit (hopefully it will not end up being a ongoing and expanding issue"
           if ( results.toString().isInteger() ) {
             gotAniDBID = results as Integer
-//            println "Got AID: ${gotAniDBID}"
+            Logging.log.finest "Got AID: ${gotAniDBID}"
           } else {
-            // gotAniDBID = anidbXMLTitleSearch(aniDBTitleXML, ["${results.toString().replaceAll(/'/, '`')}"] as Set, locale, true, false, true, 3)[0] // It returns a linkedHashSet
+            //noinspection GroovyAssignabilityCheck
             gotAniDBID = anidbHashTitleSearch(aniDBCompleteXMLList, ["${results.toString().replaceAll(/'/, '`')}"] as Set, locale, true, false, true, 3)[0] // It returns a linkedHashSet
             if ( gotAniDBID <= 0 ) {
-//              gotAniDBID = anidbXMLTitleSearch(aniDBSynonymXML, ["${results.toString().replaceAll(/'/, '`')}"] as Set, locale, true, false, true, 3)[0] // It returns a linkedHashSet
+              //noinspection GroovyAssignabilityCheck
               gotAniDBID = anidbHashTitleSearch(aniDBCompleteXMLList, ["${results.toString().replaceAll(/'/, '`')}"] as Set, locale, true, false, true, 3)[0] // It returns a linkedHashSet
-//              println "Searching Synonyms.xml returned: ${gotAniDBID}"
+              Logging.log.finest "Searching Synonyms.xml returned: ${gotAniDBID}"
             }
-//            println "Got AID: ${gotAniDBID} for ${results}"
+            Logging.log.finest "Got AID: ${gotAniDBID} for ${results}"
           }
-          // println "myTVDBseriesInfo properties for ${results}: ${myTVDBseriesInfo.properties}" // No info on # of Episodes
+          // Logging.log.info "myTVDBseriesInfo properties for ${results}: ${myTVDBseriesInfo.properties}" // No info on # of Episodes
           // myTVDBseriesInfo properties for Sword Art Online II: [runtime:null, startDate:2014-07-05, genres:[], certification:null, rating:5.26, id:10376, name:Sword Art Online II, network:null,
           // ratingCount:null, type:Anime, class:class net.filebot.web.SeriesInfo, spokenLanguages:[], order:Absolute, status:null, language:en,
           // aliasNames:[????????????II, ???????????II, Gun Art Online, Sword Art Online 2, Sword Art Online II: Calibur, Sword Art Online II: Mother's Rosario, Sword Art Online II: Phantom Bullet, GGO, SAO 2, SAO2, SAOII], database:AniDB]
-          // println "${myTVDBseriesInfo.properties}"
+          // Logging.log.info "${myTVDBseriesInfo.properties}"
           // I am not sure exactly why, but the alias info returned on AniDB series FREQUENTLY does not match what's in the anime-titles.xml
           // Sometimes WILDLY AND INCORRECTLY so (as in aliases for different series)
           // myTBDBSeriesInfoAliasNames = myTVDBseriesInfo.aliasNames // Unfortunately this does NOT always include Synonyms! (but sometimes it does)
-          // println "myTBDBSeriesInfoAliasNames: ${myTBDBSeriesInfoAliasNames}"
-          // println "myTVDBseriesInfo properties for ${results}: ${myTVDBseriesInfo.properties}"
-//           println "myTVDBseriesInfo Class : ${myTVDBseriesInfo.getClass()}"
-//          println "myTBDBSeriesInfoAliasNames Class : ${myTBDBSeriesInfoAliasNames.getClass()}"
+          // Logging.log.info "myTBDBSeriesInfoAliasNames: ${myTBDBSeriesInfoAliasNames}"
+          // Logging.log.info "myTVDBseriesInfo properties for ${results}: ${myTVDBseriesInfo.properties}"
+//           Logging.log.info "myTVDBseriesInfo Class : ${myTVDBseriesInfo.getClass()}"
+//          Logging.log.info "myTBDBSeriesInfoAliasNames Class : ${myTBDBSeriesInfoAliasNames.getClass()}"
           // gotAniDBID = myTVDBseriesInfo.id
           // teir1JWDResults += [[db:'AniDB', dbid:myTVDBseriesInfo.id, primarytitle: myTVDBseriesInfo.name, animename: series, matchname: results, score: jwdcompare]]
-        } catch (Exception ex) {
+        } catch (e) {
+          Logging.log.severe "filebotAnidbJWDSearch() - Caught error:[${e}]"
           myTVDBseriesInfo = []
           myTBDBSeriesInfoAliasNames = []
           gotAniDBID = 0
         }
-        // log.fine "Our AniDB Aliases: ${myTBDBSeriesInfoAliasNames} for ${results}"
-        // log.fine "// -------------------- //"
-        if ( useFilebotAniDBAliases ) {
-          myTBDBSeriesInfoAliasNames = myTVDBseriesInfo.aliasNames // Unfortunately this does NOT always include Synonyms! (but sometimes it does)
-        } else {
-          // For some reason beyond my comprehension, Filebot includes aliases for multiple seasons of My Teen Romantic Comedy: SNAFU aka Yahari Ore no Seishun LoveCome wa Machigatte Iru.
-          // So just zero them out and let the XML take over..
-          myTBDBSeriesInfoAliasNames = []
-        }
-//        println "myTBDBSeriesInfoAliasNames Class : ${myTBDBSeriesInfoAliasNames.getClass()}" // java.util.ArrayList
+        Logging.log.finest "// -------------------- //"
+        Logging.log.finest "Our AniDB Aliases: ${myTBDBSeriesInfoAliasNames} for ${results}"
+        Logging.log.finest "myTBDBSeriesInfoAliasNames Class : ${myTBDBSeriesInfoAliasNames.getClass()}" // java.util.ArrayList
         if ( gotAniDBID > 0 ) {
           def anidbAnimeEntrySearchResult = anidbXMLGetAnimeEntry(aniDBTitleXML, gotAniDBID)
-//          println "anidbAnimeEntrySearchResult Class : ${anidbAnimeEntrySearchResult.getClass()}" // groovy.util.Node
+          Logging.log.finest "anidbAnimeEntrySearchResult Class : ${anidbAnimeEntrySearchResult.getClass()}" // groovy.util.Node
           def anidbAnimeEntryTitle = anidbXMLEntryGetAnimePrimaryTitle(anidbAnimeEntrySearchResult)
-//          println "anidbAnimeEntryTitle Class : ${anidbAnimeEntryTitle.getClass()}" // groovy.util.Node
-          // println "---> anidbAnimeEntryTitle: ${anidbAnimeEntryTitle.text()}"
+          Logging.log.finest "anidbAnimeEntryTitle Class : ${anidbAnimeEntryTitle.getClass()}" // groovy.util.Node
+          Logging.log.finest "---> anidbAnimeEntryTitle: ${anidbAnimeEntryTitle.text()}"
           myTVDBseriesInfo = [ 'id': gotAniDBID, 'name': anidbAnimeEntryTitle.text()]
-//          println "myTVDBseriesInfo Class : ${myTVDBseriesInfo.getClass()}" // java.util.LinkedHashMap
+          Logging.log.finest "myTVDBseriesInfo Class : ${myTVDBseriesInfo.getClass()}" // java.util.LinkedHashMap
           myAniDBOMTitles = anidbXMLEntryGetAnimeOMTitles(anidbAnimeEntrySearchResult)
-//          println "myAniDBOMTitles Class : ${myAniDBOMTitles.getClass()}" // class java.util.ArrayList
-          // println "-----> myAniDBOMTitles: ${myAniDBOMTitles}"
+          Logging.log.finest "myAniDBOMTitles Class : ${myAniDBOMTitles.getClass()}" // class java.util.ArrayList
+          Logging.log.finest "-----> myAniDBOMTitles: ${myAniDBOMTitles}"
           List anidbAnimeEntrySynonyms = anidbXMLEntryGetAnimeSynonyms(anidbAnimeEntrySearchResult)
-          // println "-----> anidbAnimeEntrySynonyms: ${anidbAnimeEntrySynonyms}"
+          Logging.log.finest "-----> anidbAnimeEntrySynonyms: ${anidbAnimeEntrySynonyms}"
           List anidbAnimeEntryShorts = anidbXMLEntryGetAnimeShorts(anidbAnimeEntrySearchResult)
-          // println "-----> anidbAnimeEntryShorts: ${anidbAnimeEntryShorts}"
-          // println "XML Alias/Shorts: ${anidbAnimeEntryShorts.size() + anidbAnimeEntrySynonyms.size()}"
-          // println "myTBDBSeriesInfoAliasNames: ${myTBDBSeriesInfoAliasNames.size()}"
+          Logging.log.finest "-----> anidbAnimeEntryShorts: ${anidbAnimeEntryShorts}"
+          Logging.log.finest "XML Alias/Shorts: ${anidbAnimeEntryShorts.size() + anidbAnimeEntrySynonyms.size()}"
+          Logging.log.finest "myTBDBSeriesInfoAliasNames: ${myTBDBSeriesInfoAliasNames.size()}"
           myTBDBSeriesInfoAliasNames += anidbAnimeEntrySynonyms
           myTBDBSeriesInfoAliasNames += anidbAnimeEntryShorts
-          // log.fine "After XML we have AniDB Aliases: ${myTBDBSeriesInfoAliasNames} for ${results}"
-          // log.fine "// -------------------- //"
+          Logging.log.finest "After XML we have AniDB Aliases: ${myTBDBSeriesInfoAliasNames} for ${results}"
+          Logging.log.finest "// -------------------- //"
           // Additional Synonyms
           def anidbAnimeEntrySearchResultSynonyms = anidbXMLGetAnimeEntry(aniDBSynonymXML, gotAniDBID)
-          // println "-----> anidbAnimeEntrySearchResultSynonyms: ${anidbAnimeEntrySearchResultSynonyms}"
+          Logging.log.finest "-----> anidbAnimeEntrySearchResultSynonyms: ${anidbAnimeEntrySearchResultSynonyms}"
           if ( anidbAnimeEntrySearchResultSynonyms != null) {
             // def anidbAnimeEntryTitleSynonyms = anidbXMLEntryGetAnimePrimaryTitle(anidbAnimeEntrySearchResultSynonyms)
-            // println "-----> anidbAnimeEntryTitleSynonyms: ${anidbAnimeEntryTitleSynonyms}"
+//            Logging.log.finest "-----> anidbAnimeEntryTitleSynonyms: ${anidbAnimeEntryTitleSynonyms}"
             anidbAnimeEntrySynonyms = anidbXMLEntryGetAnimeSynonyms(anidbAnimeEntrySearchResultSynonyms)
-            // println "-----> anidbAnimeEntrySynonyms: ${anidbAnimeEntrySynonyms}"
+            Logging.log.finest "-----> anidbAnimeEntrySynonyms: ${anidbAnimeEntrySynonyms}"
             myTBDBSeriesInfoAliasNames += anidbAnimeEntrySynonyms
           }
         }
         // ---------- END - Compile Aliases for Current Result ---------- //
         myAniDBOMTitles.each { myTitle ->
-//           println "Running JWDComparision of BOM Title - ${myTitle} to ${series}"
+          Logging.log.finest "Running JWDComparision of BOM Title - ${myTitle} to ${series}"
           jwdcompare = jaroWinklerDistance.apply(altjwdStringBlender(myTitle.toString()), altjwdStringBlender(series.toString()))
-//           log.finest "jaroWinklerDistance of ${jwdStringBlender(results.toString())} TO ${jwdStringBlender(series.toString())}: ${jwdcompare}"
+          Logging.log.finest "jaroWinklerDistance of ${jwdStringBlender(results.toString())} TO ${jwdStringBlender(series.toString())}: ${jwdcompare}"
           if ( jwdResults[(myTVDBseriesInfo.id)] == null ) {
             // Get/Set AnimeType from AnimeOfflineDatabase
             returnThing = setAnimeTypeFromAID(animeOffLineDatabaseJsonObject, myTVDBseriesInfo.id, null, false, false)
@@ -572,10 +767,10 @@ LinkedHashMap filebotAnidbJWDSearch(HashSet animeSeriesNames, LinkedHashMap aniD
             specialType = returnThing.specialType
             isMovieType = returnThing.isMovieType
             hasAnimeListEntry = filebotAnimeListReturnFromAID(myTVDBseriesInfo.id,) != null
-            // println "Adding to jwdResults because it is null for AID: ${myTVDBseriesInfo.id} - ${jwdResults[(myTVDBseriesInfo.id)]} - ${jwdResults[myTVDBseriesInfo.id]} - ${jwdResults["${myTVDBseriesInfo.id}"]}"
+            Logging.log.finest "Adding to jwdResults because it is null for AID: ${myTVDBseriesInfo.id} - ${jwdResults[(myTVDBseriesInfo.id)]} - ${jwdResults[myTVDBseriesInfo.id]} - ${jwdResults["${myTVDBseriesInfo.id}"]}"
             jwdResults += [(myTVDBseriesInfo.id):[score: jwdcompare, db:'AniDB', dbid:myTVDBseriesInfo.id, primarytitle: myTVDBseriesInfo.name, animename: series, matchname: myTitle, alias: false, isSpecialType: isSpecialType, isMovieType: isMovieType, specialType: specialType, hasAnimeListEntry: hasAnimeListEntry]]
           } else if ( jwdcompare > jwdResults[(myTVDBseriesInfo.id)].score ) {
-            // println "higher"
+            Logging.log.finest "higher"
             returnThing = setAnimeTypeFromAID(animeOffLineDatabaseJsonObject, myTVDBseriesInfo.id, null, false, false)
             isSpecialType = returnThing.isSpecialType
             specialType = returnThing.specialType
@@ -583,31 +778,31 @@ LinkedHashMap filebotAnidbJWDSearch(HashSet animeSeriesNames, LinkedHashMap aniD
             hasAnimeListEntry = filebotAnimeListReturnFromAID(myTVDBseriesInfo.id,) != null
             jwdResults += [(myTVDBseriesInfo.id):[score: jwdcompare, db:'AniDB', dbid:myTVDBseriesInfo.id, primarytitle: myTVDBseriesInfo.name, animename: series, matchname: myTitle, alias: false, isSpecialType: isSpecialType, isMovieType: isMovieType, specialType: specialType, hasAnimeListEntry: hasAnimeListEntry]]
           } else {
-            // println "lower"
+            Logging.log.finest "lower"
           }
         }
         myTBDBSeriesInfoAliasNames.each { aliases ->
           // myRegexMatcher = aliases =~ /\?\?\?\?/ // This doesn't work, The string just doesn't display correctly .. ^[ -~]*$
           myRegexMatcher = aliases =~ /^[ -~]*$/
           if ( myRegexMatcher.find() ) {
-            // println "AniDB Aliases: English Name: ${aliases}"
+            Logging.log.finest "AniDB Aliases: English Name: ${aliases}"
           } else {
-            // println "AniDB Aliases: Not So English Name: ${aliases}"
+            Logging.log.finest "AniDB Aliases: Not So English Name: ${aliases}"
             return
           }
-//           log.finest "Running JWDCompare of  Alias - ${aliases} to ${series}"
+          Logging.log.finest "Running JWDCompare of  Alias - ${aliases} to ${series}"
           jwdcompare2 = jaroWinklerDistance.apply(altjwdStringBlender(aliases.toString()), altjwdStringBlender(series.toString()))
-//           println "altjwdcompare2 of ${altjwdStringBlender(aliases.toString())} and ${altjwdStringBlender(series.toString())}"
+          Logging.log.finest "altjwdcompare2 of ${altjwdStringBlender(aliases.toString())} and ${altjwdStringBlender(series.toString())}"
           if ( jwdResults[(myTVDBseriesInfo.id)] == null ) {
             returnThing = setAnimeTypeFromAID(animeOffLineDatabaseJsonObject, myTVDBseriesInfo.id, null, false, false)
             isSpecialType = returnThing.isSpecialType
             specialType = returnThing.specialType
             isMovieType = returnThing.isMovieType
             hasAnimeListEntry = filebotAnimeListReturnFromAID(myTVDBseriesInfo.id,) != null
-            // println "Adding to jwdResults because it is null for AID: ${myTVDBseriesInfo.id} - ${jwdResults[(myTVDBseriesInfo.id)]} - ${jwdResults[myTVDBseriesInfo.id]} - ${jwdResults["${myTVDBseriesInfo.id}"]}"
+            Logging.log.finest"Adding to jwdResults because it is null for AID: ${myTVDBseriesInfo.id} - ${jwdResults[(myTVDBseriesInfo.id)]} - ${jwdResults[myTVDBseriesInfo.id]} - ${jwdResults["${myTVDBseriesInfo.id}"]}"
             jwdResults += [(myTVDBseriesInfo.id):[score: jwdcompare2, db:'AniDB', dbid:myTVDBseriesInfo.id, primarytitle: myTVDBseriesInfo.name, animename: series, matchname: aliases, alias: true, isSpecialType: isSpecialType, isMovieType: isMovieType, specialType: specialType, hasAnimeListEntry: hasAnimeListEntry]]
           } else if ( jwdcompare2 > jwdResults[(myTVDBseriesInfo.id)].score ) {
-            // println "higher"
+            Logging.log.finest"higher"
             returnThing = setAnimeTypeFromAID(animeOffLineDatabaseJsonObject, myTVDBseriesInfo.id, null, false, false)
             isSpecialType = returnThing.isSpecialType
             specialType = returnThing.specialType
@@ -615,7 +810,7 @@ LinkedHashMap filebotAnidbJWDSearch(HashSet animeSeriesNames, LinkedHashMap aniD
             hasAnimeListEntry = filebotAnimeListReturnFromAID(myTVDBseriesInfo.id,) != null
             jwdResults += [(myTVDBseriesInfo.id):[score: jwdcompare2, db:'AniDB', dbid:myTVDBseriesInfo.id, primarytitle: myTVDBseriesInfo.name, animename: series, matchname: aliases, alias: true, isSpecialType: isSpecialType, isMovieType: isMovieType, specialType: specialType, hasAnimeListEntry: hasAnimeListEntry]]
           } else {
-            // println "lower"
+            Logging.log.finest "lower"
           }
         }
         // ---------- END Parse Aliases for Current Result ---------- //
@@ -637,7 +832,7 @@ LinkedHashMap filebotAnidbJWDSearch(HashSet animeSeriesNames, LinkedHashMap aniD
  * @param locale The Locale (aka Locale.English)
  * @return LinkedHashMap of [jwdresults: jwdResults, animeFoundInTVDB:animeFoundInTVDB]
  */
-@SuppressWarnings('GrReassignedInClosureLocalVar')
+@SuppressWarnings(['GrReassignedInClosureLocalVar', 'unused'])
 LinkedHashMap filebotTVDBJWDSearch(HashSet animeSeriesNames, LinkedHashMap tvDBJWDResults, Boolean animeFoundInTVDB, Locale locale) {
   LinkedHashMap jwdResults = tvDBJWDResults
   Boolean animeTVDBSearchFound = false
@@ -650,17 +845,17 @@ LinkedHashMap filebotTVDBJWDSearch(HashSet animeSeriesNames, LinkedHashMap tvDBJ
   JaroWinklerDistance jaroWinklerDistance = new JaroWinklerDistance()
   animeSeriesNames.each { series ->
     animeTVDBSearchFound = false
-    // println "Looking for Best Match for ${series}"
+    Logging.log.finest "Looking for Best Match for ${series}"
     // ---------- Start with TheTVDB ---------- //
-    // println "...TheTVDB"
+    Logging.log.finest "...TheTVDB"
     myQueryTVDB = series
-//    println "myQueryTVDB.getclass:[${myQueryTVDB.getClass()}]" // java.lang.String
-    myOptionsTVDB = TheTVDB.search(myQueryTVDB, locale)
-//    println "myOptionsTVDB.getclass:[${myOptionsTVDB.getClass()}]" // java.util.ArrayList
+    Logging.log.finest "myQueryTVDB.getclass:[${myQueryTVDB.getClass()}]" // java.lang.String
+    myOptionsTVDB = WebServices.TheTVDB.search(myQueryTVDB, locale)
+    Logging.log.finest "myOptionsTVDB.getclass:[${myOptionsTVDB.getClass()}]" // java.util.ArrayList
     if (myOptionsTVDB.isEmpty()) {
-      // log.warning "TV Series not found in TheTVDB: $myQueryTVDB"
+      Logging.log.warning "TV Series not found in TheTVDB: $myQueryTVDB"
     } else {
-      // println "Our Query Returned from TheTVDB: ${myOptionsTVDB}"
+      Logging.log.finest "Our Query Returned from TheTVDB: ${myOptionsTVDB}"
       animeTVDBSearchFound = true
     }
     if ( animeTVDBSearchFound ) {
@@ -668,66 +863,69 @@ LinkedHashMap filebotTVDBJWDSearch(HashSet animeSeriesNames, LinkedHashMap tvDBJ
       //    --- Because it seems that TheTVDB can sometimes have "invalid" series return in the list from TheTVDB.Search, that you can't determine until you try a TheTVDB.getSeriesInfo on them
       //    --- We need to run the getSeriesInfo right away before any jaroWinklerDistance comparisions, so we can skip the Series if it's "invalid"
       myOptionsTVDB.each { results ->
-        // println "Comparing Search Result - ${results}"
+        Logging.log.finer "Get Series Information - ${results}"
         // Need to replicate this kind of try/catch/check value for all TheTVDB/AniDB lookups
         try {
-          // println "Get Series Information - ${results}"
-          myTVDBseriesInfo = TheTVDB.getSeriesInfo(results, locale)
-          myTBDBSeriesInfoAliasNames = myTVDBseriesInfo.aliasNames
-          // println "myTVDBseriesInfo properties for ${results}: ${myTVDBseriesInfo.properties}" // No info on # of episodes
+          myTVDBseriesInfo = WebServices.TheTVDB.getSeriesInfo(results as SearchResult, locale)
+          // Logging.log.info "myTVDBseriesInfo properties for ${results}: ${myTVDBseriesInfo.properties}" // No info on # of episodes
           // myTVDBseriesInfo properties for Sword Art Online: [runtime:25, startDate:2012-07-07, genres:[Action, Adventure, Animation, Anime, Fantasy, Romance, Science Fiction],
           // overview:In the near future, a Virtual Reality Massive Multiplayer Online Role-Playing Game (VRMMORPG) called Sword Art Online has been released where players control their avatars with their bodies using a piece of technology called Nerve Gear. One day, players discover they cannot log out, as the game creator is holding them captive unless they reach the 100th floor of the game's tower and defeat the final boss. However, if they die in the game, they die in real life. Their struggle for survival starts now...,
           // certification:TV-14, rating:7.9, id:259640, slug:sword-art-online, lastUpdated:1599661699, name:Sword Art Online, network:Tokyo MX, ratingCount:18128,
           // imdbId:tt2250192, type:TV Series, class:class net.filebot.web.TheTVDBSeriesInfo, spokenLanguages:[], status:Continuing,
           // order:null, language:en, airsTime:12:00 AM, aliasNames:[Sword Art Online II, S?do ?to Onrain, Sword Art Online Alicization, Sword Art Online Alicization: War of Underworld, SAO, S.A.O, Sword Art Online : Alicization, Sword Art Online : Alicization - War of Underground, Sword Art Online II , S.A.O 2, S.A.O 3, S.A.O 4, S.A.O II, S.A.O III, S.A.O IV, SAO 2, SAO 3, SAO 4, SAO II, SAO III, SAO IV, Sword Art Online 2, Sword Art Online 3, Sword Art Online 4, Sword Art Online III, Sword Art Online IV, ????, Sword Art Online (2012), ?????? ???? ???-????, ?????? ???? ???????, ????????????, ???????????, ?? ?? ???, ??????? ???? ??????, ????],
           // season:4, airsDayOfWeek:Sunday, database:TheTVDB]
-          // println "myTVDBseriesInfo Class : ${myTVDBseriesInfo.getClass()}"
-//          println "myTBDBSeriesInfoAliasNames.getclass:[${myTBDBSeriesInfoAliasNames.getClass()}]" // java.util.ArrayList
-        } catch (Exception ex) {
+          // Logging.log.info "myTVDBseriesInfo Class : ${myTVDBseriesInfo.getClass()}"
+//          Logging.log.info "myTBDBSeriesInfoAliasNames.getclass:[${myTBDBSeriesInfoAliasNames.getClass()}]" // java.util.ArrayList
+        } catch (e) {
+          Logging.log.severe "filebotTVDBJWDSearch() = WebServices.TheTVDB.getSeriesInfo - Caught error:[${e}]"
+          Logging.log.severe "results:[${results}]"
           myTVDBseriesInfo = []
           myTBDBSeriesInfoAliasNames = []
         }
+        //noinspection GrEqualsBetweenInconvertibleTypes
         if (myTVDBseriesInfo == []) {
-          // log.warning "Can not get Series Info for ${results} in TheTVDB - []"
+          Logging.log.warning "Can not get Series Info for ${results} in TheTVDB - []"
           return // Skip to the next result
+        } else {
+          myTBDBSeriesInfoAliasNames = myTVDBseriesInfo.aliasNames
         }
         animeFoundInTVDB = true
         jwdcompare = jaroWinklerDistance.apply(altjwdStringBlender(results.toString()), altjwdStringBlender(series.toString()))
         if ( jwdResults[(myTVDBseriesInfo.id)] == null ) {
-          // println "Adding to jwdResults because it is null for AID: ${myTVDBseriesInfo.id} - ${jwdResults[(myTVDBseriesInfo.id)]} - ${jwdResults[myTVDBseriesInfo.id]} - ${jwdResults["${myTVDBseriesInfo.id}"]}"
+          Logging.log.finest "Adding to jwdResults because it is null for AID: ${myTVDBseriesInfo.id} - ${jwdResults[(myTVDBseriesInfo.id)]} - ${jwdResults[myTVDBseriesInfo.id]} - ${jwdResults["${myTVDBseriesInfo.id}"]}"
           hasAnimeListEntry = filebotAnimeListReturnFromTVDBID(myTVDBseriesInfo.id) != null
           jwdResults += [(myTVDBseriesInfo.id):[score: jwdcompare, db:'TheTVDB', dbid:myTVDBseriesInfo.id, primarytitle: myTVDBseriesInfo.name, animename: series, matchname: results, alias: false, hasAnimeListEntry: hasAnimeListEntry]]
         } else if ( jwdcompare > jwdResults[(myTVDBseriesInfo.id)].score ) {
-          // println "higher"
+          Logging.log.finest "higher"
           hasAnimeListEntry = filebotAnimeListReturnFromTVDBID(myTVDBseriesInfo.id) != null
           jwdResults += [(myTVDBseriesInfo.id):[score: jwdcompare, db:'TheTVDB', dbid:myTVDBseriesInfo.id, primarytitle: myTVDBseriesInfo.name, animename: series, matchname: results, alias: false, hasAnimeListEntry: hasAnimeListEntry]]
         } else {
-          // println "lower"
+          Logging.log.finest "lower"
         }
         // ---------- Parse Aliases for Current Result ---------- //
         myTBDBSeriesInfoAliasNames = myTVDBseriesInfo.aliasNames
-        // log.fine "Our TheTVDB Aliases: ${myTBDBSeriesInfoAliasNames} for ${results}"
+        Logging.log.finest "Our TheTVDB Aliases: ${myTBDBSeriesInfoAliasNames} for ${results}"
         myTBDBSeriesInfoAliasNames.each { aliases ->
           // myRegexMatcher = aliases =~ /\?\?\?\?/
           myRegexMatcher = aliases =~ /^[ -~]*$/
           if ( myRegexMatcher.find() ) {
-            // println "TheTVDB Aliases: English Name: ${aliases}"
+            Logging.log.finest "TheTVDB Aliases: English Name: ${aliases}"
           } else {
-            // println "TheTVDB Aliases: Not So English Name: ${aliases}"
+            Logging.log.finest "TheTVDB Aliases: Not So English Name: ${aliases}"
             return
           }
-          // log.finest "Comparing Alias - ${aliases}"
+          Logging.log.finest"Comparing Alias - ${aliases}"
           jwdcompare2 = jaroWinklerDistance.apply(altjwdStringBlender(aliases.toString()), altjwdStringBlender(series.toString()))
           if ( jwdResults[(myTVDBseriesInfo.id)] == null ) {
-            // println "Adding to jwdResults because it is null for AID: ${myTVDBseriesInfo.id} - ${jwdResults[(myTVDBseriesInfo.id)]} - ${jwdResults[myTVDBseriesInfo.id]} - ${jwdResults["${myTVDBseriesInfo.id}"]}"
+            Logging.log.finest "Adding to jwdResults because it is null for AID: ${myTVDBseriesInfo.id} - ${jwdResults[(myTVDBseriesInfo.id)]} - ${jwdResults[myTVDBseriesInfo.id]} - ${jwdResults["${myTVDBseriesInfo.id}"]}"
             hasAnimeListEntry = filebotAnimeListReturnFromTVDBID(myTVDBseriesInfo.id) != null
             jwdResults += [(myTVDBseriesInfo.id):[score: jwdcompare2, db:'TheTVDB', dbid:myTVDBseriesInfo.id, primarytitle: myTVDBseriesInfo.name, animename: series, matchname: aliases, alias: true, hasAnimeListEntry: hasAnimeListEntry]]
           } else if ( jwdcompare2 > jwdResults[(myTVDBseriesInfo.id)].score ) {
-            // println "higher"
+            Logging.log.finest "higher"
             hasAnimeListEntry = filebotAnimeListReturnFromTVDBID(myTVDBseriesInfo.id) != null
             jwdResults += [(myTVDBseriesInfo.id):[score: jwdcompare2, db:'TheTVDB', dbid:myTVDBseriesInfo.id, primarytitle: myTVDBseriesInfo.name, animename: series, matchname: aliases, alias: true, hasAnimeListEntry: hasAnimeListEntry]]
           } else {
-            // println "lower"
+            Logging.log.finest "lower"
           }
         }
         // ---------- END Parse Aliases for Current Result ---------- //
@@ -751,7 +949,7 @@ LinkedHashMap filebotTVDBJWDSearch(HashSet animeSeriesNames, LinkedHashMap tvDBJ
  * @param animeOffLineDatabaseJsonObject  Json Object of the Anime Offline Database
  * @return  LinkedHashMap of [firstANIDBWTMatchNumber: firstANIDBWTMatchNumber, firstAniDBWTMatchName:firstAniDBWTMatchName, anidbFirstMatchDetails: anidbFirstMatchDetails, secondANIDBWTMatchNumber: secondANIDBWTMatchNumber, secondAniDBWTMatchName:secondAniDBWTMatchName, anidbSecondMatchDetails: anidbSecondMatchDetails, thirdANIDBWTMatchNumber: thirdANIDBWTMatchNumber, thirdAniDBWTMatchName:thirdAniDBWTMatchName, anidbThirdMatchDetails:anidbThirdMatchDetails, fileBotANIDBJWDMatchDetails: fileBotANIDBJWDMatchDetails, fileBotANIDBJWDMatchNumber: fileBotANIDBJWDMatchNumber, animeFoundInAniDB: animeFoundInAniDB, statsANIDBJWDFilebotOnly:statsANIDBJWDFilebotOnly, statsANIDBFilebotMatchedScript:statsANIDBFilebotMatchedScript]
  */
-@SuppressWarnings('GroovyUnusedAssignment')
+@SuppressWarnings(['GroovyUnusedAssignment', 'unused'])
 LinkedHashMap searchForMoviesJWD(LinkedHashMap group, String aniDBTitleXMLFilename, String aniDBSynonymXMLFilename, Boolean useFilebotAniDBAliases, Locale locale, JsonObject animeOfflineDatabase, LinkedHashMap aniDBCompleteXMLList) {
   // ---------- Set Variables ---------- //
   anidbJWDResults = [:]
@@ -777,66 +975,101 @@ LinkedHashMap searchForMoviesJWD(LinkedHashMap group, String aniDBTitleXMLFilena
   HashSet filebotBaseAnimeNames = []
   Integer statsANIDBJWDFilebotOnly = 0
   Integer statsANIDBFilebotMatchedScript = 0
+  String tempAnimeName
+  String tempFileBotName
+  Matcher mySanityRegexMatcher
   // Search AniDB for 1st, 2nd, 3rd match
   // Use Filebot AltTitle as fallback (since it's MovieDB)?
   // Rename (Add option to use Non-Strict on rename)
   // ---------- Basename Generation ---------- //
-  println '// START---------- Basename Generation ---------- //'
+  Logging.log.info '// START---------- Basename Generation ---------- //'
+  switch(group.anime) {
+  // Close...
+    case ~/eiyuu banku koushi-den/:
+      tempAnimeName = jwdStringBlender('Eiyuu Banka Koushi-den')
+      break
+    default:
+      tempAnimeName = jwdStringBlender(group.anime)
+  }
   //  if ( group.altTitle != null ) {
   //    baseAnimeNames += ["${group.alttitle}"]
   //    baseAnimeNames += ["${ returnAniDBRomanization(group.alttitle) }"]
   //  }
-  println "--- TEMP: Adding group.anime - [${group.anime}]"
-  tempBaseGeneratedAnimeNames = ["${group.anime}"]
+//  Logging.log.info "--- TEMP: Adding group.anime - [${group.anime}]"
+  //  tempBaseGeneratedAnimeNames = ["${group.anime}"]
+  // group.filebotMovieTitle is a net.filebot.web.Movie object!
+  tempFileBotName = group.filebotMovieTitle != null ? jwdStringBlender(group.filebotMovieTitle.toString()) : ""
+  myExceptionMatcher = tempAnimeName =~ /(?i)(fate[ ]?stay night)/
+  if ( myExceptionMatcher.find() ) {
+    tempAnimeName = jwdStringBlender("Fate/Stay Night: Heaven`s Feel")
+    Logging.log.info "//----- AniDB Entry is a multi-part movie -  ${tempAnimeName}"
+  }
+  Logging.log.info "----- TEMP: Adding jwdStringBlender(group.anime) - [${tempAnimeName}]"
+  tempBaseGeneratedAnimeNames = ["${tempAnimeName}"]
+  // Unfortunately there is at *least* one anime that officially ends with v3, so I can't just ignore the "version" and the end.
+  // - https://anidb.net/anime/5078
+  myRegexMatcher = group.anime =~ /${matchEndOfLineVersion}/
+  if ( myRegexMatcher.find() ) {
+    generatedAnimeName = group.anime.replaceAll(/${matchEndOfLineVersion}/, '')
+    tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
+    Logging.log.info "----- TEMP: End of Line Version - Adding to base Name List - [${generatedAnimeName}] "
+  }
   // myMovieRegexMatcher = group.anime =~ /(?i)(\bmovie\s[\d]{1,3}|\bmovie)\b/
-  println '--- Checking if we should add variations based on movie keyword'
+  Logging.log.info '--- Checking if we should add variations based on movie keyword'
   // VOID - Matcher myMovieRegexMatcher = group.anime =~ /(?i)(\s?(the)?(\smovie\s[\d]{1,3}|\smovie))\b/
   Matcher myMovieRegexMatcher = group.anime =~ /(?i)(\s?(the)?(\smovie\s[\d]{1,3}))\b/
   if ( myMovieRegexMatcher.find() ) {
     animeTemp = group.anime.replaceAll(/(?i)(\s?(the)?(\smovie\s[\d]{1,3}))\b/, '')
-    println "----- TEMP: Adding 'movie' keyword variation #1 - [${animeTemp}]" // Removing The, Movie and any 3 digits after movie
+    Logging.log.info "----- TEMP: Adding 'movie' keyword variation #1 - [${animeTemp}]" // Removing The, Movie and any 3 digits after movie
     tempBaseGeneratedAnimeNames += ["${animeTemp}"]
   }
   // VOID - myMovieRegexMatcher = group.anime =~ /(?i)(\s?(the)?(\smovie)\s(?!\d))/
   myMovieRegexMatcher = group.anime =~ /(?i)(\s?(the)?(\smovie(?!\s\d)))/
   if ( myMovieRegexMatcher.find() ) {
     animeTemp = group.anime.replaceAll(/(?i)(\s?(the)?(\smovie))/, '')
-    println "----- TEMP: Adding 'movie' keyword variation #2 - [${animeTemp}]" // Removing The, Movie but leaving the digits
+    Logging.log.info "----- TEMP: Adding 'movie' keyword variation #2 - [${animeTemp}]" // Removing The, Movie but leaving the digits
     tempBaseGeneratedAnimeNames += ["${animeTemp}"]
   }
   myMovieRegexMatcher = group.anime =~ /(?i)(\s?(the)?(\smovie\s[\d]{1,3}))\b/
   if ( myMovieRegexMatcher.find() ) {
     animeTemp = group.anime.replaceAll(/(?i)(?<=movie\s)([\d]{1,3})/, '')
-    println "----- TEMP: Adding 'movie' keyword variation #3 - [${animeTemp}]" // Removing the digits after movie
+    Logging.log.info "----- TEMP: Adding 'movie' keyword variation #3 - [${animeTemp}]" // Removing the digits after movie
+    tempBaseGeneratedAnimeNames += ["${animeTemp}"]
+  }
+  myMovieRegexMatcher = group.anime =~ /(?i)(\s?(?<!the)(\smovie(?!\s\d)))/
+  if ( myMovieRegexMatcher.find() ) {
+    animeTemp = group.anime.replaceAll(/(?i)([\s]?movie[\s]?)/, ' the movie ').replaceAll(/${stripTrailingSpacesDashRegex}/, '')
+    Logging.log.info "----- TEMP: Adding 'movie' keyword variation #4 - [${animeTemp}]" // Adding 'the' before 'movie' (but only if it has movie)
     tempBaseGeneratedAnimeNames += ["${animeTemp}"]
   }
   tempBaseGeneratedAnimeNames.each { tempname ->
-    println "--- BASE: Adding [${tempname}]"
+    Logging.log.info "--- BASE: Adding [${tempname}]"
     baseGeneratedAnimeNames += tempname
     baseGeneratedAnimeNames += ["${returnAniDBRomanization(group.anime)}"]
   }
-  println '// END---------- Basename Generation ---------- //'
-  println '// START---------- SeriesName Generation ---------- //'
+  Logging.log.info '// END---------- Basename Generation ---------- //'
+  Logging.log.info '// START---------- SeriesName Generation ---------- //'
   baseGeneratedAnimeNames.each { basename ->
-    println "//--- Generating Possible Anime Series Names for ${basename}"
-    println "--- Adding ${basename}"
+    Logging.log.info "//--- Generating Possible Anime Series Names for ${basename}"
+    Logging.log.info "--- Adding ${basename}"
     baseAnimeNames += ["${basename}"]
-    println '--- Checking if we should add variations based on Gekijouban keyword'
+    Logging.log.info '--- Checking if we should add variations based on Gekijouban keyword'
     myMovieRegexMatcher = basename =~ /(?i)(Gekijouban)/
     if ( !myMovieRegexMatcher.find() ) {
       animeTemp = 'Gekijouban ' + basename
-      println "----- Adding 'Gekijouban' keyword variation - [${animeTemp}]"
+      Logging.log.info "----- Adding 'Gekijouban' keyword variation - [${animeTemp}]"
       baseAnimeNames += ["${animeTemp}"]
     }
     // Taken from groupGeneration
     // VOID - (?i)(~\s(.*))$
     mySanityRegexMatcher = basename =~ /(?i)(~(.*))$/
     if (mySanityRegexMatcher.find() ) {
+      //noinspection GroovyAssignabilityCheck
       mySanityAltTxt = mySanityRegexMatcher[0][2]
-      println "----- Adding possible Alternative Title: [${mySanityAltTxt}] using ~"
+      Logging.log.info "----- Adding possible Alternative Title: [${mySanityAltTxt}] using ~"
       baseAnimeNames += ["${mySanityAltTxt}"]
       animeTemp = basename.replaceAll(/(?i)(~(.*))$/, '').replaceAll(/(\s){2,20}/, ' ').replaceAll(/([\s-])*$/, '')
-      println "----- Adding possible Alternative Title: [${animeTemp}] using ~"
+      Logging.log.info "----- Adding possible Alternative Title: [${animeTemp}] using ~"
       baseAnimeNames += ["${animeTemp}"]
     }
     // (?i)(-\s(.*))$
@@ -844,35 +1077,32 @@ LinkedHashMap searchForMoviesJWD(LinkedHashMap group, String aniDBTitleXMLFilena
     if (mySanityRegexMatcher.find() ) {
 //      mySanityAltTxt = mySanityRegexMatcher[0][2]
       animeTemp = basename.replaceAll(/(?i)(-\s(.*))$/, '').replaceAll(/(\s){2,20}/, ' ').replaceAll(/([\s-])*$/, '')
-      println "-----  Adding Title Text Variation [${animeTemp}] using -"
+      Logging.log.info "-----  Adding Title Text Variation [${animeTemp}] using -"
       baseAnimeNames += ["${animeTemp}"]
     }
   }
   if ( group.filebotMovieTitle != null ) {
-//    println "group.filebotMovieTitle:[${group.filebotMovieTitle}]"
-    // VOID myMovieRegexMatcher = myFileNameForParsing =~ /(?i)((^[a-z\s]+)\(?((19\d\d|20\d\d)\)?\s))/
-    // VOID myMovieRegexMatcher = group.filebotMovieTitle =~ /(?i)((^[a-z\s-]+)\(?((19\d\d|20\d\d)\)?\b))/
-    // VOID myMovieRegexMatcher = group.filebotMovieTitle =~ /(?i)((^[^\d\(]+)\(?((19\d\d|20\d\d)\)?\b))/ // Thank you Intellij, but the escape is needed
-    // TODO
-    // See if we can look for the date either at the end of the title or evalute all (), due to edge cases like this
-    // Evangelion: 1.0 You Are (Not) Alone (2007) -it does't recognize the date ..
-    myMovieRegexMatcher = group.filebotMovieTitle =~ /(?i)((^[^\(]+)\(?((19\d\d|20\d\d)\)?\b))/
+    Logging.log.fine "group.filebotMovieTitle:[${group.filebotMovieTitle}]"
+    myMovieRegexMatcher = group.filebotMovieTitle =~ /${stripYearDateRegex}/
     if ( myMovieRegexMatcher.find() ) {
-      filebotBaseAnimeNames = ["${myMovieRegexMatcher[0][2]}"]
+      Logging.log.info "-----  Adding Filebot Title Text Variation [${group.filebotMovieTitle.toString().replaceAll(/${stripYearDateRegex}/, '')}]"
+      filebotBaseAnimeNames = ["${group.filebotMovieTitle.toString().replaceAll(/${stripYearDateRegex}/, '')}"]
+      Logging.log.info "-----  Adding Filebot Title Text Variation [${group.filebotMovieTitle}]"
       filebotBaseAnimeNames += ["${group.filebotMovieTitle}"]
     } else {
+      Logging.log.info "-----  Adding Filebot Title Text Variation [${group.filebotMovieTitle}]"
       filebotBaseAnimeNames = ["${group.filebotMovieTitle}"]
     }
   }
-  println '// END---------- Series Name Generation ---------- //'
-  println '-----'
-  println '-----'
-  println "  We are going to be searching for these Anime Series Names: ${baseAnimeNames} with AniDB "
+  Logging.log.info '// END---------- Series Name Generation ---------- //'
+  Logging.log.info '-----'
+  Logging.log.info '-----'
+  Logging.log.info "  We are going to be searching for these Anime Series Names: ${baseAnimeNames} with AniDB "
   if ( filebotBaseAnimeNames ) {
-    println "  We are going to be searching for these Anime Series Names: ${filebotBaseAnimeNames} with AniDB from FileBot"
+    Logging.log.info "  We are going to be searching for these Anime Series Names: ${filebotBaseAnimeNames} with AniDB from FileBot"
   }
-  println '-----'
-  println '-----'
+  Logging.log.info '-----'
+  Logging.log.info '-----'
   returnThing = filebotAnidbJWDSearch( baseAnimeNames, anidbJWDResults, animeFoundInAniDB, locale, aniDBTitleXMLFilename, aniDBSynonymXMLFilename, useFilebotAniDBAliases, animeOfflineDatabase, aniDBCompleteXMLList)
   anidbJWDResults = returnThing.jwdresults
   animeFoundInAniDB = returnThing.animeFoundInAniDB
@@ -882,9 +1112,9 @@ LinkedHashMap searchForMoviesJWD(LinkedHashMap group, String aniDBTitleXMLFilena
     animeFoundInAniDB = returnThing2.animeFoundInAniDB
   }
   if (animeFoundInAniDB) {
-//    println "animeFoundInAniDB:[${animeFoundInAniDB}]"
-//    println "anidbJWDResults:[${anidbJWDResults}]"
-//    println "fileBotAniDBJWDResults:[${fileBotAniDBJWDResults}]"
+    Logging.log.finest "animeFoundInAniDB:[${animeFoundInAniDB}]"
+    Logging.log.finest "anidbJWDResults:[${anidbJWDResults}]"
+    Logging.log.finest "fileBotAniDBJWDResults:[${fileBotAniDBJWDResults}]"
     filteredanidbJWDResults = anidbJWDResults.findAll { results ->
       aodIsAIDTypeNotTV(animeOfflineDatabase, results.value.dbid as Integer)
     }
@@ -894,15 +1124,15 @@ LinkedHashMap searchForMoviesJWD(LinkedHashMap group, String aniDBTitleXMLFilena
     if ( filteredanidbJWDResults.isEmpty() && filteredfileBotAniDBJWDResults.isEmpty() ) {
       animeFoundInAniDB = false
     }
-//    println "animeFoundInAniDB:[${animeFoundInAniDB}]"
-//    println "filteredanidbJWDResults:[${filteredanidbJWDResults}]"
-//    println "filteredfileBotAniDBJWDResults:[${filteredfileBotAniDBJWDResults}]"
+    Logging.log.finest "animeFoundInAniDB:[${animeFoundInAniDB}]"
+    Logging.log.finest "filteredanidbJWDResults:[${filteredanidbJWDResults}]"
+    Logging.log.finest "filteredfileBotAniDBJWDResults:[${filteredfileBotAniDBJWDResults}]"
   }
   if (animeFoundInAniDB) {
     anidbFirstMatchDetails = filteredanidbJWDResults.sort { a, b -> b.value.score <=> a.value.score }.take(1).findResult { it.value } as LinkedHashMap
     if ( anidbFirstMatchDetails == null ) {
       statsANIDBJWDFilebotOnly++
-      println "//--- ONLY Filebot Anime Name Matched something in ANIDB ---///"
+      Logging.log.info "//--- ONLY Filebot Anime Name Matched something in ANIDB ---///"
       fileBotAniDBMatchUsed = true
       anidbFirstMatchDetails = filteredfileBotAniDBJWDResults.sort { a, b -> b.value.score <=> a.value.score }.take(1).findResult { it.value } as LinkedHashMap
       firstANIDBWTMatchNumber = anidbFirstMatchDetails.score as BigDecimal
@@ -924,7 +1154,7 @@ LinkedHashMap searchForMoviesJWD(LinkedHashMap group, String aniDBTitleXMLFilena
     }
     // This was just easier for "Sorting" the 1st/2nd with higher AID in 1st
     if ( (firstANIDBWTMatchNumber == 1 && secondANIDBWTMatchNumber == 1) && (anidbFirstMatchDetails.dbid < anidbSecondMatchDetails.dbid ) ) {
-      println "//---- Switch 1st/2nd AniDB"
+      Logging.log.info "//---- Switch 1st/2nd AniDB"
       tmpANIDBWTMatchNumber = secondANIDBWTMatchNumber
       tmpAniDBWTMatchName = secondAniDBWTMatchName
       tmpAniDBMatchDetails = anidbSecondMatchDetails
@@ -935,15 +1165,15 @@ LinkedHashMap searchForMoviesJWD(LinkedHashMap group, String aniDBTitleXMLFilena
       firstAniDBWTMatchName = tmpAniDBWTMatchName
       anidbFirstMatchDetails = tmpAniDBMatchDetails
     }
-    println "firstANIDBWTMatchNumber: ${firstANIDBWTMatchNumber}"
-    println "firstAniDBWTMatchName: ${firstAniDBWTMatchName}"
-    println "anidbFirstMatchDetails: ${anidbFirstMatchDetails}"
-    println "secondANIDBWTMatchNumber: ${secondANIDBWTMatchNumber}"
-    println "secondAniDBWTMatchName: ${secondAniDBWTMatchName}"
-    println "anidbSecondMatchDetails: ${anidbSecondMatchDetails}"
-    println "thirdANIDBWTMatchNumber: ${thirdANIDBWTMatchNumber}"
-    println "thirdAniDBWTMatchName: ${thirdAniDBWTMatchName}"
-    println "anidbThirdMatchDetails: ${anidbThirdMatchDetails}"
+    Logging.log.info "firstANIDBWTMatchNumber: ${firstANIDBWTMatchNumber}"
+    Logging.log.info "firstAniDBWTMatchName: ${firstAniDBWTMatchName}"
+    Logging.log.info "anidbFirstMatchDetails: ${anidbFirstMatchDetails}"
+    Logging.log.info "secondANIDBWTMatchNumber: ${secondANIDBWTMatchNumber}"
+    Logging.log.info "secondAniDBWTMatchName: ${secondAniDBWTMatchName}"
+    Logging.log.info "anidbSecondMatchDetails: ${anidbSecondMatchDetails}"
+    Logging.log.info "thirdANIDBWTMatchNumber: ${thirdANIDBWTMatchNumber}"
+    Logging.log.info "thirdAniDBWTMatchName: ${thirdAniDBWTMatchName}"
+    Logging.log.info "anidbThirdMatchDetails: ${anidbThirdMatchDetails}"
     if ( filteredfileBotAniDBJWDResults ) {
       if ( fileBotAniDBMatchUsed ) {
         fileBotANIDBJWDMatchDetails = null
@@ -954,18 +1184,41 @@ LinkedHashMap searchForMoviesJWD(LinkedHashMap group, String aniDBTitleXMLFilena
         if ( fileBotANIDBJWDMatchDetails.dbid == anidbFirstMatchDetails.dbid ) {
           statsANIDBFilebotMatchedScript++
         }
-        println "fileBotANIDBJWDMatchNumber: ${fileBotANIDBJWDMatchNumber}"
-        println "fileBotANIDBJWDMatchDetails: ${fileBotANIDBJWDMatchDetails}"
+        Logging.log.info "fileBotANIDBJWDMatchNumber: ${fileBotANIDBJWDMatchNumber}"
+        Logging.log.info "fileBotANIDBJWDMatchDetails: ${fileBotANIDBJWDMatchDetails}"
       }
     }
   } else {
-    println '//-----------------------------------------//'
-    println "Nothing was found for ${group.anime} in AniDB"
-    println '//-----------------------------------------//'
+    Logging.log.info '//-----------------------------------------//'
+    Logging.log.info "Nothing was found for ${group.anime} in AniDB"
+    Logging.log.info '//-----------------------------------------//'
     firstANIDBWTMatchNumber = 0
   }
   return [firstANIDBWTMatchNumber: firstANIDBWTMatchNumber, firstAniDBWTMatchName:firstAniDBWTMatchName, anidbFirstMatchDetails: anidbFirstMatchDetails, secondANIDBWTMatchNumber: secondANIDBWTMatchNumber, secondAniDBWTMatchName:secondAniDBWTMatchName, anidbSecondMatchDetails: anidbSecondMatchDetails, thirdANIDBWTMatchNumber: thirdANIDBWTMatchNumber, thirdAniDBWTMatchName:thirdAniDBWTMatchName, anidbThirdMatchDetails:anidbThirdMatchDetails, fileBotANIDBJWDMatchDetails: fileBotANIDBJWDMatchDetails, fileBotANIDBJWDMatchNumber: fileBotANIDBJWDMatchNumber, animeFoundInAniDB: animeFoundInAniDB, statsANIDBJWDFilebotOnly:statsANIDBJWDFilebotOnly, statsANIDBFilebotMatchedScript:statsANIDBFilebotMatchedScript]
 }
+
+
+@SuppressWarnings(['GroovyUnusedAssignment', 'unused'])
+def filebotMovieFallBack(LinkedHashMap group, def animeListsXML) {
+  // ---------- Set Variables ---------- //
+  // Doesn't seem to be null, but can be -1 and needs to be padded..
+  Integer myIMDBId = group.filebotMovieTitle.getImdbId()
+  Logging.log.info "myIMDBId:${myIMDBId}"
+  Integer myTMDBId = group.filebotMovieTitle.getTmdbId()
+  Logging.log.info "myTMDBId:${myTMDBId}"
+  def myAniDBId // Can be null
+  if (myIMDBId > 0) {
+    myAniDBId = animeListXMLGetAniDBFromIMDBID(animeListsXML, myIMDBId)
+    Logging.log.finer "ImDBID 2 AniDBID:${myAniDBId}"
+  }
+  if (myAniDBId == null && myTMDBId > 0) {
+    myAniDBId = animeListXMLGetAniDBFromTMDBID(animeListsXML, myTMDBId)
+    Logging.log.finer "TMDBID 2 ANIDBID:${myAniDBId}"
+  }
+  Logging.log.info "AniDBID:${myAniDBId}"
+  return myAniDBId
+}
+
 
 /**
  * Given an Array of files, process *each* file and group the files based on the rename options specific to that file.
@@ -990,7 +1243,7 @@ LinkedHashMap groupGenerationByAnimeLists(ArrayList<File> input, String preferre
   LinkedHashMap groupsByEpisode
   Integer processPass = 1
   groupsByEpisode = input.groupBy { File f ->
-    log.finest "// FILE:${f}"
+    Logging.log.finest "// FILE:${f}"
     return renameOptionsForEpisodesUsingAnimeLists(f, preferredDB, anidbMatchDetails, tvdbMatchDetails, renamePass, processPass, animeOffLineDatabaseJsonObject, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials )
   }
   return groupsByEpisode
@@ -1019,23 +1272,23 @@ LinkedHashMap groupGenerationByTVDB( ArrayList<File> input, Integer tvdbID, Inte
   LinkedHashMap emptyJWDMatchDetails = [score: 0.00000000, db:'', dbid:0, primarytitle: '', animename: '', matchname: '', alias: false]
   switch (group.order) {
     case ['airdate','Airdate']:
-      println "------- Using airdate Ordering"
+      Logging.log.info "------- Using airdate Ordering"
       groupsByEpisode = input.groupBy { File f ->
-        log.finest "// FILE:${f}"
+        Logging.log.finest "// FILE:${f}"
         return renameOptionForTVDBAirdateEpisodes(f, tvdbID, renamePass, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBSpecials, emptyJWDMatchDetails, useNonStrictOnTVDBSpecials)
       }
       break
     case ['absolute','Absolute']:
-      println "------- Using absolute Odering"
+      Logging.log.info "------- Using absolute Odering"
       groupsByEpisode = input.groupBy { File f ->
-        log.finest "// FILE:${f}"
+        Logging.log.finest "// FILE:${f}"
         return renameOptionForTVDBAbsoluteEpisodes(f, emptyJWDMatchDetails, tvdbID, renamePass, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBSpecials, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, useNonStrictOnTVDBSpecials)
       }
       break
     default:
-      println "------- Using airdate Ordering"
+      Logging.log.info "------- Using airdate Ordering"
       groupsByEpisode = input.groupBy { File f ->
-        log.finest "// FILE:${f}"
+        Logging.log.finest "// FILE:${f}"
         return renameOptionForTVDBAirdateEpisodes(f, tvdbID, renamePass, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBSpecials, emptyJWDMatchDetails, useNonStrictOnTVDBSpecials )
       }
       break
@@ -1065,7 +1318,7 @@ LinkedHashMap groupGenerationByTVDB( ArrayList<File> input, Integer tvdbID, Inte
  */
 LinkedHashMap groupGenerationByAniDB( ArrayList<File> input, LinkedHashMap anidbMatchDetails, Integer renamePass, Boolean useNonStrictOnAniDBFullMatch, Boolean useNonStrictOnAniDBSpecials, LinkedHashMap group, BigDecimal aniDBJWDMatchNumber, JsonObject animeOffLineDatabaseJsonObject, Integer tvdbID, Boolean hasSeasonality, Integer mySeasonalityNumber, Boolean useNonStrictOnTVDBSpecials) {
   def groupsByEpisode = input.groupBy { File f ->
-    log.finest "// FILE:${f}"
+    Logging.log.finest "// FILE:${f}"
     return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, renamePass, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, aniDBJWDMatchNumber, animeOffLineDatabaseJsonObject, tvdbID, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
   }
   return groupsByEpisode
@@ -1105,57 +1358,59 @@ LinkedHashMap renameOptionsForEpisodesUsingAnimeLists(File f, String preferredDB
   Using processPass for Determining how many times renameOptionsForEpisodesUsingAnimeLists has been called (try to avoid infinite processing loops)
     --> processPass = 1 allow passing tvdbID/anidbID when calling other rename options
     --> processPass = 2+ do not pass tvdbID/anidbID when calling other rename options (or don't call renameOptionsForEpisodesUsingAnimeLists?)*/
-  println "//----- renameOptionsForEpisodesUsingAnimeLists"
+  Logging.log.info "//----- renameOptionsForEpisodesUsingAnimeLists"
   // Setup local variables for easy references
   performRename = false
+  //noinspection GroovyUnusedAssignment
   Boolean renameOptionsSet = false
   Boolean isSpecialEpisode = group.isSpecialEpisode == true
   Boolean isMovieType = group.isMovieType
   Boolean isSpecialType = group.isSpecialType
+  //noinspection GroovyUnusedAssignment
   String specialType = group.specialType
-  Integer anidbID = anidbMatchDetails.dbid
-  Integer tvdbID = tvdbMatchDetails.dbid
+  Integer anidbID = anidbMatchDetails.dbid as Integer
+  Integer tvdbID = tvdbMatchDetails.dbid as Integer
   // Setup local variables to script scope
   LinkedHashMap emptyJWDMatchDetails = [score: 0.00000000, db:'', dbid:0, primarytitle: null, animename: null, matchname: null, alias: true]
-  Integer myEpisodeSeason
-  def myAnimeListMapping
-  String myanimeListGetTVDBSeason
-  Collection<Episode> myTVDBSeriespisodes
-  Episode doesItContainEpisode
-  Boolean preferAniDB = true
+//  Integer myEpisodeSeason
+//  def myAnimeListMapping
+//  String myanimeListGetTVDBSeason
+//  Collection<Episode> myTVDBSeriespisodes
+//  Episode doesItContainEpisode
+  Boolean preferAniDB
   Boolean absoluteOrdering
   switch (preferredDB) {
     case 'anidb':
       preferAniDB = true
-      println "------- We prefer database:[anidb]"
+      Logging.log.info "------- We prefer database:[anidb]"
       break
     case 'tvdb':
       preferAniDB = false
-      println "------- We prefer database:[TheTVDB]"
+      Logging.log.info "------- We prefer database:[TheTVDB]"
       break
     default:
-      println "------- We prefer database:[anidb]"
+      Logging.log.info "------- We prefer database:[anidb]"
       preferAniDB = true
       break
   }
   switch (group.order) {
     case 'airdate':
       absoluteOrdering = false
-      println "------- Using airdate Ordering"
+      Logging.log.info "------- Using airdate Ordering"
       break
     case 'absolute':
       absoluteOrdering = true
-      println "------- Using absolute Odering"
+      Logging.log.info "------- Using absolute Odering"
       break
     default:
-      println "------- Using absolute Odering"
+      Logging.log.info "------- Using absolute Odering"
       absoluteOrdering = true
       break
   }
   // Detect the episode number we are working with
-  String myEpisodeNumber = detectEpisodeNumberFromFile(f, false, true, false, false)
-  println "------- We have AniDB ID:[${anidbID}] and TVDB ID:[${tvdbID}]"
-  println "--------- Consult AnimeList for AniDB ID:[${anidbID}] with TVDB ID:[${tvdbID}]"
+  String myEpisodeNumber = detectEpisodeNumberFromFile(f, false, true, false, false, true)
+  Logging.log.info "------- We have AniDB ID:[${anidbID}] and TVDB ID:[${tvdbID}]"
+  Logging.log.info "--------- Consult AnimeList for AniDB ID:[${anidbID}] with TVDB ID:[${tvdbID}]"
   def myanimeListGetTVDBID = filebotAnimeListReturnFromAID(anidbID, true)
 
   // It can be an Integer if the AniDB maps to a series
@@ -1166,7 +1421,7 @@ LinkedHashMap renameOptionsForEpisodesUsingAnimeLists(File f, String preferredDB
   // Multi-episode titles not found on theTVDB.com are marked as "unknown"
   // One-off titles that won't ever be added to theTVDB.com (movies, TV specials, one-shot OVAs) are marked by their AniDb.net type
   // Pornographic titles are marked by "hentai" regardless of episode count as they will never appear on theTVDB.com.
-  log.finest "------- We have got myanimeListGetTVDBID:[${myanimeListGetTVDBID}] from AnimeList"
+  Logging.log.info "------- We have got myanimeListGetTVDBID:[${myanimeListGetTVDBID}] from AnimeList"
 
   // Check if the TVDB ID Matches from the AniDB ID
   //  Null: (AID has no Map in AnimeList)
@@ -1186,7 +1441,7 @@ LinkedHashMap renameOptionsForEpisodesUsingAnimeLists(File f, String preferredDB
   //          1: - Airdate Ordering, Send to renameOptionForTVDBAirdateEpisodes, renamePass, no AniDB
   //          2: - Send to renameOptionForAniDBAbsoluteEpisodes, renamePass:1, no tvdbid
   if ( myanimeListGetTVDBID == null ) {
-    log.finest "--------- There is no AnimeList MAP for AniDB ID:[${anidbID}]"
+    Logging.log.info "--------- There is no AnimeList MAP for AniDB ID:[${anidbID}]"
     switch (renamePass){
       case 1:
         if ( preferAniDB ) {
@@ -1195,11 +1450,11 @@ LinkedHashMap renameOptionsForEpisodesUsingAnimeLists(File f, String preferredDB
           //           Y: Send to renameOptionForAniDBAbsoluteEpisodes, renamePass,tvdbid
           //           N: Send to renameOptionForAniDBAbsoluteEpisodes, renamePass, no tvdbid
           if ( tvdbID > 0 ) {
-            log.finest "----------- Send to AniDB with ${anidbID}, tvdbID of ${tvdbID}, renamePass:[${renamePass}]"
-            return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, renamePass, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score, animeOffLineDatabaseJsonObject, tvdbMatchDetails.dbid, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+            Logging.log.info "----------- Send to AniDB with ${anidbID}, tvdbID of ${tvdbID}, renamePass:[${renamePass}]"
+            return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, renamePass, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, tvdbMatchDetails.dbid as Integer, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
           }
-          log.finest "----------- Send to AniDB with ${anidbID}, No tvdbID, renamePass:[${renamePass}]"
-          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, renamePass, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+          Logging.log.info "----------- Send to AniDB with ${anidbID}, No tvdbID, renamePass:[${renamePass}]"
+          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, renamePass, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
         } else {
           //    preferAniDB: false
           //      - Parse each episode #, lookup AID from TVDBID AnimeList Map
@@ -1212,17 +1467,17 @@ LinkedHashMap renameOptionsForEpisodesUsingAnimeLists(File f, String preferredDB
             if ( myEpisodeNumber.isNumber() ) {
               returnThing = filebotAnimeListReturnAIDEntry(tvdbID, mySeasonalityNumber, myEpisodeNumber.toInteger())
               if ( returnThing != null) {
-                log.finest "----------- Send to renameOptionsForEpisodesUsingAnimeLists with AniDB:[${returnThing.anidbid}], tvdbID:[${tvdbID}], renamePass:[${renamePass}], Prefer AniDB"
+                Logging.log.info "----------- Send to renameOptionsForEpisodesUsingAnimeLists with AniDB:[${returnThing.anidbid}], tvdbID:[${tvdbID}], renamePass:[${renamePass}], Prefer AniDB"
                 LinkedHashMap JWDMatchDetails = [score: 1, db:'anidb', dbid: "${returnThing.anidbid}", primarytitle: "${returnThing.name}", animename: "${returnThing.name}", matchname: "${returnThing.name}", alias: false]
                 return renameOptionsForEpisodesUsingAnimeLists(f, 'anidb', JWDMatchDetails, tvdbMatchDetails, renamePass, processPass, animeOffLineDatabaseJsonObject, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials )
               }
             }
           }
           if ( absoluteOrdering ) {
-            log.finest "----------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${tvdbID}], renamePass:[${renamePass}]"
-            return renameOptionForTVDBAbsoluteEpisodes(f, emptyJWDMatchDetails, tvdbID, renamePass, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, emptyJWDMatchDetails, useNonStrictOnTVDBSpecials)
+            Logging.log.info "----------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${tvdbID}], renamePass:[${renamePass}]"
+            return renameOptionForTVDBAbsoluteEpisodes(f, emptyJWDMatchDetails, tvdbID, renamePass, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, emptyJWDMatchDetails as Boolean, useNonStrictOnTVDBSpecials)
           } else {
-            log.finest "------------- Send to renameOptionForTVDBAirdateEpisodes with tvdbID:[${tvdbID}], renamePass:[1]"
+            Logging.log.info "------------- Send to renameOptionForTVDBAirdateEpisodes with tvdbID:[${tvdbID}], renamePass:[1]"
             return renameOptionForTVDBAirdateEpisodes(f, tvdbID, 1, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBSpecials, emptyJWDMatchDetails, useNonStrictOnTVDBSpecials)
           }
         }
@@ -1233,10 +1488,10 @@ LinkedHashMap renameOptionsForEpisodesUsingAnimeLists(File f, String preferredDB
           //      2: - Absolute Ordering, Send to renameOptionForTVDBAbsoluteEpisodes, renamePass:1, no AniDB
           //      2: - Airdate Ordering, Send to renameOptionForTVDBAirdateEpisodes, renamePass:1, no AniDB
           if ( absoluteOrdering ) {
-            log.finest "------------- Send to renameOptionForTVDBAirdateEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidbID:[0]"
+            Logging.log.info "------------- Send to renameOptionForTVDBAirdateEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidbID:[0]"
             return renameOptionForTVDBAbsoluteEpisodes(f, emptyJWDMatchDetails, tvdbID, 1, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, useNonStrictOnTVDBSpecials)
           } else {
-            log.finest "------------- Send to renameOptionForTVDBAirdateEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidbID:[0]"
+            Logging.log.info "------------- Send to renameOptionForTVDBAirdateEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidbID:[0]"
             return renameOptionForTVDBAirdateEpisodes(f, tvdbID, 1, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBSpecials, emptyJWDMatchDetails, useNonStrictOnTVDBSpecials)
           }
         } else {
@@ -1250,20 +1505,20 @@ LinkedHashMap renameOptionsForEpisodesUsingAnimeLists(File f, String preferredDB
             if ( myEpisodeNumber.isNumber() ) {
               returnThing = filebotAnimeListReturnAIDEntry(tvdbID, mySeasonalityNumber, myEpisodeNumber.toInteger())
               if ( returnThing != null) {
-                log.finest "----------- Send to renameOptionsForEpisodesUsingAnimeLists with AniDB:[${returnThing.anidbid}], tvdbID:[${tvdbID}], renamePass:[${renamePass}], Prefer tvdb"
+                Logging.log.info "----------- Send to renameOptionsForEpisodesUsingAnimeLists with AniDB:[${returnThing.anidbid}], tvdbID:[${tvdbID}], renamePass:[${renamePass}], Prefer tvdb"
                 LinkedHashMap JWDMatchDetails = [score: 1, db:'anidb', dbid: "${returnThing.anidbid}", primarytitle: "${returnThing.name}", animename: "${returnThing.name}", matchname: "${returnThing.name}", alias: false]
                 return renameOptionsForEpisodesUsingAnimeLists(f, 'tvdb', JWDMatchDetails, tvdbMatchDetails, renamePass, processPass, animeOffLineDatabaseJsonObject, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials )
               }
             }
           }
-          log.finest "----------- Send to AniDB with ${anidbID}, No tvdbID, renamePass:[1]"
-          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+          Logging.log.info "----------- Send to AniDB with ${anidbID}, No tvdbID, renamePass:[1]"
+          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
         }
         break
       default:
-        println '//-----------------------------//'
-        println '//            STOP             //'
-        println '//-----------------------------//'
+        Logging.log.info '//-----------------------------//'
+        Logging.log.info '//            STOP             //'
+        Logging.log.info '//-----------------------------//'
         renameOptionsSet = true
         renameQuery = tvdbID
         performRename = false
@@ -1296,31 +1551,31 @@ LinkedHashMap renameOptionsForEpisodesUsingAnimeLists(File f, String preferredDB
   //      1: Send to renameOptionForTVDBAirdateEpisodes, renamePass, AniDB
   //      2: Send to renameOptionForAniDBAbsoluteEpisodes, renamePass:1, tvdbID
   if (myanimeListGetTVDBID == tvdbID) {
-    println '--------- AnimeList AniDB to TVDB ID mapping found and matched.'
+    Logging.log.info '--------- AnimeList AniDB to TVDB ID mapping found and matched.'
     if ( myEpisodeNumber == null ) {
       //   Episode # is null?
       //      1: Send to renameOptionForAniDBAbsoluteEpisodes, renamePass, tvdbID
       //      2: Absolute Ordering, Send to renameOptionForTVDBAbsoluteEpisodes, renamePass:1, AniDB
       //      2: Airdate Ordering, Send to renameOptionForTVDBAirdateEpisodes, renamePass:1, AniDB
-      println '----------- Episode # detected as null'
+      Logging.log.info '----------- Episode # detected as null'
       switch (renamePass) {
         case 1:
-          log.finest "------------- Checking AniDB ${myanimeListGetTVDBID} - with tvdbID:[${tvdbID}]"
-          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, renamePass, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score, animeOffLineDatabaseJsonObject, tvdbID, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+          Logging.log.info "------------- Checking AniDB ${myanimeListGetTVDBID} - with tvdbID:[${tvdbID}]"
+          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, renamePass, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, tvdbID, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
           break
         case 2:
           if ( absoluteOrdering ) {
-            log.finest "------------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidbID:{${anidbID}]"
+            Logging.log.info "------------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidbID:{${anidbID}]"
             return renameOptionForTVDBAbsoluteEpisodes(f, anidbMatchDetails, tvdbID, 1, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, useNonStrictOnTVDBSpecials)
           } else {
-            log.finest "------------- Send to renameOptionForTVDBAirdateEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidbID:{${anidbID}]"
+            Logging.log.info "------------- Send to renameOptionForTVDBAirdateEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidbID:{${anidbID}]"
             return renameOptionForTVDBAirdateEpisodes(f, tvdbID, 1, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBSpecials, anidbMatchDetails, useNonStrictOnTVDBSpecials)
           }
           break
         default:
-          println '//-----------------------------//'
-          println '//            STOP             //'
-          println '//-----------------------------//'
+          Logging.log.info '//-----------------------------//'
+          Logging.log.info '//            STOP             //'
+          Logging.log.info '//-----------------------------//'
           renameOptionsSet = true
           renameQuery = tvdbID
           performRename = false
@@ -1333,7 +1588,7 @@ LinkedHashMap renameOptionsForEpisodesUsingAnimeLists(File f, String preferredDB
       }
     }
     if ( myEpisodeNumber =~ /\d{1,3}\.\d{1,3}/ ) {
-      println "--------- myEpisodeNumber:[${myEpisodeNumber}] indicates a special episode (Dot Syntax)"
+      Logging.log.info "--------- myEpisodeNumber:[${myEpisodeNumber}] indicates a special episode (Dot Syntax)"
       //   Episode # has a dot in it (aka 5.5, 6.5 etc known as a special episode)
       //      1: Absolute Ordering, Send to renameOptionForTVDBAbsoluteEpisodes, renamePass, AniDB
       //      1: Airdate Ordering, Send to renameOptionForTVDBAirdateEpisodes, renamePass, AniDB
@@ -1342,21 +1597,21 @@ LinkedHashMap renameOptionsForEpisodesUsingAnimeLists(File f, String preferredDB
       switch (renamePass) {
         case 1:
           if ( absoluteOrdering) {
-            log.finest "----------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${tvdbID}], renamePass:[${renamePass}]"
+            Logging.log.info "----------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${tvdbID}], renamePass:[${renamePass}]"
             return renameOptionForTVDBAbsoluteEpisodes(f, anidbMatchDetails, tvdbID, renamePass, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, useNonStrictOnTVDBSpecials)
           } else {
-            log.finest "----------- Send to renameOptionForTVDBAirdateEpisodes with anidb:[0], tvdbID:[${tvdbID}], renamePass:[${renamePass}]"
-            return renameOptionForTVDBAirdateEpisodes(f, tvdbID, renamePass, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBSpecials, useNonStrictOnTVDBSpecials)
+            Logging.log.info "----------- Send to renameOptionForTVDBAirdateEpisodes with anidb:[0], tvdbID:[${tvdbID}], renamePass:[${renamePass}]"
+            return renameOptionForTVDBAirdateEpisodes(f, tvdbID, renamePass, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBSpecials, anidbMatchDetails, useNonStrictOnTVDBSpecials)
           }
           break
         case 2:
-          log.finest "----------- Send to AniDB with ${anidbID}, tvdbID, renamePass:[1]"
-          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score, animeOffLineDatabaseJsonObject, tvdbID, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+          Logging.log.info "----------- Send to AniDB with ${anidbID}, tvdbID, renamePass:[1]"
+          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, tvdbID, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
           break
         default:
-          println '//-----------------------------//'
-          println '//            STOP             //'
-          println '//-----------------------------//'
+          Logging.log.info '//-----------------------------//'
+          Logging.log.info '//            STOP             //'
+          Logging.log.info '//-----------------------------//'
           renameOptionsSet = true
           renameQuery = tvdbID
           performRename = false
@@ -1380,24 +1635,24 @@ LinkedHashMap renameOptionsForEpisodesUsingAnimeLists(File f, String preferredDB
       switch (renamePass) {
         case 1:
           if ( isSpecialType ) {
-            log.finest "----------- Special Type Detected: Send to AniDB with ${anidbID}, tvdbID, renamePass:[${renamePass}]"
-            return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, renamePass, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score, animeOffLineDatabaseJsonObject, tvdbID, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+            Logging.log.info "----------- Special Type Detected: Send to AniDB with ${anidbID}, tvdbID, renamePass:[${renamePass}]"
+            return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, renamePass, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, tvdbID, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
           }
-          log.finest "----------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${tvdbID}], renamePass:[${renamePass}]"
+          Logging.log.info "----------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${tvdbID}], renamePass:[${renamePass}]"
           return renameOptionForTVDBAbsoluteEpisodes(f, anidbMatchDetails, tvdbID, renamePass, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, useNonStrictOnTVDBSpecials)
           break
         case 2:
           if ( isSpecialType ) {
-            log.finest "----------- Special Type Detected: Send to AniDB with ${anidbID}, tvdbID, renamePass:[${renamePass}]"
-            return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, renamePass, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score, animeOffLineDatabaseJsonObject, tvdbID, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+            Logging.log.info "----------- Special Type Detected: Send to AniDB with ${anidbID}, tvdbID, renamePass:[${renamePass}]"
+            return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, renamePass, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, tvdbID, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
           }
-          log.finest "----------- Send to AniDB with ${anidbID}, tvdbID:[${tvdbID}], renamePass:[1]"
-          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score, animeOffLineDatabaseJsonObject, tvdbID, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+          Logging.log.info "----------- Send to AniDB with ${anidbID}, tvdbID:[${tvdbID}], renamePass:[1]"
+          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, tvdbID, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
           break
         default:
-          println '//-----------------------------//'
-          println '//            STOP             //'
-          println '//-----------------------------//'
+          Logging.log.info '//-----------------------------//'
+          Logging.log.info '//            STOP             //'
+          Logging.log.info '//-----------------------------//'
           renameOptionsSet = true
           renameQuery = tvdbID
           performRename = false
@@ -1414,17 +1669,17 @@ LinkedHashMap renameOptionsForEpisodesUsingAnimeLists(File f, String preferredDB
       //      2: Send to renameOptionForAniDBAbsoluteEpisodes, renamePass:1, tvdbID
       switch (renamePass) {
         case 1:
-          log.finest "----------- Send to renameOptionForTVDBAirdateEpisodes with anidb:[${anidbID}], tvdbID:[${tvdbID}], renamePass:[${renamePass}]"
+          Logging.log.info "----------- Send to renameOptionForTVDBAirdateEpisodes with anidb:[${anidbID}], tvdbID:[${tvdbID}], renamePass:[${renamePass}]"
           return renameOptionForTVDBAirdateEpisodes(f, tvdbID, renamePass, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBSpecials, anidbMatchDetails, useNonStrictOnTVDBSpecials)
           break
         case 2:
-          log.finest "----------- Send to AniDB with ${anidbID}, tvdbID:[${tvdbID}], renamePass:[1]"
-          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score, animeOffLineDatabaseJsonObject, tvdbID, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+          Logging.log.info "----------- Send to AniDB with ${anidbID}, tvdbID:[${tvdbID}], renamePass:[1]"
+          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, tvdbID, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
           break
         default:
-          println '//-----------------------------//'
-          println '//            STOP             //'
-          println '//-----------------------------//'
+          Logging.log.info '//-----------------------------//'
+          Logging.log.info '//            STOP             //'
+          Logging.log.info '//-----------------------------//'
           renameOptionsSet = true
           renameQuery = tvdbID
           performRename = false
@@ -1449,32 +1704,32 @@ LinkedHashMap renameOptionsForEpisodesUsingAnimeLists(File f, String preferredDB
     //      1: Absolute Ordering, Send to renameOptionForTVDBAbsoluteEpisodes, renamePass, no AniDB
     //      1: Airdate Ordering, Send to renameOptionForTVDBAirdateEpisodes, renamePass, no AniDB
     //      2: Send to renameOptionForAniDBAbsoluteEpisodes, renamePass:1, no tvdbid, Reset isSpecialEpisode (AniDB matches tend to be a single Series, while TVDB Matches can often map to multiple AniDB Series)
-    println "--------- Mapping didn't match, returned TVDBID: ${myanimeListGetTVDBID}"
+    Logging.log.info "--------- Mapping didn't match, returned TVDBID: ${myanimeListGetTVDBID}"
     switch (renamePass){
       case 1:
         if ( preferAniDB ) {
-          log.finest "----------- Send to AniDB with ${anidbID}, No tvdbID, renamePass:[${renamePass}]"
-          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, renamePass, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+          Logging.log.info "----------- Send to AniDB with ${anidbID}, No tvdbID, renamePass:[${renamePass}]"
+          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, renamePass, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
         }
         if ( absoluteOrdering ) {
-          log.finest "----------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${tvdbID}], renamePass:[${renamePass}], anidb:[0]"
+          Logging.log.info "----------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${tvdbID}], renamePass:[${renamePass}], anidb:[0]"
           return renameOptionForTVDBAbsoluteEpisodes(f, emptyJWDMatchDetails ,tvdbID, renamePass, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, useNonStrictOnTVDBSpecials)
         } else {
-          log.finest "----------- Send to renameOptionForTVDBAirdateEpisodes with anidb:[0], tvdbID:[${tvdbID}], renamePass:[${renamePass}], anidb:[0]"
+          Logging.log.info "----------- Send to renameOptionForTVDBAirdateEpisodes with anidb:[0], tvdbID:[${tvdbID}], renamePass:[${renamePass}], anidb:[0]"
           return renameOptionForTVDBAirdateEpisodes(f, tvdbID, renamePass, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBSpecials, emptyJWDMatchDetails, useNonStrictOnTVDBSpecials)
         }
         break
       case 2:
         if ( preferAniDB ) {
-          log.finest "----------- Send to AniDB with ${anidbID}, No tvdbID, renamePass:[${renamePass}]"
+          Logging.log.info "----------- Send to AniDB with ${anidbID}, No tvdbID, renamePass:[${renamePass}]"
 //          log.finest "----------- Reset isSpecialEpisode"
 //          group.isSpecialEpisode = false
-          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, renamePass, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, renamePass, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
         }
-        log.finest "----------- Send to AniDB with ${anidbID}, No tvdbID, renamePass:[1]"
+        Logging.log.info "----------- Send to AniDB with ${anidbID}, No tvdbID, renamePass:[1]"
 //        log.finest "----------- Reset isSpecialEpisode"
 //        group.isSpecialEpisode = false
-        return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+        return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
 //        if ( absoluteOrdering ) {
 //          log.finest "----------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${tvdbID}], renamePass:[${renamePass}], anidb:[0]"
 //          return renameOptionForTVDBAbsoluteEpisodes(f, emptyJWDMatchDetails ,tvdbID, renamePass, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, useNonStrictOnTVDBSpecials)
@@ -1484,9 +1739,9 @@ LinkedHashMap renameOptionsForEpisodesUsingAnimeLists(File f, String preferredDB
 //        }
         break
       default:
-        println '//-----------------------------//'
-        println '//            STOP             //'
-        println '//-----------------------------//'
+        Logging.log.info '//-----------------------------//'
+        Logging.log.info '//            STOP             //'
+        Logging.log.info '//-----------------------------//'
         renameOptionsSet = true
         renameQuery = tvdbID
         performRename = false
@@ -1518,35 +1773,35 @@ LinkedHashMap renameOptionsForEpisodesUsingAnimeLists(File f, String preferredDB
  * @return [performRename: performRename, renameQuery: renameQuery, renameDB: renameDB, renameOrder: renameOrder, renameMapper: renameMapper, renameFilter: renameFilter, renameStrict: renameStrict, isSpecialEpisode: isSpecialEpisode, isSpecialType: isSpecialType, isMovieType: isMovieType]
  */
 LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMatchDetails, Integer tvdbID, Integer renamePass, JsonObject animeOffLineDatabaseJsonObject, LinkedHashMap group, Boolean hasSeasonality, Integer mySeasonalityNumber, Boolean useNonStrictOnAniDBFullMatch, Boolean useNonStrictOnAniDBSpecials, Boolean useNonStrictOnTVDBSpecials, Boolean processAsSpecial = false) {
-  println "//----- renameOptionForTVDBAbsoluteEpisodes"
+  Logging.log.info "//----- renameOptionForTVDBAbsoluteEpisodes"
   performRename = false
   Boolean renameOptionsSet = false
   Boolean isSpecialEpisode = group.isSpecialEpisode || processAsSpecial
   Boolean isMovieType = group.isMovieType || anidbMatchDetails.isMovieType
   Boolean isSpecialType = group.isSpecialType || anidbMatchDetails.isSpecialType
-  Integer myEpisodeSeason
+  Integer myEpisodeSeason = null
   def myAnimeListMapping
-  Boolean hasAnimeListMapping
+  Boolean hasAnimeListMapping = null
   String myanimeListGetTVDBSeason = 'n'
   Collection<Episode> myTVDBSeriespisodes = filebotTVDBgetEpisodeList(tvdbID)
   Episode doesItContainEpisode
-  Integer anidbID = anidbMatchDetails.dbid
+  Integer anidbID = anidbMatchDetails.dbid as Integer
   // Detect the episode number we are working with
-  String myEpisodeNumber = detectEpisodeNumberFromFile(f, false, true, false, false)
-  println "------- We have TVDB ID:[${tvdbID}]"
+  String myEpisodeNumber = detectEpisodeNumberFromFile(f, false, true, false, false, true)
+  Logging.log.info "------- We have TVDB ID:[${tvdbID}]"
   Boolean doesItHaveAbsoluteNumbering = myTVDBSeriespisodes.findAll { it.absolute }.size() != 0
   if ( anidbID > 0) {
     // Not all Mappings include a default Season, so filebotAnimeListReturnFromAID will return n if there is no mapping (vs null)
     myAnimeListMapping = filebotAnimeListReturnFromAID(anidbID, false, false) // Will return null if there is no Mapping
     hasAnimeListMapping = myAnimeListMapping != null
-//    println "--------- myAnimeListMapping ${myAnimeListMapping}"
-//    println "--------- hasAnimeListMapping ${hasAnimeListMapping}"
+    Logging.log.info "--------- myAnimeListMapping ${myAnimeListMapping}"
+    Logging.log.info "--------- hasAnimeListMapping ${hasAnimeListMapping}"
     myanimeListGetTVDBSeason = filebotAnimeListReturnFromAID(anidbID, false, true) // Will return null if there is no Mapping
     // defaulttvdbseason - The corresponding theTVDB.com season.
     // For one-off titles it will be 1 unless associated to a multi-episode series, in which case it will be 0.
     // Series that span multiple seasons on theTVDB.com may be marked as a if the absolute episode numbering is defined and matches AniDb.net.
     // If there is NO entry it will return n
-    println "--------- myanimeListGetTVDBSeason ${myanimeListGetTVDBSeason}"
+    Logging.log.info "--------- myanimeListGetTVDBSeason ${myanimeListGetTVDBSeason}"
   }
   if ( myEpisodeNumber == null ) {
     // EP # is Null
@@ -1558,7 +1813,7 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
     //            Y: Rename using TVDB
     //               - Filter to myanimeListGetTVDBSeason
     //            N: STOP
-    println '----------- Episode # detected as null'
+    Logging.log.info '----------- Episode # detected as null'
     switch (renamePass) {
       case 1:
         // EP # is Null
@@ -1570,38 +1825,38 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
         performRename = true
         renameDB = 'TheTVDB'
         renameOrder = 'Airdate'
-        renameMapper = renameMapperGenerator( group.order, 'tvdb' , doesItHaveAbsoluteNumbering, hasAnimeListMapping)
+        renameMapper = renameMapperGenerator(group.order as String, 'tvdb' , doesItHaveAbsoluteNumbering, hasAnimeListMapping)
         renameStrict = true
 //        renameMapper = group.order == 'airdate' ? '[episode, AnimeList.AniDB]' : '[order.absolute.episode, AnimeList.AniDB, episode]'
         renameFilter = ''
         if ( myanimeListGetTVDBSeason == 'n' || myanimeListGetTVDBSeason == 'a' ) {
-          println '--------- Animelist Mapping indicates no default TVDB Season or Animelist Mapping indicates Absolute Ordering in TVDB'
+          Logging.log.info '--------- Animelist Mapping indicates no default TVDB Season or Animelist Mapping indicates Absolute Ordering in TVDB'
           renameFilter = ''
         }
         if ( myanimeListGetTVDBSeason.isNumber() ) {
           if ( myanimeListGetTVDBSeason.toInteger() == 0 ) {
-            println "--------- Animelist Mapping indicates AID:[${anidbID}] maps to Specials in TVDB"
+            Logging.log.info "--------- Animelist Mapping indicates AID:[${anidbID}] maps to Specials in TVDB"
             isSpecialEpisode = true
           } else {
             if ( !hasSeasonality && !isSpecialEpisode) {
-              println "----- No Seasonality Detected, using myanimeListGetTVDBSeason:[${myanimeListGetTVDBSeason}] as a Season Filter"
+              Logging.log.info "----- No Seasonality Detected, using myanimeListGetTVDBSeason:[${myanimeListGetTVDBSeason}] as a Season Filter"
               renameFilter = "s == ${myanimeListGetTVDBSeason}"
               renameStrict = true
             }
           }
         }
         if (isSpecialEpisode ) {
-          println "--------- Specials however use filter of episode.special"
+          Logging.log.info "--------- Specials however use filter of episode.special"
           renameFilter = "episode.special"
           if ( (useNonStrictOnTVDBSpecials && (isSpecialEpisode || isSpecialType)) ) {
             renameStrict = false
-            println '------------- Set non-Strict renaming'
+            Logging.log.info '------------- Set non-Strict renaming'
           } else {
             renameStrict = true
           }
         }
         if ( hasSeasonality && !isSpecialEpisode) {
-          println "----- Seasonality Detected, using ${mySeasonalityNumber} as a Season Filter"
+          Logging.log.info "----- Seasonality Detected, using ${mySeasonalityNumber} as a Season Filter"
           renameFilter = "s == ${mySeasonalityNumber}"
           renameStrict = true
         }
@@ -1615,8 +1870,8 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
         //               - Filter to myanimeListGetTVDBSeason
         //            N: STOP
         if (anidbID > 0) {
-          log.finest "----------- Send to AniDB with ${anidbID}, No tvdbID, renamePass:[1]"
-          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+          Logging.log.info "----------- Send to AniDB with ${anidbID}, No tvdbID, renamePass:[1]"
+          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
         }
         if ( hasSeasonality ) {
           myEpisodeNumber = 0 // Else the checks following will blow up
@@ -1625,39 +1880,39 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
           performRename = true
           renameDB = 'TheTVDB'
           renameOrder = 'Airdate'
-          renameMapper = renameMapperGenerator( group.order, 'tvdb' , doesItHaveAbsoluteNumbering, hasAnimeListMapping)
+          renameMapper = renameMapperGenerator(group.order as String, 'tvdb' , doesItHaveAbsoluteNumbering, hasAnimeListMapping)
 //          renameMapper = '[AnimeList.AniDB, episode, order.absolute.episode]'
           renameFilter = ''
           if ( myanimeListGetTVDBSeason == 'n' || myanimeListGetTVDBSeason == 'a' ) {
-            println '--------- Animelist Mapping indicates no default TVDB Season or Animelist Mapping indicates Absolute Ordering in TVDB'
+            Logging.log.info '--------- Animelist Mapping indicates no default TVDB Season or Animelist Mapping indicates Absolute Ordering in TVDB'
             renameFilter = ''
           }
           if ( myanimeListGetTVDBSeason.isNumber() ) {
             if ( myanimeListGetTVDBSeason.toInteger() == 0 ) {
-              println "--------- Animelist Mapping indicates AID:[${anidbID}] maps to Specials in TVDB"
+              Logging.log.info "--------- Animelist Mapping indicates AID:[${anidbID}] maps to Specials in TVDB"
               isSpecialEpisode = true
             } else {
               if ( !isSpecialEpisode) {
-                println "----- Using myanimeListGetTVDBSeason:[${myanimeListGetTVDBSeason}] as a Season Filter"
+                Logging.log.info "----- Using myanimeListGetTVDBSeason:[${myanimeListGetTVDBSeason}] as a Season Filter"
                 renameFilter = "s == ${myanimeListGetTVDBSeason}"
                 renameStrict = true
               }
             }
           }
           if (isSpecialEpisode ) {
-            println "--------- Specials however use filter of episode.special"
+            Logging.log.info "--------- Specials however use filter of episode.special"
             renameFilter = "episode.special"
             if ( (useNonStrictOnTVDBSpecials && (isSpecialEpisode || isSpecialType)) ) {
               renameStrict = false
-              println '------------- Set non-Strict renaming'
+              Logging.log.info '------------- Set non-Strict renaming'
             } else {
               renameStrict = true
             }
           }
         } else {
-          println '//-----------------------------//'
-          println '//            STOP             //'
-          println '//-----------------------------//'
+          Logging.log.info '//-----------------------------//'
+          Logging.log.info '//            STOP             //'
+          Logging.log.info '//-----------------------------//'
           renameOptionsSet = true
           renameQuery = ''
           performRename = false
@@ -1669,9 +1924,9 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
         }
         break
       default:
-        println '//-----------------------------//'
-        println '//            STOP             //'
-        println '//-----------------------------//'
+        Logging.log.info '//-----------------------------//'
+        Logging.log.info '//            STOP             //'
+        Logging.log.info '//-----------------------------//'
         renameOptionsSet = true
         renameQuery = ''
         performRename = false
@@ -1684,7 +1939,7 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
     }
   }
   if ( !renameOptionsSet && (myEpisodeNumber =~ /\d{1,3}\.\d{1,3}/ || myEpisodeNumber.toInteger() == 0)) {
-    println "--------- myEpisodeNumber:[${myEpisodeNumber}] indicates a special"
+    Logging.log.info "--------- myEpisodeNumber:[${myEpisodeNumber}] indicates a special"
     //    1: Rename using TVDB
     //    2:  AniDB?
     //        Y: Send to renameOptionForAniDBAbsoluteEpisodes, anidbID, renamePass:1, no tvdbID
@@ -1692,22 +1947,22 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
     switch (renamePass) {
       case 1:
         if ( anidbID ) {
-          log.finest "----------- Send to AniDB with ${anidbID}, tvdbid:[${tvdbID}], renamePass:[1]"
-          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score, animeOffLineDatabaseJsonObject, tvdbID, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+          Logging.log.info "----------- Send to AniDB with ${anidbID}, tvdbid:[${tvdbID}], renamePass:[1]"
+          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, tvdbID, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
         } else {
-          log.finest "----------- Use TVDB"
+          Logging.log.info "----------- Use TVDB"
           isSpecialEpisode = true
           renameQuery = tvdbID
           renameOptionsSet = true
           performRename = true
           renameDB = 'TheTVDB'
           renameOrder = 'Airdate'
-          renameMapper = renameMapperGenerator( group.order, 'tvdb' , doesItHaveAbsoluteNumbering, hasAnimeListMapping)
+          renameMapper = renameMapperGenerator(group.order as String, 'tvdb' , doesItHaveAbsoluteNumbering, hasAnimeListMapping)
 //          renameMapper = group.order == 'airdate' ? '[episode, AnimeList.AniDB]' : '[order.absolute.episode, AnimeList.AniDB, episode]'
           renameFilter = "episode.special"
           if ( (useNonStrictOnTVDBSpecials && (isSpecialEpisode || isSpecialType)) ) {
             renameStrict = false
-            println '------------- Set non-Strict renaming'
+            Logging.log.info '------------- Set non-Strict renaming'
           } else {
             renameStrict = true
           }
@@ -1715,12 +1970,12 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
         break
       case 2:
         if ( anidbID ) {
-          log.finest "----------- Send to AniDB with ${anidbID}, No tvdbID, renamePass:[1]"
-          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+          Logging.log.info "----------- Send to AniDB with ${anidbID}, No tvdbID, renamePass:[1]"
+          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
         } else {
-          println '//-----------------------------//'
-          println '//            STOP             //'
-          println '//-----------------------------//'
+          Logging.log.info '//-----------------------------//'
+          Logging.log.info '//            STOP             //'
+          Logging.log.info '//-----------------------------//'
           renameOptionsSet = true
           renameQuery = ''
           performRename = false
@@ -1732,9 +1987,9 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
         }
         break
       default:
-        println '//-----------------------------//'
-        println '//            STOP             //'
-        println '//-----------------------------//'
+        Logging.log.info '//-----------------------------//'
+        Logging.log.info '//            STOP             //'
+        Logging.log.info '//-----------------------------//'
         renameOptionsSet = true
         renameQuery = ''
         performRename = false
@@ -1751,44 +2006,44 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
     doesItContainEpisode = filebotTVDBSeasonContainsEpisodeNumber(myTVDBSeriespisodes, myEpisodeNumber.toInteger(), 'absolute', true, 0, 'exclude')
     if ( doesItContainEpisode != null ) {
       if ( doesItContainEpisode.season == null ) {
-        println "----------- Detected TVDB Absolute Episode Does not have a Season[${doesItContainEpisode.season}], Perhaps a Special?"
+        Logging.log.info "----------- Detected TVDB Absolute Episode Does not have a Season[${doesItContainEpisode.season}], Perhaps a Special?"
         myEpisodeSeason = 0
       } else {
-        println "----------- Detected TVDB Absolute Episode Season ${doesItContainEpisode.season}"
+        Logging.log.info "----------- Detected TVDB Absolute Episode Season ${doesItContainEpisode.season}"
         myEpisodeSeason =  doesItContainEpisode.season
       }
     } else {
-      println "----------- Detected TVDB Absolute Episode Number:[${myEpisodeNumber}] does not seem to be in TVDB Absolute Episode List:[${myTVDBSeriespisodes.findAll { it.absolute != null  }.size()}]"
+      Logging.log.info "----------- Detected TVDB Absolute Episode Number:[${myEpisodeNumber}] does not seem to be in TVDB Absolute Episode List:[${myTVDBSeriespisodes.findAll { it.absolute != null  }.size()}]"
       if ( anidbID > 0 ) {
         if ( myanimeListGetTVDBSeason != null ) {
-          println "--------- Checking if we can determine if Episode Number:[${myEpisodeNumber}] is a special for Season ${myanimeListGetTVDBSeason}"
+          Logging.log.info "--------- Checking if we can determine if Episode Number:[${myEpisodeNumber}] is a special for Season ${myanimeListGetTVDBSeason}"
         } else {
-          println "----------- We have AniDBID:[${anidbID}], Checking if we can determine if Episode Number:[${myEpisodeNumber}] is a special"
+          Logging.log.info "----------- We have AniDBID:[${anidbID}], Checking if we can determine if Episode Number:[${myEpisodeNumber}] is a special"
         }
         def myAniDBEpisodeCount = aniDBGetEpisodeNumberForAID(animeOffLineDatabaseJsonObject, anidbID)
         if (myEpisodeNumber.toInteger() <= myAniDBEpisodeCount ) {
-          println "----------- Episode Number:[${myEpisodeNumber}] is within AniDB Episode Count range:[${myAniDBEpisodeCount}] for AniDBID:[${anidbID}]"
-          println "----------- Perhaps this is due to differences in how each service counts episodes?"
-          println "----------- Set no options to allow for futher processing.."
+          Logging.log.info "----------- Episode Number:[${myEpisodeNumber}] is within AniDB Episode Count range:[${myAniDBEpisodeCount}] for AniDBID:[${anidbID}]"
+          Logging.log.info "----------- Perhaps this is due to differences in how each service counts episodes?"
+          Logging.log.info "----------- Set no options to allow for futher processing.."
         }
         if (myEpisodeNumber.toInteger() > myAniDBEpisodeCount ) {
-          println "----------- Episode Number:[${myEpisodeNumber}] is GREATER then Regular AniDB Episode Count range:[${myAniDBEpisodeCount}]"
+          Logging.log.info "----------- Episode Number:[${myEpisodeNumber}] is GREATER then Regular AniDB Episode Count range:[${myAniDBEpisodeCount}]"
           def myAniDBEpisodeCountWithSpecials = filebotAniDBEpisodeCount(filebotAniDBgetEpisodeList(anidbID, 'include'))
           if ( myEpisodeNumber.toInteger() > myAniDBEpisodeCountWithSpecials ) {
-            println "----------- Episode Number:[${myEpisodeNumber}] is GREATER then AniDB Episode Count WITH Specials range:[${myAniDBEpisodeCountWithSpecials}]"
-            println "----------- Likely TVDB Absolute Ordered"
-            println "----------- Set no options to allow for futher processing.."
+            Logging.log.info "----------- Episode Number:[${myEpisodeNumber}] is GREATER then AniDB Episode Count WITH Specials range:[${myAniDBEpisodeCountWithSpecials}]"
+            Logging.log.info "----------- Likely TVDB Absolute Ordered"
+            Logging.log.info "----------- Set no options to allow for futher processing.."
           } else {
-            println "----------- Episode Number:[${myEpisodeNumber}] is less then AniDB Episode Count WITH Specials range:[${myAniDBEpisodeCountWithSpecials}]"
-            println "----------- Episode Number:[${myEpisodeNumber}] is probably a special"
+            Logging.log.info "----------- Episode Number:[${myEpisodeNumber}] is less then AniDB Episode Count WITH Specials range:[${myAniDBEpisodeCountWithSpecials}]"
+            Logging.log.info "----------- Episode Number:[${myEpisodeNumber}] is probably a special"
             //    1: Rename using TVDB
             //    2:  AniDB?
             //        Y: Send to renameOptionForAniDBAbsoluteEpisodes, anidbID, renamePass:1, no tvdbID
             //        N: Stop
             switch (renamePass) {
               case 1:
-                log.finest "----------- Send to AniDB with ${anidbID}, tvdbID:[${tvdbID}], renamePass:[1]"
-                return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score, animeOffLineDatabaseJsonObject, tvdbID, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+                Logging.log.info "----------- Send to AniDB with ${anidbID}, tvdbID:[${tvdbID}], renamePass:[1]"
+                return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, tvdbID, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
 //                isSpecialEpisode = true
 //                renameQuery = tvdbID
 //                renameOptionsSet = true
@@ -1799,19 +2054,19 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
 //                renameFilter = "episode.special"
 //                if ( (useNonStrictOnTVDBSpecials && ( isSpecialEpisode || isSpecialType)) ) {
 //                  renameStrict = false
-//                  println '------------- Set non-Strict renaming'
+//                  Logging.log.info '------------- Set non-Strict renaming'
 //                } else {
 //                  renameStrict = true
 //                }
                 break
               case 2:
-                log.finest "----------- Send to AniDB with ${anidbID}, No tvdbID, renamePass:[1]"
-                return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+                Logging.log.info "----------- Send to AniDB with ${anidbID}, No tvdbID, renamePass:[1]"
+                return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
                 break
               default:
-                println '//-----------------------------//'
-                println '//            STOP             //'
-                println '//-----------------------------//'
+                Logging.log.info '//-----------------------------//'
+                Logging.log.info '//            STOP             //'
+                Logging.log.info '//-----------------------------//'
                 renameOptionsSet = true
                 renameQuery = ''
                 performRename = false
@@ -1825,7 +2080,7 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
           }
         }
       } else {
-        println "----------- Allow for further processing.."
+        Logging.log.info "----------- Allow for further processing.."
       }
     }
   }
@@ -1834,7 +2089,7 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
     //    2:  AniDB?
     //        Y: Send to renameOptionForAniDBAbsoluteEpisodes, anidbID, renamePass:1, no tvdbID
     //        N: Stop
-    println '----------- 3-Digit Episode detected, use Episode Filtering'
+    Logging.log.info '----------- 3-Digit Episode detected, use Episode Filtering'
     // For some reason 3 digit episodes match incorrectly a good portion of the time..
     // For These episodes just set the filter to the episode # and see if that at least cuts down
     // the incorrect matches
@@ -1849,19 +2104,19 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
         renameFilter = "e == ${myEpisodeNumber}" // e == # doesn't work when using Airdate order, would need S and E notation ..
         if ( (useNonStrictOnAniDBFullMatch && anidbMatchDetails.score == 1 ) || (useNonStrictOnTVDBSpecials && ( isSpecialEpisode || isSpecialType)) ) {
           renameStrict = false
-          println '------------- Set non-Strict renaming'
+          Logging.log.info '------------- Set non-Strict renaming'
         } else {
           renameStrict = true
         }
         break
       case 2:
         if ( anidbID ) {
-          log.finest "----------- Send to AniDB with ${anidbID}, No tvdbID, renamePass:[1]"
-          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+          Logging.log.info "----------- Send to AniDB with ${anidbID}, No tvdbID, renamePass:[1]"
+          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
         } else {
-          println '//-----------------------------//'
-          println '//            STOP             //'
-          println '//-----------------------------//'
+          Logging.log.info '//-----------------------------//'
+          Logging.log.info '//            STOP             //'
+          Logging.log.info '//-----------------------------//'
           renameOptionsSet = true
           renameQuery = ''
           performRename = false
@@ -1873,9 +2128,9 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
         }
         break
       default:
-        println '//-----------------------------//'
-        println '//            STOP             //'
-        println '//-----------------------------//'
+        Logging.log.info '//-----------------------------//'
+        Logging.log.info '//            STOP             //'
+        Logging.log.info '//-----------------------------//'
         renameOptionsSet = true
         renameQuery = ''
         performRename = false
@@ -1893,7 +2148,7 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
       //    2:  AniDB?
       //        Y: Send to renameOptionForAniDBAbsoluteEpisodes, anidbID, renamePass:1, no tvdbID
       //        N: Stop
-      println '--------- Animelist Mapping indicates no default TVDB Season'
+      Logging.log.info '--------- Animelist Mapping indicates no default TVDB Season'
       switch (renamePass) {
         case 1:
           renameQuery = tvdbID
@@ -1901,39 +2156,39 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
           performRename = true
           renameDB = 'TheTVDB'
           renameOrder = 'Airdate'
-          renameMapper = renameMapperGenerator( group.order, 'tvdb' , doesItHaveAbsoluteNumbering, hasAnimeListMapping)
+          renameMapper = renameMapperGenerator(group.order as String, 'tvdb' , doesItHaveAbsoluteNumbering, hasAnimeListMapping)
 //          renameMapper = group.order == 'airdate' ? '[episode, AnimeList.AniDB]' : '[order.absolute.episode, AnimeList.AniDB, episode]'
           renameFilter = ""
           if ( myanimeListGetTVDBSeason.isNumber() ) {
             if ( !hasSeasonality && !isSpecialEpisode) {
-              println "----- No Seasonality Detected, using myanimeListGetTVDBSeason:[${myanimeListGetTVDBSeason}] as a Season Filter"
+              Logging.log.info "----- No Seasonality Detected, using myanimeListGetTVDBSeason:[${myanimeListGetTVDBSeason}] as a Season Filter"
               renameFilter = "s == ${myanimeListGetTVDBSeason}"
               renameStrict = true
             }
           }
           if (isSpecialEpisode ) {
-            println "--------- Specials Episodes however use filter of episode.special"
+            Logging.log.info "--------- Specials Episodes however use filter of episode.special"
             renameFilter = "episode.special"
           }
           if ( hasSeasonality && !isSpecialEpisode) {
-            println "----- Seasonality Detected, using ${mySeasonalityNumber} as a Season Filter"
+            Logging.log.info "----- Seasonality Detected, using ${mySeasonalityNumber} as a Season Filter"
             renameFilter = "s == ${mySeasonalityNumber}"
           }
           if ( (useNonStrictOnAniDBFullMatch && anidbMatchDetails.score  == 1 ) || (useNonStrictOnTVDBSpecials && ( isSpecialEpisode || isSpecialType)) ) {
             renameStrict = false
-            println '------------- Set non-Strict renaming'
+            Logging.log.info '------------- Set non-Strict renaming'
           } else {
             renameStrict = true
           }
           break
         case 2:
           if ( anidbID ) {
-            log.finest "----------- Send to AniDB with ${anidbID}, No tvdbID, renamePass:[1]"
-            return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+            Logging.log.info "----------- Send to AniDB with ${anidbID}, No tvdbID, renamePass:[1]"
+            return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
           } else {
-            println '//-----------------------------//'
-            println '//            STOP             //'
-            println '//-----------------------------//'
+            Logging.log.info '//-----------------------------//'
+            Logging.log.info '//            STOP             //'
+            Logging.log.info '//-----------------------------//'
             renameOptionsSet = true
             renameQuery = ''
             performRename = false
@@ -1945,9 +2200,9 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
           }
           break
         default:
-          println '//-----------------------------//'
-          println '//            STOP             //'
-          println '//-----------------------------//'
+          Logging.log.info '//-----------------------------//'
+          Logging.log.info '//            STOP             //'
+          Logging.log.info '//-----------------------------//'
           renameOptionsSet = true
           renameQuery = ''
           performRename = false
@@ -1964,7 +2219,7 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
       //    2:  AniDB?
       //        Y: Send to renameOptionForAniDBAbsoluteEpisodes, anidbID, renamePass:1, no tvdbID
       //        N: Stop
-      println '--------- Animelist Mapping indicates Absolute Ordering in TVDB'
+      Logging.log.info '--------- Animelist Mapping indicates Absolute Ordering in TVDB'
       switch (renamePass) {
         case 1:
           renameQuery = tvdbID
@@ -1972,38 +2227,38 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
           performRename = true
           renameDB = 'TheTVDB'
           renameOrder = 'Airdate'
-          renameMapper = renameMapperGenerator( group.order, 'tvdb' , doesItHaveAbsoluteNumbering, hasAnimeListMapping)
+          renameMapper = renameMapperGenerator(group.order as String, 'tvdb' , doesItHaveAbsoluteNumbering, hasAnimeListMapping)
 //          renameMapper = group.order == 'airdate' ? '[episode, AnimeList.AniDB]' : '[order.absolute.episode, AnimeList.AniDB, episode]'
           if ( myanimeListGetTVDBSeason.isNumber() ) {
             if ( !hasSeasonality && !isSpecialEpisode) {
-              println "----- No Seasonality Detected, using myanimeListGetTVDBSeason:[${myanimeListGetTVDBSeason}] as a Season Filter"
+              Logging.log.info "----- No Seasonality Detected, using myanimeListGetTVDBSeason:[${myanimeListGetTVDBSeason}] as a Season Filter"
               renameFilter = "s == ${mySeasonalityNumber}"
               renameStrict = true
             }
           }
           if (isSpecialEpisode ) {
-            println "--------- Specials Episodes however use filter of episode.special"
+            Logging.log.info "--------- Specials Episodes however use filter of episode.special"
             renameFilter = "episode.special"
           }
           if ( hasSeasonality && !isSpecialEpisode) {
-            println "----- Seasonality Detected, using ${mySeasonalityNumber} as a Season Filter"
+            Logging.log.info "----- Seasonality Detected, using ${mySeasonalityNumber} as a Season Filter"
             renameFilter = "s == ${mySeasonalityNumber}"
           }
           if ( (useNonStrictOnAniDBFullMatch && anidbMatchDetails.score == 1 ) || (useNonStrictOnTVDBSpecials && (isSpecialEpisode || isSpecialType)) ) {
             renameStrict = false
-            println '------------- Set non-Strict renaming'
+            Logging.log.info '------------- Set non-Strict renaming'
           } else {
             renameStrict = true
           }
           break
         case 2:
           if ( anidbID ) {
-            log.finest "----------- Send to AniDB with ${anidbID}, No tvdbID, renamePass:[1]"
-            return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+            Logging.log.info "----------- Send to AniDB with ${anidbID}, No tvdbID, renamePass:[1]"
+            return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
           } else {
-            println '//-----------------------------//'
-            println '//            STOP             //'
-            println '//-----------------------------//'
+            Logging.log.info '//-----------------------------//'
+            Logging.log.info '//            STOP             //'
+            Logging.log.info '//-----------------------------//'
             renameOptionsSet = true
             renameQuery = ''
             performRename = false
@@ -2015,9 +2270,9 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
           }
           break
         default:
-          println '//-----------------------------//'
-          println '//            STOP             //'
-          println '//-----------------------------//'
+          Logging.log.info '//-----------------------------//'
+          Logging.log.info '//            STOP             //'
+          Logging.log.info '//-----------------------------//'
           renameOptionsSet = true
           renameQuery = ''
           performRename = false
@@ -2030,8 +2285,8 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
       }
     }
     if ( !renameOptionsSet && myEpisodeSeason == null ) {
-      println "--------- Episode Season:[${myEpisodeSeason}], But AnimeListSeason:[${myanimeListGetTVDBSeason}] indicates a Season "
-      println "--------- Possible Special for that Season (TVDB Specials usually don't map to AniDB)"
+      Logging.log.info "--------- Episode Season:[${myEpisodeSeason}], But AnimeListSeason:[${myanimeListGetTVDBSeason}] indicates a Season "
+      Logging.log.info "--------- Possible Special for that Season (TVDB Specials usually don't map to AniDB)"
       //    1: Rename using TVDB
       //    2:  AniDB?
       //        Y: Send to renameOptionForAniDBAbsoluteEpisodes, anidbID, renamePass:1, no tvdbID
@@ -2039,22 +2294,22 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
       switch (renamePass) {
         case 1:
           if ( anidbID ) {
-            log.finest "----------- Send to AniDB with ${anidbID}, tvdbID:[0], renamePass:[1]"
-            return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+            Logging.log.info "----------- Send to AniDB with ${anidbID}, tvdbID:[0], renamePass:[1]"
+            return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
           } else {
-            log.finest "--------- Use TVDB"
+            Logging.log.info "--------- Use TVDB"
             isSpecialEpisode = true
             renameQuery = tvdbID
             renameOptionsSet = true
             performRename = true
             renameDB = 'TheTVDB'
             renameOrder = 'Airdate'
-            renameMapper = renameMapperGenerator( group.order, 'tvdb' , doesItHaveAbsoluteNumbering, hasAnimeListMapping)
+            renameMapper = renameMapperGenerator(group.order as String, 'tvdb' , doesItHaveAbsoluteNumbering, hasAnimeListMapping)
 //            renameMapper = group.order == 'airdate' ? '[episode, AnimeList.AniDB]' : '[order.absolute.episode, episode, AnimeList.AniDB]'
             renameFilter = "episode.special"
             if ( (useNonStrictOnTVDBSpecials && (isSpecialEpisode || isSpecialType)) ) {
               renameStrict = false
-              println '------------- Set non-Strict renaming'
+              Logging.log.info '------------- Set non-Strict renaming'
             } else {
               renameStrict = true
             }
@@ -2062,12 +2317,12 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
           break
         case 2:
           if ( anidbID ) {
-            log.finest "----------- Send to AniDB with ${anidbID}, No tvdbID, renamePass:[1]"
-            return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+            Logging.log.info "----------- Send to AniDB with ${anidbID}, No tvdbID, renamePass:[1]"
+            return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
           } else {
-            println '//-----------------------------//'
-            println '//            STOP             //'
-            println '//-----------------------------//'
+            Logging.log.info '//-----------------------------//'
+            Logging.log.info '//            STOP             //'
+            Logging.log.info '//-----------------------------//'
             renameOptionsSet = true
             renameQuery = ''
             performRename = false
@@ -2079,9 +2334,9 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
           }
           break
         default:
-          println '//-----------------------------//'
-          println '//            STOP             //'
-          println '//-----------------------------//'
+          Logging.log.info '//-----------------------------//'
+          Logging.log.info '//            STOP             //'
+          Logging.log.info '//-----------------------------//'
           renameOptionsSet = true
           renameQuery = ''
           performRename = false
@@ -2094,7 +2349,7 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
       }
     }
     if ( !renameOptionsSet && myanimeListGetTVDBSeason.toInteger() == 0  || myEpisodeSeason == 0) {
-      println "--------- Animelist Mapping indicates AID:[${anidbID}] maps to Specials in TVDB or myEpisodeSeason:[${myEpisodeSeason}] does"
+      Logging.log.info "--------- Animelist Mapping indicates AID:[${anidbID}] maps to Specials in TVDB or myEpisodeSeason:[${myEpisodeSeason}] does"
       //    1: Rename using TVDB
       //    2:  AniDB?
       //        Y: Send to renameOptionForAniDBAbsoluteEpisodes, anidbID, renamePass:1, no tvdbID
@@ -2107,24 +2362,24 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
           performRename = true
           renameDB = 'TheTVDB'
           renameOrder = 'Airdate'
-          renameMapper = renameMapperGenerator( group.order, 'tvdb' , doesItHaveAbsoluteNumbering, hasAnimeListMapping)
+          renameMapper = renameMapperGenerator(group.order as String, 'tvdb' , doesItHaveAbsoluteNumbering, hasAnimeListMapping)
 //          renameMapper = group.order == 'airdate' ? '[episode, AnimeList.AniDB]' : '[order.absolute.episode, AnimeList.AniDB, episode]'
           renameFilter = "episode.special"
           if ( (useNonStrictOnTVDBSpecials && (isSpecialEpisode || isSpecialType)) ) {
             renameStrict = false
-            println '------------- Set non-Strict renaming'
+            Logging.log.info '------------- Set non-Strict renaming'
           } else {
             renameStrict = true
           }
           break
         case 2:
           if ( anidbID ) {
-            log.finest "----------- Send to AniDB with ${anidbID}, No tvdbID, renamePass:[1]"
-            return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+            Logging.log.info "----------- Send to AniDB with ${anidbID}, No tvdbID, renamePass:[1]"
+            return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
           } else {
-            println '//-----------------------------//'
-            println '//            STOP             //'
-            println '//-----------------------------//'
+            Logging.log.info '//-----------------------------//'
+            Logging.log.info '//            STOP             //'
+            Logging.log.info '//-----------------------------//'
             renameOptionsSet = true
             renameQuery = ''
             performRename = false
@@ -2136,9 +2391,9 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
           }
           break
         default:
-          println '//-----------------------------//'
-          println '//            STOP             //'
-          println '//-----------------------------//'
+          Logging.log.info '//-----------------------------//'
+          Logging.log.info '//            STOP             //'
+          Logging.log.info '//-----------------------------//'
           renameOptionsSet = true
           renameQuery = ''
           performRename = false
@@ -2151,17 +2406,17 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
       }
     }
     if ( !renameOptionsSet && myEpisodeSeason == myanimeListGetTVDBSeason.toInteger() ) {
-      println "--------- Episode Season:[${myEpisodeSeason}] matches AnimeListSeason:[${myanimeListGetTVDBSeason}]"
+      Logging.log.info "--------- Episode Season:[${myEpisodeSeason}] matches myanimeListGetTVDBSeason:[${myanimeListGetTVDBSeason}]"
 //      if (hasSeasonality) {
 //        if ( myEpisodeSeason < mySeasonalityNumber ) {
-          println "----------- Episode Season:[${myEpisodeSeason}] less then mySeasonalityNumber:[${mySeasonalityNumber}]"
+//          Logging.log.info "----------- Episode Season:[${myEpisodeSeason}] less then mySeasonalityNumber:[${mySeasonalityNumber}]"
           if ( myAnimeListMapping.episodeoffset != null ) {
-            println "----------- myAnimeListMapping indicates an Episode Offset"
+            Logging.log.info "----------- myAnimeListMapping indicates an Episode Offset"
             if ( myEpisodeNumber.toInteger() <= myAnimeListMapping.episodeoffset.toInteger() ) {
               renameOptionsSet = true
-              println "------------- Probably Normal AniDB Absolute Ordering, which will likely not match correctly using TVDB"
-              println "------------- Send to renameOptionForAniDBAbsoluteEpisodes - anidbID:[${anidbID}], renamePass:[${renamePass}], tvdbID:[${tvdbID}]"
-              return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, renamePass, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score, animeOffLineDatabaseJsonObject, tvdbID, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+              Logging.log.info "------------- Probably Normal AniDB Absolute Ordering, which will likely not match correctly using TVDB"
+              Logging.log.info "------------- Send to renameOptionForAniDBAbsoluteEpisodes - anidbID:[${anidbID}], renamePass:[${renamePass}], tvdbID:[${tvdbID}]"
+              return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, renamePass, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, tvdbID, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
             }
           }
 //        }
@@ -2175,20 +2430,20 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
           performRename = true
           renameDB = 'TheTVDB'
           renameOrder = 'Airdate'
-          renameMapper = renameMapperGenerator( group.order, 'tvdb' , doesItHaveAbsoluteNumbering, hasAnimeListMapping)
+          renameMapper = renameMapperGenerator(group.order as String, 'tvdb' , doesItHaveAbsoluteNumbering, hasAnimeListMapping)
 //          renameMapper = group.order == 'airdate' ? '[episode, AnimeList.AniDB]' : '[order.absolute.episode, AnimeList.AniDB, episode]'
           renameFilter = "s == ${myEpisodeSeason}"
           renameStrict = true
           break
         case 2:
           renameOptionsSet = true
-          println "------------- Checking AniDB ${myanimeListGetTVDBID} - no tvdbID"
-          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+          Logging.log.info "------------- Checking AniDB ${myanimeListGetTVDBID} - no tvdbID"
+          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
           break
         default:
-          println '//-----------------------------//'
-          println '//            STOP             //'
-          println '//-----------------------------//'
+          Logging.log.info '//-----------------------------//'
+          Logging.log.info '//            STOP             //'
+          Logging.log.info '//-----------------------------//'
           renameOptionsSet = true
           renameQuery = tvdbID
           performRename = false
@@ -2201,21 +2456,21 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
       }
     }
     if ( !renameOptionsSet && myEpisodeSeason < myanimeListGetTVDBSeason.toInteger() ) {
-      println "--------- Episode Season:[${myEpisodeSeason}] < AnimeListSeason:[${myanimeListGetTVDBSeason}]"
+      Logging.log.info "--------- Episode Season:[${myEpisodeSeason}] < myanimeListGetTVDBSeason:[${myanimeListGetTVDBSeason}]"
       // Possibly NOT TVDB Absolute Ordering. So it's either Relative Season absolute or Normal AniDB Absolute or wrong AID or just a special..
       if ( myAnimeListMapping.episodeoffset != null ) {
-        println "----------- myAnimeListMapping indicates an Episode Offset"
+        Logging.log.info "----------- myAnimeListMapping indicates an Episode Offset"
         if ( myEpisodeNumber.toInteger() <= myAnimeListMapping.episodeoffset.toInteger() ) {
           // Possibly normal AniDB Absolute Ordering. (Why didn't it already match?)
           renameOptionsSet = true
-          println "------------- Probably Normal AniDB Absolute Ordering, which will likely not match correctly using TVDB"
-          println "------------- Send to renameOptionForAniDBAbsoluteEpisodes - anidbID:[${anidbID}], renamePass:[1], tvdbID:[${tvdbID}]"
-          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score, animeOffLineDatabaseJsonObject, tvdbID, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+          Logging.log.info "------------- Probably Normal AniDB Absolute Ordering, which will likely not match correctly using TVDB"
+          Logging.log.info "------------- Send to renameOptionForAniDBAbsoluteEpisodes - anidbID:[${anidbID}], renamePass:[1], tvdbID:[${tvdbID}]"
+          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, tvdbID, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
         }
       } else {
-        println "--------- No Episode Offset for Animelist Season"
+        Logging.log.info "--------- No Episode Offset for Animelist Season"
         if ( isSpecialEpisode ) {
-          println "----------- Because it is a Special (perhaps AniDB Absolute Ordered Special)"
+          Logging.log.info "----------- Because it is a Special (perhaps AniDB Absolute Ordered Special)"
           switch (renamePass) {
             case 1:
               renameQuery = tvdbID
@@ -2223,24 +2478,24 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
               performRename = true
               renameDB = 'TheTVDB'
               renameOrder = 'Airdate'
-              renameMapper = renameMapperGenerator( group.order, 'tvdb' , doesItHaveAbsoluteNumbering, hasAnimeListMapping)
+              renameMapper = renameMapperGenerator(group.order as String, 'tvdb' , doesItHaveAbsoluteNumbering, hasAnimeListMapping)
 //              renameMapper = group.order == 'airdate' ? '[episode, AnimeList.AniDB]' : '[order.absolute.episode, AnimeList.AniDB, episode]'
               renameFilter = "episode.special"
               if ( (useNonStrictOnTVDBSpecials && (isSpecialEpisode || isSpecialType)) ) {
                 renameStrict = false
-                println '------------- Set non-Strict renaming'
+                Logging.log.info '------------- Set non-Strict renaming'
               } else {
                 renameStrict = true
               }
               break
             case 2:
               if ( anidbID > 0 ) {
-                log.finest "----------- Send to AniDB with ${anidbID}, No tvdbID, renamePass:[1]"
-                return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+                Logging.log.info "----------- Send to AniDB with ${anidbID}, No tvdbID, renamePass:[1]"
+                return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
               } else {
-                println '//-----------------------------//'
-                println '//            STOP             //'
-                println '//-----------------------------//'
+                Logging.log.info '//-----------------------------//'
+                Logging.log.info '//            STOP             //'
+                Logging.log.info '//-----------------------------//'
                 renameOptionsSet = true
                 renameQuery = ''
                 performRename = false
@@ -2252,9 +2507,9 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
               }
               break
             default:
-              println '//-----------------------------//'
-              println '//            STOP             //'
-              println '//-----------------------------//'
+              Logging.log.info '//-----------------------------//'
+              Logging.log.info '//            STOP             //'
+              Logging.log.info '//-----------------------------//'
               renameOptionsSet = true
               renameQuery = ''
               performRename = false
@@ -2281,12 +2536,12 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
             break
           case 2:
             renameMapper = 'order.absolute.episode.derive(e)'
-            renameFilter = hasSeasonality == true ? "s == ${mySeasonalityNumber}" : "s == ${myEpisodeSeason}"
+            renameFilter = hasSeasonality ? "s == ${mySeasonalityNumber}" : "s == ${myEpisodeSeason}"
             break
           default:
-            println '//-----------------------------//'
-            println '//            STOP             //'
-            println '//-----------------------------//'
+            Logging.log.info '//-----------------------------//'
+            Logging.log.info '//            STOP             //'
+            Logging.log.info '//-----------------------------//'
             renameOptionsSet = true
             renameQuery = tvdbID
             performRename = false
@@ -2301,7 +2556,7 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
       }
     }
     if ( !renameOptionsSet && myEpisodeSeason > myanimeListGetTVDBSeason.toInteger() ) {
-      println "--------- Episode Season:[${myEpisodeSeason}] > AnimeListSeason:[${myanimeListGetTVDBSeason}]"
+      Logging.log.info "--------- Episode Season:[${myEpisodeSeason}] > myanimeListGetTVDBSeason:[${myanimeListGetTVDBSeason}]"
       //    Possibilities:
       //    1. TVDB Absolute Ordered Episode, which is no longer in the same "season" as the AniDB Series
       //    2.
@@ -2309,7 +2564,7 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
       //    2:  AniDB?
       //        Y: Send to renameOptionForAniDBAbsoluteEpisodes, anidbID, renamePass:1, no tvdbID
       //        N: Stop
-      println '--------- Animelist Mapping indicates Absolute Ordering in TVDB'
+      Logging.log.info '--------- Animelist Mapping indicates Absolute Ordering in TVDB'
       switch (renamePass) {
         case 1:
           renameQuery = tvdbID
@@ -2317,38 +2572,38 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
           performRename = true
           renameDB = 'TheTVDB'
           renameOrder = 'Airdate'
-          renameMapper = renameMapperGenerator( group.order, 'tvdb' , doesItHaveAbsoluteNumbering, hasAnimeListMapping)
+          renameMapper = renameMapperGenerator(group.order as String, 'tvdb' , doesItHaveAbsoluteNumbering, hasAnimeListMapping)
 //          renameMapper = group.order == 'airdate' ? '[episode, AnimeList.AniDB]' : '[order.absolute.episode, AnimeList.AniDB, episode]'
           if ( myanimeListGetTVDBSeason.isNumber() ) {
             if ( !hasSeasonality && !isSpecialEpisode) {
-              println "----- No Seasonality Detected, using myEpisodeSeason:[${myEpisodeSeason}] as a Season Filter"
+              Logging.log.info "----- No Seasonality Detected, using myEpisodeSeason:[${myEpisodeSeason}] as a Season Filter"
               renameFilter = "s == ${myEpisodeSeason}"
               renameStrict = true
             }
           }
           if (isSpecialEpisode ) {
-            println "--------- Specials Episodes however use filter of episode.special"
+            Logging.log.info "--------- Specials Episodes however use filter of episode.special"
             renameFilter = "episode.special"
           }
           if ( hasSeasonality && !isSpecialEpisode) {
-            println "----- Seasonality Detected, using ${mySeasonalityNumber} as a Season Filter"
+            Logging.log.info "----- Seasonality Detected, using ${mySeasonalityNumber} as a Season Filter"
             renameFilter = "s == ${mySeasonalityNumber}"
           }
           if ( (useNonStrictOnAniDBFullMatch && anidbMatchDetails.score == 1 ) || (useNonStrictOnTVDBSpecials && ( isSpecialEpisode || isSpecialType)) ) {
             renameStrict = false
-            println '------------- Set non-Strict renaming'
+            Logging.log.info '------------- Set non-Strict renaming'
           } else {
             renameStrict = true
           }
           break
         case 2:
           if ( anidbID ) {
-            log.finest "----------- Send to AniDB with ${anidbID}, No tvdbID, renamePass:[1]"
-            return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+            Logging.log.info "----------- Send to AniDB with ${anidbID}, No tvdbID, renamePass:[1]"
+            return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
           } else {
-            println '//-----------------------------//'
-            println '//            STOP             //'
-            println '//-----------------------------//'
+            Logging.log.info '//-----------------------------//'
+            Logging.log.info '//            STOP             //'
+            Logging.log.info '//-----------------------------//'
             renameOptionsSet = true
             renameQuery = ''
             performRename = false
@@ -2360,9 +2615,9 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
           }
           break
         default:
-          println '//-----------------------------//'
-          println '//            STOP             //'
-          println '//-----------------------------//'
+          Logging.log.info '//-----------------------------//'
+          Logging.log.info '//            STOP             //'
+          Logging.log.info '//-----------------------------//'
           renameOptionsSet = true
           renameQuery = ''
           performRename = false
@@ -2377,7 +2632,7 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
   }
   if ( !renameOptionsSet && hasSeasonality) {
     if ( !renameOptionsSet && myEpisodeSeason == mySeasonalityNumber ) {
-      println "--------- Episode Season:[${myEpisodeSeason}] matches mySeasonalityNumber:[${mySeasonalityNumber}]"
+      Logging.log.info "--------- Episode Season:[${myEpisodeSeason}] matches mySeasonalityNumber:[${mySeasonalityNumber}]"
       switch (renamePass) {
         case 1:
           // Possibly TVDB Absolute Ordering with the same Season as the map (Why didn't it already match?)
@@ -2387,20 +2642,20 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
           performRename = true
           renameDB = 'TheTVDB'
           renameOrder = 'Airdate'
-          renameMapper = renameMapperGenerator( group.order, 'tvdb' , doesItHaveAbsoluteNumbering, hasAnimeListMapping)
+          renameMapper = renameMapperGenerator(group.order as String, 'tvdb' , doesItHaveAbsoluteNumbering, hasAnimeListMapping)
 //          renameMapper = group.order == 'airdate' ? '[episode, AnimeList.AniDB]' : '[order.absolute.episode, AnimeList.AniDB, episode]'
           renameFilter = "s == ${myEpisodeSeason}"
           renameStrict = true
           break
         case 2:
           renameOptionsSet = true
-          println "------------- Checking AniDB ${myanimeListGetTVDBID} - no tvdbID"
-          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+          Logging.log.info "------------- Checking AniDB ${myanimeListGetTVDBID} - no tvdbID"
+          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
           break
         default:
-          println '//-----------------------------//'
-          println '//            STOP             //'
-          println '//-----------------------------//'
+          Logging.log.info '//-----------------------------//'
+          Logging.log.info '//            STOP             //'
+          Logging.log.info '//-----------------------------//'
           renameOptionsSet = true
           renameQuery = tvdbID
           performRename = false
@@ -2413,7 +2668,8 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
       }
     }
     if ( !renameOptionsSet && myEpisodeSeason < mySeasonalityNumber ) {
-      println "--------- Episode Season:[${myEpisodeSeason}] < mySeasonalityNumber:[${myanimeListGetTVDBSeason}]"
+//      Logging.log.info "--------- Episode Season:[${myEpisodeSeason}] < myanimeListGetTVDBSeason:[${myanimeListGetTVDBSeason}]"
+      Logging.log.info "--------- Episode Season:[${myEpisodeSeason}] < mySeasonalityNumber:[${mySeasonalityNumber}]"
       renameQuery = tvdbID
       renameOptionsSet = true
       performRename = true
@@ -2422,16 +2678,17 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
       switch (renamePass) {
         case 1:
           renameMapper = 'order.absolute.episode.derive(e)'
-          renameFilter =  "s == ${myanimeListGetTVDBSeason}"
+//          renameFilter =  "s == ${myanimeListGetTVDBSeason}"
+          renameFilter =  "s == ${mySeasonalityNumber}"
           break
         case 2:
           renameMapper = 'order.absolute.episode'
           renameFilter = "s == ${myEpisodeSeason}"
           break
         default:
-          println '//-----------------------------//'
-          println '//            STOP             //'
-          println '//-----------------------------//'
+          Logging.log.info '//-----------------------------//'
+          Logging.log.info '//            STOP             //'
+          Logging.log.info '//-----------------------------//'
           renameOptionsSet = true
           renameQuery = tvdbID
           performRename = false
@@ -2449,7 +2706,7 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
       //    2:  AniDB?
       //        Y: Send to renameOptionForAniDBAbsoluteEpisodes, anidbID, renamePass:1, no tvdbID
       //        N: Stop
-      println "--------- Episode Season:[${myEpisodeSeason}] > mySeasonalityNumber:[${mySeasonalityNumber}]"
+      Logging.log.info "--------- Episode Season:[${myEpisodeSeason}] > mySeasonalityNumber:[${mySeasonalityNumber}]"
       switch (renamePass) {
         case 1:
           renameQuery = tvdbID
@@ -2457,33 +2714,33 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
           performRename = true
           renameDB = 'TheTVDB'
           renameOrder = 'Airdate'
-          renameMapper = renameMapperGenerator( group.order, 'tvdb' , doesItHaveAbsoluteNumbering, hasAnimeListMapping)
+          renameMapper = renameMapperGenerator(group.order as String, 'tvdb' , doesItHaveAbsoluteNumbering, hasAnimeListMapping)
 //          renameMapper = group.order == 'airdate' ? '[episode, AnimeList.AniDB]' : '[order.absolute.episode, AnimeList.AniDB, episode]'
           if ( myanimeListGetTVDBSeason.isNumber() ) {
             if ( !isSpecialEpisode) {
-              println "----------- using myEpisodeSeason:[${myEpisodeSeason}] as a Season Filter"
+              Logging.log.info "----------- using myEpisodeSeason:[${myEpisodeSeason}] as a Season Filter"
               renameFilter = "s == ${myEpisodeSeason}"
             }
           }
           if (isSpecialEpisode ) {
-            println "--------- Specials Episodes however use filter of episode.special"
+            Logging.log.info "--------- Specials Episodes however use filter of episode.special"
             renameFilter = "episode.special"
           }
           if ( (useNonStrictOnTVDBSpecials && (isSpecialEpisode || isSpecialType)) ) {
             renameStrict = false
-            println '------------- Set non-Strict renaming'
+            Logging.log.info '------------- Set non-Strict renaming'
           } else {
             renameStrict = true
           }
           break
         case 2:
           if ( anidbID ) {
-            log.finest "----------- Send to AniDB with ${anidbID}, No tvdbID, renamePass:[1]"
-            return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+            Logging.log.info "----------- Send to AniDB with ${anidbID}, No tvdbID, renamePass:[1]"
+            return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
           } else {
-            println '//-----------------------------//'
-            println '//            STOP             //'
-            println '//-----------------------------//'
+            Logging.log.info '//-----------------------------//'
+            Logging.log.info '//            STOP             //'
+            Logging.log.info '//-----------------------------//'
             renameOptionsSet = true
             renameQuery = ''
             performRename = false
@@ -2495,9 +2752,9 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
           }
           break
         default:
-          println '//-----------------------------//'
-          println '//            STOP             //'
-          println '//-----------------------------//'
+          Logging.log.info '//-----------------------------//'
+          Logging.log.info '//            STOP             //'
+          Logging.log.info '//-----------------------------//'
           renameOptionsSet = true
           renameQuery = ''
           performRename = false
@@ -2511,7 +2768,7 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
     }
   }
   if ( !renameOptionsSet ) {
-    println "--------- Fall Thru TVDB Options - myEpisodeSeason:[${myEpisodeSeason}]: renamePass:[${renamePass}]"
+    Logging.log.info "--------- Fall Thru TVDB Options - myEpisodeSeason:[${myEpisodeSeason}]: renamePass:[${renamePass}]"
     switch (renamePass) {
       case 1:
         renameQuery = tvdbID
@@ -2519,17 +2776,17 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
         performRename = true
         renameDB = 'TheTVDB'
         renameOrder = 'Airdate'
-        renameMapper = renameMapperGenerator( group.order, 'tvdb' , doesItHaveAbsoluteNumbering, hasAnimeListMapping)
+        renameMapper = renameMapperGenerator(group.order as String, 'tvdb' , doesItHaveAbsoluteNumbering, hasAnimeListMapping)
 //        renameMapper = group.order == 'airdate' ? '[episode, AnimeList.AniDB]' : '[order.absolute.episode, AnimeList.AniDB, episode]'
         if (isSpecialEpisode ) {
-          println "--------- Specials Episodes however use filter of episode.special"
+          Logging.log.info "--------- Specials Episodes however use filter of episode.special"
           renameFilter = "episode.special"
         } else {
           renameFilter = myEpisodeSeason == null ? '' : "s == ${myEpisodeSeason}"
         }
         if ( (useNonStrictOnTVDBSpecials && ( isSpecialEpisode || isSpecialType)) ) {
           renameStrict = false
-          println '------------- Set non-Strict renaming'
+          Logging.log.info '------------- Set non-Strict renaming'
         } else {
           renameStrict = true
         }
@@ -2540,25 +2797,25 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
         performRename = true
         renameDB = 'TheTVDB'
         renameOrder = 'Airdate'
-        renameMapper = renameMapperGenerator( group.order, 'tvdb' , doesItHaveAbsoluteNumbering, hasAnimeListMapping)
+        renameMapper = renameMapperGenerator(group.order as String, 'tvdb' , doesItHaveAbsoluteNumbering, hasAnimeListMapping)
 //        renameMapper = group.order == 'airdate' ? '[episode, AnimeList.AniDB]' : '[order.absolute.episode, AnimeList.AniDB, episode]'
         if (isSpecialEpisode ) {
-          println "--------- Specials Episodes however use filter of episode.special"
+          Logging.log.info "--------- Specials Episodes however use filter of episode.special"
           renameFilter = "episode.special"
         } else {
           renameFilter = myEpisodeSeason == null ? '' : "s == ${myEpisodeSeason}"
         }
         if ( (useNonStrictOnTVDBSpecials && (isSpecialEpisode || isSpecialType)) ) {
           renameStrict = false
-          println '------------- Set non-Strict renaming'
+          Logging.log.info '------------- Set non-Strict renaming'
         } else {
           renameStrict = true
         }
         break
       default:
-        println '//-----------------------------//'
-        println '//            STOP             //'
-        println '//-----------------------------//'
+        Logging.log.info '//-----------------------------//'
+        Logging.log.info '//            STOP             //'
+        Logging.log.info '//-----------------------------//'
         renameOptionsSet = true
         renameQuery = tvdbID
         performRename = false
@@ -2590,23 +2847,23 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
  * @return [performRename: performRename, renameQuery: renameQuery, renameDB: renameDB, renameOrder: renameOrder, renameMapper: renameMapper, renameFilter: renameFilter, renameStrict: renameStrict, isSpecialEpisode: isSpecialEpisode, isSpecialType: isSpecialType, isMovieType: isMovieType]
  */
 LinkedHashMap renameOptionForTVDBAirdateEpisodes(File f, Integer tvdbID, Integer renamePass, JsonObject animeOffLineDatabaseJsonObject, LinkedHashMap group, Boolean hasSeasonality, Integer mySeasonalityNumber, Boolean useNonStrictOnAniDBSpecials, LinkedHashMap anidbMatchDetails, Boolean useNonStrictOnTVDBSpecials, Boolean processAsSpecial = false) {
-  println "------- renameOptionForTVDBAirdateEpisodes"
+  Logging.log.info "------- renameOptionForTVDBAirdateEpisodes"
   performRename = false
   Boolean renameOptionsSet = false
   Boolean isSpecialEpisode = group.isSpecialEpisode || processAsSpecial
   Boolean isMovieType = group.isMovieType
   Boolean isSpecialType = group.isSpecialType
-  Integer myEpisodeSeason
+  Integer myEpisodeSeason = null
   Collection<Episode> myTVDBSeriespisodes
   Episode doesItContainEpisode
   // Detect the episode number we are working with
   LinkedHashMap returnThing = detectEpisodeNumberFromFile(f, false, true, true, false)
   String myEpisodeNumber = returnThing.myDetectedEpisodeNumber
   String mySeasonNumber = returnThing.myDetectedSeasonNumber
-  Integer anidbID = anidbMatchDetails.dbid
-  println "------- We have TVDB ID:[${tvdbID}] and AniDB ID:[${anidbID}]"
+  Integer anidbID = anidbMatchDetails.dbid as Integer
+  Logging.log.info "------- We have TVDB ID:[${tvdbID}] and AniDB ID:[${anidbID}]"
   if ( myEpisodeNumber == null ) {
-    println '----------- But we could not detect the episode number'
+    Logging.log.info '----------- But we could not detect the episode number'
     myEpisodeNumber = 0 // Else the checks following will blow up
     renameOptionsSet = true
     renameQuery = tvdbID
@@ -2616,21 +2873,21 @@ LinkedHashMap renameOptionForTVDBAirdateEpisodes(File f, Integer tvdbID, Integer
     renameMapper = group.order == 'airdate' ? '[episode, AnimeList.AniDB]' : '[order.absolute.episode, AnimeList.AniDB, episode]'
     renameFilter = ''
     if (isSpecialEpisode || mySeasonalityNumber == 0) {
-      println "--------- Specials however use filter of episode.special"
+      Logging.log.info "--------- Specials however use filter of episode.special"
       renameFilter = "episode.special"
     } else {
-      println "--------- using ${mySeasonalityNumber} as a Season Filter"
+      Logging.log.info "--------- using ${mySeasonalityNumber} as a Season Filter"
       renameFilter = "s == ${mySeasonalityNumber}"
     }
     if ( (useNonStrictOnTVDBSpecials && (isSpecialEpisode || isSpecialType)) ) {
       renameStrict = false
-      println '------------- Set non-Strict renaming'
+      Logging.log.info '------------- Set non-Strict renaming'
     } else {
       renameStrict = true
     }
   }
   if ( !renameOptionsSet && (myEpisodeNumber =~ /\d{1,3}\.\d{1,3}/ || !myEpisodeNumber.isNumber()) ) {
-    println "--------- myEpisodeNumber:[${myEpisodeNumber}] indicates a special (dot Syntax)"
+    Logging.log.info "--------- myEpisodeNumber:[${myEpisodeNumber}] indicates a special (dot Syntax)"
     isSpecialEpisode = true
     renameQuery = tvdbID
     renameOptionsSet = true
@@ -2641,13 +2898,13 @@ LinkedHashMap renameOptionForTVDBAirdateEpisodes(File f, Integer tvdbID, Integer
     renameFilter = "episode.special"
     if ( (useNonStrictOnTVDBSpecials && (isSpecialEpisode || isSpecialType)) ) {
       renameStrict = false
-      println '------------- Set non-Strict renaming'
+      Logging.log.info '------------- Set non-Strict renaming'
     } else {
       renameStrict = true
     }
   }
   if ( !renameOptionsSet && myEpisodeNumber.toInteger() > 99) {
-    println '----------- 3-Digit Episode detected..'
+    Logging.log.info '----------- 3-Digit Episode detected..'
     renameOptionsSet = true
     renameQuery = tvdbID
     performRename = true
@@ -2661,17 +2918,17 @@ LinkedHashMap renameOptionForTVDBAirdateEpisodes(File f, Integer tvdbID, Integer
     myTVDBSeriespisodes = filebotTVDBgetEpisodeList(tvdbID)
     doesItContainEpisode = filebotTVDBSeasonContainsEpisodeNumber(myTVDBSeriespisodes, myEpisodeNumber.toInteger(), 'airdate', true, mySeasonalityNumber, 'exclude')
     if ( doesItContainEpisode != null ) {
-      println "----------- Detected Episode Season ${doesItContainEpisode.season}"
+      Logging.log.info "----------- Detected Episode Season ${doesItContainEpisode.season}"
       myEpisodeSeason =  doesItContainEpisode.season
     } else {
       Integer mySeasonNumberofEpisodes = filebotTVDBSeasonEpisodes(myTVDBSeriespisodes, mySeasonalityNumber).size()
       if (mySeasonNumberofEpisodes == 0) {
-        println "----------- Invalid Season:[${mySeasonalityNumber}] for Anime."
+        Logging.log.info "----------- Invalid Season:[${mySeasonalityNumber}] for Anime."
         isSpecialEpisode = false
         renameFilter = ""
       } else {
-        println "----------- Detected Episode Number:[${myEpisodeNumber}] does not seem to be in TVDB Episode List:[${mySeasonNumberofEpisodes}] for Season ${mySeasonalityNumber}"
-        println '----------- Perhaps it is a Special?'
+        Logging.log.info "----------- Detected Episode Number:[${myEpisodeNumber}] does not seem to be in TVDB Episode List:[${mySeasonNumberofEpisodes}] for Season ${mySeasonalityNumber}"
+        Logging.log.info '----------- Perhaps it is a Special?'
         isSpecialEpisode = true
         renameFilter = "episode.special"
       }
@@ -2683,14 +2940,14 @@ LinkedHashMap renameOptionForTVDBAirdateEpisodes(File f, Integer tvdbID, Integer
       renameMapper = group.order == 'airdate' ? '[episode, AnimeList.AniDB]' : '[order.absolute.episode, AnimeList.AniDB, episode]'
       if ( (useNonStrictOnTVDBSpecials && (isSpecialEpisode || isSpecialType)) ) {
         renameStrict = false
-        println '------------- Set non-Strict renaming'
+        Logging.log.info '------------- Set non-Strict renaming'
       } else {
         renameStrict = true
       }
     }
   }
   if ( !renameOptionsSet && myEpisodeSeason == 0) {
-    println "--------- myEpisodeSeason lookup indicates episode:[${myEpisodeNumber}] maps to Specials in TVDB"
+    Logging.log.info "--------- myEpisodeSeason lookup indicates episode:[${myEpisodeNumber}] maps to Specials in TVDB"
     isSpecialEpisode = true
     renameQuery = tvdbID
     renameOptionsSet = true
@@ -2701,13 +2958,13 @@ LinkedHashMap renameOptionForTVDBAirdateEpisodes(File f, Integer tvdbID, Integer
     renameFilter = "episode.special"
     if ( (useNonStrictOnTVDBSpecials && (isSpecialEpisode || isSpecialType)) ) {
       renameStrict = false
-      println '------------- Set non-Strict renaming'
+      Logging.log.info '------------- Set non-Strict renaming'
     } else {
       renameStrict = true
     }
   }
   if ( !renameOptionsSet && myEpisodeSeason == mySeasonalityNumber ) {
-    println "--------- Episode Season:[${myEpisodeSeason}] matches mySeasonalityNumber:[${mySeasonalityNumber}]"
+    Logging.log.info "--------- Episode Season:[${myEpisodeSeason}] matches mySeasonalityNumber:[${mySeasonalityNumber}]"
     renameQuery = tvdbID
     renameOptionsSet = true
     performRename = true
@@ -2718,7 +2975,7 @@ LinkedHashMap renameOptionForTVDBAirdateEpisodes(File f, Integer tvdbID, Integer
     renameStrict = true
   }
   if ( !renameOptionsSet && myEpisodeSeason < mySeasonalityNumber ) {
-    println "--------- Episode Season:[${myEpisodeSeason}] < mySeasonalityNumber:[${mySeasonalityNumber}]"
+    Logging.log.info "--------- Episode Season:[${myEpisodeSeason}] < mySeasonalityNumber:[${mySeasonalityNumber}]"
     renameQuery = tvdbID
     renameOptionsSet = true
     performRename = true
@@ -2729,7 +2986,7 @@ LinkedHashMap renameOptionForTVDBAirdateEpisodes(File f, Integer tvdbID, Integer
     renameStrict = true
   }
   if ( !renameOptionsSet && myEpisodeSeason > mySeasonalityNumber ) {
-    println "--------- Episode Season:[${myEpisodeSeason}] > mySeasonalityNumber:[${mySeasonalityNumber}]"
+    Logging.log.info "--------- Episode Season:[${myEpisodeSeason}] > mySeasonalityNumber:[${mySeasonalityNumber}]"
     // Possibly TVDB Absolute Ordering with multiple seasons, all with the same (or no?) map?
     renameQuery = tvdbID
     renameOptionsSet = true
@@ -2741,7 +2998,7 @@ LinkedHashMap renameOptionForTVDBAirdateEpisodes(File f, Integer tvdbID, Integer
     renameStrict = true
   }
   if ( !renameOptionsSet ) {
-    println "--------- Using Episode Season:[${myEpisodeSeason}]"
+    Logging.log.info "--------- Using Episode Season:[${myEpisodeSeason}]"
     renameQuery = tvdbID
     renameOptionsSet = true
     performRename = true
@@ -2770,19 +3027,19 @@ LinkedHashMap renameOptionForTVDBAirdateEpisodes(File f, Integer tvdbID, Integer
  * @return [performRename: performRename, renameQuery: renameQuery, renameDB: renameDB, renameOrder: renameOrder, renameMapper: renameMapper, renameFilter: renameFilter, renameStrict: renameStrict, isSpecialEpisode: isSpecialEpisode, isSpecialType: isSpecialType, isMovieType: isMovieType]
  */
 LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMatchDetails, Integer renamePass, Boolean useNonStrictOnAniDBFullMatch, Boolean useNonStrictOnAniDBSpecials, LinkedHashMap group, BigDecimal aniDBJWDMatchNumber, JsonObject animeOffLineDatabaseJsonObject, Integer tvdbID, Boolean hasSeasonality, Integer mySeasonalityNumber, Boolean useNonStrictOnTVDBSpecials){
-  println "//----- renameOptionForAniDBAbsoluteEpisodes"
-  Integer anidbID = anidbMatchDetails.dbid
+  Logging.log.info "//----- renameOptionForAniDBAbsoluteEpisodes"
+  Integer anidbID = anidbMatchDetails.dbid as Integer
   switch (group.order) {
     case 'airdate':
       absoluteOrdering = false
-      println "------- Using airdate Ordering"
+      Logging.log.info "------- Using airdate Ordering"
       break
     case 'absolute':
       absoluteOrdering = true
-      println "------- Using absolute Odering"
+      Logging.log.info "------- Using absolute Odering"
       break
     default:
-      println "------- Using absolute Odering"
+      Logging.log.info "------- Using absolute Odering"
       absoluteOrdering = true
       break
   }
@@ -2799,7 +3056,7 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
   Boolean isSpecialType = group.isSpecialType || anidbMatchDetails.isSpecialType
   Integer myAniDBEpisodeCount = 0
   // Detect the episode number we are working with
-  String myEpisodeNumber = detectEpisodeNumberFromFile(f, false, true, false, false)
+  String myEpisodeNumber = detectEpisodeNumberFromFile(f, false, true, false, false, true)
   if ( myEpisodeNumber == "0" && !group.isSpecialType) {
     // Episode # indicates Special Episode or "other" type of episode
     // Except for OVA/ONA/OAD .. Filenames are just too varied to assume just because it's episode zero it's a special IN the OVA series (tho that probably does happen).
@@ -2808,12 +3065,12 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
     //        Y: Absolute Ordering, Send to renameOptionForTVDBAbsoluteEpisodes, renamePass:1, AniDB
     //           Airdate Ordering, Send to renameOptionForTVDBAirdateEpisodes, renamePass:1, AniDB
     //        N: STOP
-    println "--------- Episode # of ${myEpisodeNumber} indicates a special/recap/other or at least not a normal Absolute Ordering (which starts at 1)"
+    Logging.log.info "--------- Episode # of ${myEpisodeNumber} indicates a special/recap/other or at least not a normal Absolute Ordering (which starts at 1)"
     switch (renamePass) {
       case 1:
         // Episode # indicates Special Episode
         //      1: Rename using AniDB and episode.special filter
-        println "----------- Using AniDB (Set Filter to episode.special)"
+        Logging.log.info "----------- Using AniDB (Set Filter to episode.special)"
         isSpecialEpisode = true
         renameQuery = anidbID
         renameOptionsSet = true
@@ -2824,8 +3081,8 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
         renameFilter = 'episode.special'
         if ( (useNonStrictOnAniDBFullMatch && aniDBJWDMatchNumber == 1 ) || (useNonStrictOnAniDBSpecials && (isSpecialEpisode || isSpecialType)) ) {
           renameStrict = false
-          println '------------- Set non-Strict renaming'
-          println '------------- Remove episode.special Filter'
+          Logging.log.info '------------- Set non-Strict renaming'
+          Logging.log.info '------------- Remove episode.special Filter'
           renameFilter = ''
         } else {
           renameStrict = true
@@ -2839,14 +3096,14 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
         //        N: Rename without episode.special filter
         if ( tvdbID > 0 ) {
           if ( absoluteOrdering ) {
-            log.finest "----------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidbID:[${anidbID}]"
+            Logging.log.info "----------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidbID:[${anidbID}]"
             return renameOptionForTVDBAbsoluteEpisodes(f, anidbMatchDetails, tvdbID, 1, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, useNonStrictOnTVDBSpecials)
           } else {
-            log.finest "------------- Send to renameOptionForTVDBAirdateEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidbID:[${anidbID}]"
+            Logging.log.info "------------- Send to renameOptionForTVDBAirdateEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidbID:[${anidbID}]"
             return renameOptionForTVDBAirdateEpisodes(f, tvdbID, 1, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBSpecials, anidbMatchDetails, useNonStrictOnTVDBSpecials)
           }
         } else {
-          println "----------- Using AniDB (Do not set Filter)"
+          Logging.log.info "----------- Using AniDB (Do not set Filter)"
           isSpecialEpisode = true
           renameQuery = anidbID
           renameOptionsSet = true
@@ -2857,16 +3114,16 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
           renameFilter = ''
           if ( (useNonStrictOnAniDBFullMatch && aniDBJWDMatchNumber == 1 ) || (useNonStrictOnAniDBSpecials && (isSpecialEpisode || isSpecialType)) ) {
             renameStrict = false
-            println '------------- Set non-Strict renaming'
+            Logging.log.info '------------- Set non-Strict renaming'
           } else {
             renameStrict = true
           }
         }
         break
       default:
-        println '//-----------------------------//'
-        println '//            STOP             //'
-        println '//-----------------------------//'
+        Logging.log.info '//-----------------------------//'
+        Logging.log.info '//            STOP             //'
+        Logging.log.info '//-----------------------------//'
         renameOptionsSet = true
         renameQuery = ''
         performRename = false
@@ -2885,7 +3142,7 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
     //        Y: Absolute Ordering, Send to renameOptionForTVDBAbsoluteEpisodes, renamePass:1, AniDB
     //           Airdate Ordering, Send to renameOptionForTVDBAirdateEpisodes, renamePass:1, AniDB
     //        N: STOP
-    println '----------- Episode # detected as null'
+    Logging.log.info '----------- Episode # detected as null'
     // We can't detect an Episode # .. Use AniDB as a fallback..
     myEpisodeNumber = 0 // Else the checks following will blow up
     switch (renamePass) {
@@ -2899,14 +3156,14 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
         renameOrder = 'Absolute'
         renameMapper = group.order == 'airdate' ? '[AnimeList.TheTVDB, episode]' : '[AnimeList.TheTVDB, episode]'
 //        if ( isSpecialType ) {
-//          println "------------- SpecialType Detected. Set Filter = episode.special"
+//          Logging.log.info "------------- SpecialType Detected. Set Filter = episode.special"
 //          renameFilter = 'episode.special'
 //        } else {
 //          renameFilter = ''
 //        }
         if ( (useNonStrictOnAniDBFullMatch && aniDBJWDMatchNumber == 1 ) || (useNonStrictOnAniDBSpecials && (isSpecialEpisode || isSpecialType)) ) {
           renameStrict = false
-          println '------------- Set non-Strict renaming'
+          Logging.log.info '------------- Set non-Strict renaming'
         } else {
           renameStrict = true
         }
@@ -2919,15 +3176,15 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
         //        N: STOP
         if ( tvdbID > 0 ) {
           if ( absoluteOrdering ) {
-            log.finest "----------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidbID:[${anidbID}]"
+            Logging.log.info "----------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidbID:[${anidbID}]"
             return renameOptionForTVDBAbsoluteEpisodes(f, anidbMatchDetails, tvdbID, 1, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, useNonStrictOnTVDBSpecials)
           } else {
-            log.finest "------------- Send to renameOptionForTVDBAirdateEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidbID:[${anidbID}]"
+            Logging.log.info "------------- Send to renameOptionForTVDBAirdateEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidbID:[${anidbID}]"
             return renameOptionForTVDBAirdateEpisodes(f, tvdbID, 1, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBSpecials, anidbMatchDetails, useNonStrictOnTVDBSpecials)
           }
         } else {
           if ( isSpecialType ) {
-            println "------------- SpecialType Detected. Set no Filter"
+            Logging.log.info "------------- SpecialType Detected. Set no Filter"
             renameOptionsSet = true
             renameQuery = anidbID
             performRename = true
@@ -2937,14 +3194,14 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
             renameFilter = ''
             if ( (useNonStrictOnAniDBFullMatch && aniDBJWDMatchNumber == 1 ) || (useNonStrictOnAniDBSpecials && (isSpecialEpisode || isSpecialType)) ) {
               renameStrict = false
-              println '------------- Set non-Strict renaming'
+              Logging.log.info '------------- Set non-Strict renaming'
             } else {
               renameStrict = true
             }
           } else {
-            println '//-----------------------------//'
-            println '//            STOP             //'
-            println '//-----------------------------//'
+            Logging.log.info '//-----------------------------//'
+            Logging.log.info '//            STOP             //'
+            Logging.log.info '//-----------------------------//'
             renameOptionsSet = true
             renameQuery = ''
             performRename = false
@@ -2958,9 +3215,9 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
         }
         break
       default:
-        println '//-----------------------------//'
-        println '//            STOP             //'
-        println '//-----------------------------//'
+        Logging.log.info '//-----------------------------//'
+        Logging.log.info '//            STOP             //'
+        Logging.log.info '//-----------------------------//'
         renameOptionsSet = true
         renameQuery = ''
         performRename = false
@@ -2979,12 +3236,12 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
     //        Y: Absolute Ordering, Send to renameOptionForTVDBAbsoluteEpisodes, renamePass:1, AniDB
     //           Airdate Ordering, Send to renameOptionForTVDBAirdateEpisodes, renamePass:1, AniDB
     //        N: STOP
-    println "--------- myEpisodeNumber:[${myEpisodeNumber}] indicates a special/recap or at least not how AniDB orders things (Dot Syntax)"
+    Logging.log.info "--------- myEpisodeNumber:[${myEpisodeNumber}] indicates a special/recap or at least not how AniDB orders things (Dot Syntax)"
     switch (renamePass) {
       case 1:
         // Episode # indicates Special Episode (dot syntax)
         //      1: Rename using AniDB and episode.special filter
-        println "----------- Using AniDB (Set Filter to episode.special)"
+        Logging.log.info "----------- Using AniDB (Set Filter to episode.special)"
         isSpecialEpisode = true
         renameQuery = anidbID
         renameOptionsSet = true
@@ -2995,8 +3252,8 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
         renameFilter = 'episode.special'
         if ( (useNonStrictOnAniDBFullMatch && aniDBJWDMatchNumber == 1 ) || (useNonStrictOnAniDBSpecials && (isSpecialEpisode || isSpecialType)) ) {
           renameStrict = false
-          println '------------- Set non-Strict renaming'
-          println '------------- Remove episode.special Filter'
+          Logging.log.info '------------- Set non-Strict renaming'
+          Logging.log.info '------------- Remove episode.special Filter'
           renameFilter = ''
         } else {
           renameStrict = true
@@ -3010,14 +3267,14 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
         //        N: Rename without episode.special filter
         if ( tvdbID > 0 ) {
           if ( absoluteOrdering ) {
-            log.finest "----------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidbID:[${anidbID}]"
+            Logging.log.info "----------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidbID:[${anidbID}]"
             return renameOptionForTVDBAbsoluteEpisodes(f, anidbMatchDetails, tvdbID, 1, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, useNonStrictOnTVDBSpecials)
           } else {
-            log.finest "------------- Send to renameOptionForTVDBAirdateEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidbID:[${anidbID}]"
+            Logging.log.info "------------- Send to renameOptionForTVDBAirdateEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidbID:[${anidbID}]"
             return renameOptionForTVDBAirdateEpisodes(f, tvdbID, 1, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBSpecials, anidbMatchDetails, useNonStrictOnTVDBSpecials)
           }
         } else {
-          println "----------- Using AniDB (Do not set Filter)"
+          Logging.log.info "----------- Using AniDB (Do not set Filter)"
           isSpecialEpisode = true
           renameQuery = anidbID
           renameOptionsSet = true
@@ -3028,16 +3285,16 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
           renameFilter = ''
           if ( (useNonStrictOnAniDBFullMatch && aniDBJWDMatchNumber == 1 ) || (useNonStrictOnAniDBSpecials && (isSpecialEpisode || isSpecialType)) ) {
             renameStrict = false
-            println '------------- Set non-Strict renaming'
+            Logging.log.info '------------- Set non-Strict renaming'
           } else {
             renameStrict = true
           }
         }
         break
       default:
-        println '//-----------------------------//'
-        println '//            STOP             //'
-        println '//-----------------------------//'
+        Logging.log.info '//-----------------------------//'
+        Logging.log.info '//            STOP             //'
+        Logging.log.info '//-----------------------------//'
         renameOptionsSet = true
         renameQuery = ''
         performRename = false
@@ -3056,12 +3313,12 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
     //        Y: Absolute Ordering, Send to renameOptionForTVDBAbsoluteEpisodes, renamePass:1, AniDB
     //           Airdate Ordering, Send to renameOptionForTVDBAirdateEpisodes, renamePass:1, AniDB
     //        N: STOP
-    println "--------- Detected as Special Episode (isSpecialEpisode:[${isSpecialEpisode}]) indicates a special/recap or at least not how AniDB orders things :)"
+    Logging.log.info "--------- Detected as Special Episode (isSpecialEpisode:[${isSpecialEpisode}]) indicates a special/recap or at least not how AniDB orders things :)"
     switch (renamePass) {
       case 1:
         // Episode # indicates Special Episode (dot syntax)
         //      1: Rename using AniDB and episode.special filter
-        println "----------- Using AniDB (Set Filter to episode.special)"
+        Logging.log.info "----------- Using AniDB (Set Filter to episode.special)"
         isSpecialEpisode = true
         renameQuery = anidbID
         renameOptionsSet = true
@@ -3072,8 +3329,8 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
         renameFilter = 'episode.special'
         if ( (useNonStrictOnAniDBFullMatch && aniDBJWDMatchNumber == 1 ) || (useNonStrictOnAniDBSpecials && (isSpecialEpisode || isSpecialType)) ) {
           renameStrict = false
-          println '------------- Set non-Strict renaming'
-          println '------------- Remove episode.special Filter'
+          Logging.log.info '------------- Set non-Strict renaming'
+          Logging.log.info '------------- Remove episode.special Filter'
           renameFilter = ''
         } else {
           renameStrict = true
@@ -3087,14 +3344,14 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
         //        N: Rename without episode.special filter
         if ( tvdbID > 0 ) {
           if ( absoluteOrdering ) {
-            log.finest "----------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidbID:[${anidbID}]"
+            Logging.log.info "----------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidbID:[${anidbID}]"
             return renameOptionForTVDBAbsoluteEpisodes(f, anidbMatchDetails, tvdbID, 1, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, useNonStrictOnTVDBSpecials)
           } else {
-            log.finest "------------- Send to renameOptionForTVDBAirdateEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidbID:[${anidbID}]"
+            Logging.log.info "------------- Send to renameOptionForTVDBAirdateEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidbID:[${anidbID}]"
             return renameOptionForTVDBAirdateEpisodes(f, tvdbID, 1, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBSpecials, anidbMatchDetails, useNonStrictOnTVDBSpecials)
           }
         } else {
-          println "----------- Using AniDB (Do not set Filter)"
+          Logging.log.info "----------- Using AniDB (Do not set Filter)"
           isSpecialEpisode = true
           renameQuery = anidbID
           renameOptionsSet = true
@@ -3105,16 +3362,16 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
           renameFilter = ''
           if ( (useNonStrictOnAniDBFullMatch && aniDBJWDMatchNumber == 1 ) || (useNonStrictOnAniDBSpecials && (isSpecialEpisode || isSpecialType)) ) {
             renameStrict = false
-            println '------------- Set non-Strict renaming'
+            Logging.log.info '------------- Set non-Strict renaming'
           } else {
             renameStrict = true
           }
         }
         break
       default:
-        println '//-----------------------------//'
-        println '//            STOP             //'
-        println '//-----------------------------//'
+        Logging.log.info '//-----------------------------//'
+        Logging.log.info '//            STOP             //'
+        Logging.log.info '//-----------------------------//'
         renameOptionsSet = true
         renameQuery = ''
         performRename = false
@@ -3136,14 +3393,14 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
     //           Airdate Ordering, Send to renameOptionForTVDBAirdateEpisodes, renamePass:1, AniDB
     //        N: STOP
     // --> Probably a normal AniDB Absolute Episode Order, Set basic AniDB rename options
-    println "----------- Episode Number:[${myEpisodeNumber}] is within AniDB Episode Count range:[${myAniDBEpisodeCount}]"
+    Logging.log.info "----------- Episode Number:[${myEpisodeNumber}] is within AniDB Episode Count range:[${myAniDBEpisodeCount}]"
     switch (renamePass) {
       case 1:
-        println "------------- Using AniDB"
+        Logging.log.info "------------- Using AniDB"
         // Ep # < AniDB Ep #
         //      1: Rename using AniDB
         if ( myEpisodeNumber.toInteger() > 99) {
-          println '------------- 3-Digit Episode detected, use Episode Filtering'
+          Logging.log.info '------------- 3-Digit Episode detected, use Episode Filtering'
           // For some reason 3 digit episodes match incorrectly a good portion of the time..
           // For These episodes just set the filter to the episode # and see if that at least cuts down
           // the incorrect matches
@@ -3159,7 +3416,7 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
         renameMapper = group.order == 'airdate' ? '[AnimeList.TheTVDB, episode]' : '[AnimeList.TheTVDB, episode]'
         if ( (useNonStrictOnAniDBFullMatch && aniDBJWDMatchNumber == 1 ) || (useNonStrictOnAniDBSpecials && (isSpecialEpisode || isSpecialType)) ) {
           renameStrict = false
-          println '------------- Set non-Strict renaming'
+          Logging.log.info '------------- Set non-Strict renaming'
         } else {
           renameStrict = true
         }
@@ -3171,28 +3428,28 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
         //           Airdate Ordering, Send to renameOptionForTVDBAirdateEpisodes, renamePass:1, AniDB
         //        N: STOP
         if ( tvdbID > 0 ) {
-          println "------------- Using TVDBID Provided"
+          Logging.log.info "------------- Using TVDBID Provided"
           if ( absoluteOrdering ) {
-            log.finest "----------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidbID:[${anidbID}]"
+            Logging.log.info "----------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidbID:[${anidbID}]"
             return renameOptionForTVDBAbsoluteEpisodes(f, anidbMatchDetails, tvdbID, 1, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, useNonStrictOnTVDBSpecials)
           } else {
-            log.finest "------------- Send to renameOptionForTVDBAirdateEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidbID:[${anidbID}]"
+            Logging.log.info "------------- Send to renameOptionForTVDBAirdateEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidbID:[${anidbID}]"
             return renameOptionForTVDBAirdateEpisodes(f, tvdbID, 1, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBSpecials, anidbMatchDetails, useNonStrictOnTVDBSpecials)
           }
         } else {
-          println "----------- No TVDB ID Supplied. Checking if Anime has Animelist Entry"
+          Logging.log.info "----------- No TVDB ID Supplied. Checking if Anime has Animelist Entry"
           if ( anidbMatchDetails.hasAnimeListEntry) {
             def myanimeListGetTVDBID = filebotAnimeListReturnFromAID(anidbID, true)
-            println "------------- Has AnimeList Entry with TVDBID:[${myanimeListGetTVDBID}]"
+            Logging.log.info "------------- Has AnimeList Entry with TVDBID:[${myanimeListGetTVDBID}]"
             if (absoluteOrdering) {
-              log.finest "------------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${myanimeListGetTVDBID}], renamePass:[1], anidb:[${anidbID}]"
+              Logging.log.info "------------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${myanimeListGetTVDBID}], renamePass:[1], anidb:[${anidbID}]"
               return renameOptionForTVDBAbsoluteEpisodes(f, anidbMatchDetails, myanimeListGetTVDBID, 1, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, useNonStrictOnTVDBSpecials)
             } else {
-              log.finest "------------- Send to renameOptionForTVDBAirdateEpisodes with tvdbID:[${myanimeListGetTVDBID}], renamePass:[1], anidb:[${anidbID}]"
+              Logging.log.info "------------- Send to renameOptionForTVDBAirdateEpisodes with tvdbID:[${myanimeListGetTVDBID}], renamePass:[1], anidb:[${anidbID}]"
               return renameOptionForTVDBAirdateEpisodes(f, myanimeListGetTVDBID, 1, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBSpecials, anidbMatchDetails, useNonStrictOnTVDBSpecials)
             }
           }
-          println "------------- No AnimeList Entry. AniDB Fallback will be used (good luck with that)"
+          Logging.log.info "------------- No AnimeList Entry. AniDB Fallback will be used (good luck with that)"
           renameOptionsSet = true
           renameStrict = true
           renameQuery = anidbID
@@ -3203,16 +3460,16 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
           renameFilter = ''
           if ( (useNonStrictOnAniDBFullMatch && aniDBJWDMatchNumber == 1 ) || (useNonStrictOnAniDBSpecials && (isSpecialEpisode || isSpecialType)) ) {
             renameStrict = false
-            println '------------- Set non-Strict renaming'
+            Logging.log.info '------------- Set non-Strict renaming'
           } else {
             renameStrict = true
           }
         }
         break
       default:
-        println '//-----------------------------//'
-        println '//            STOP             //'
-        println '//-----------------------------//'
+        Logging.log.info '//-----------------------------//'
+        Logging.log.info '//            STOP             //'
+        Logging.log.info '//-----------------------------//'
         renameOptionsSet = true
         renameQuery = ''
         performRename = false
@@ -3231,12 +3488,12 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
     //        Y: Absolute Ordering, Send to renameOptionForTVDBAbsoluteEpisodes, renamePass:1, AniDB
     //           Airdate Ordering, Send to renameOptionForTVDBAirdateEpisodes, renamePass:1, AniDB
     //        N: STOP
-    println "--------- Detected as Special Type by group (group.isSpecialType:[${group.isSpecialType}]) indicates a Special type of [${group.specialType}]"
+    Logging.log.info "--------- Detected as Special Type by group (group.isSpecialType:[${group.isSpecialType}]) indicates a Special type of [${group.specialType}]"
     switch (renamePass) {
       case 1:
         // Episode # indicates Special Episode (dot syntax)
         //      1: Rename using AniDB and episode.special filter
-        println "----------- Using AniDB (Do not set Filter)"
+        Logging.log.info "----------- Using AniDB (Do not set Filter)"
         renameQuery = anidbID
         renameOptionsSet = true
         performRename = true
@@ -3246,7 +3503,7 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
         renameFilter = ''
         if ( (useNonStrictOnAniDBFullMatch && aniDBJWDMatchNumber == 1 ) || (useNonStrictOnAniDBSpecials && (isSpecialEpisode || isSpecialType)) ) {
           renameStrict = false
-          println '------------- Set non-Strict renaming'
+          Logging.log.info '------------- Set non-Strict renaming'
         } else {
           renameStrict = true
         }
@@ -3259,14 +3516,14 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
         //        N: Rename without episode.special filter
         if ( tvdbID > 0 ) {
           if ( absoluteOrdering ) {
-            log.finest "----------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidbID:[${anidbID}]"
+            Logging.log.info "----------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidbID:[${anidbID}]"
             return renameOptionForTVDBAbsoluteEpisodes(f, anidbMatchDetails, tvdbID, 1, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, useNonStrictOnTVDBSpecials)
           } else {
-            log.finest "------------- Send to renameOptionForTVDBAirdateEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidbID:[${anidbID}]"
+            Logging.log.info "------------- Send to renameOptionForTVDBAirdateEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidbID:[${anidbID}]"
             return renameOptionForTVDBAirdateEpisodes(f, tvdbID, 1, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBSpecials, anidbMatchDetails, useNonStrictOnTVDBSpecials)
           }
         } else {
-          println "----------- Using AniDB (Do not set Filter)"
+          Logging.log.info "----------- Using AniDB (Do not set Filter)"
           renameQuery = anidbID
           renameOptionsSet = true
           performRename = true
@@ -3276,16 +3533,16 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
           renameFilter = ''
           if ( (useNonStrictOnAniDBFullMatch && aniDBJWDMatchNumber == 1 ) || (useNonStrictOnAniDBSpecials && (isSpecialEpisode || isSpecialType)) ) {
             renameStrict = false
-            println '------------- Set non-Strict renaming'
+            Logging.log.info '------------- Set non-Strict renaming'
           } else {
             renameStrict = true
           }
         }
         break
       default:
-        println '//-----------------------------//'
-        println '//            STOP             //'
-        println '//-----------------------------//'
+        Logging.log.info '//-----------------------------//'
+        Logging.log.info '//            STOP             //'
+        Logging.log.info '//-----------------------------//'
         renameOptionsSet = true
         renameQuery = ''
         performRename = false
@@ -3315,15 +3572,15 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
     //      N:  1: Rename with AniDB as "Special"
     //          2: Absolute Ordering, Send to renameOptionForTVDBAbsoluteEpisodes, renamePass:1, AniDB
     //          2: Airdate Ordering, Send to renameOptionForTVDBAirdateEpisodes, renamePass:1, AniDB
-    println "----------- Episode Number:[${myEpisodeNumber}] is GREATER then AniDB Episode Count range:[${myAniDBEpisodeCount}]"
-    println "----------- Likely TVDB Absolute Ordered, or Relative Seasonal Absolute Ordered or Special."
+    Logging.log.info "----------- Episode Number:[${myEpisodeNumber}] is GREATER then AniDB Episode Count range:[${myAniDBEpisodeCount}]"
+    Logging.log.info "----------- Likely TVDB Absolute Ordered, or Relative Seasonal Absolute Ordered or Special."
     renameOptionsSet = true
     def myAniDBEpisodeCountWithSpecials = filebotAniDBEpisodeCount(filebotAniDBgetEpisodeList(anidbID, 'include'))
     if ( myEpisodeNumber.toInteger() > myAniDBEpisodeCountWithSpecials ) {
-      println "----------- Episode Number:[${myEpisodeNumber}] is GREATER then AniDB Episode Count WITH Specials range:[${myAniDBEpisodeCountWithSpecials}]"
+      Logging.log.info "----------- Episode Number:[${myEpisodeNumber}] is GREATER then AniDB Episode Count WITH Specials range:[${myAniDBEpisodeCountWithSpecials}]"
       switch (renamePass) {
         case 1:
-            println "------------- AniDB Fallback will be used (good luck with that)"
+            Logging.log.info "------------- AniDB Fallback will be used (good luck with that)"
             renameOptionsSet = true
             renameStrict = true
             renameQuery = anidbID
@@ -3334,7 +3591,7 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
             renameFilter = ''
             if ( (useNonStrictOnAniDBFullMatch && aniDBJWDMatchNumber == 1 ) || (useNonStrictOnAniDBSpecials && (isSpecialEpisode || isSpecialType)) ) {
               renameStrict = false
-              println '------------- Set non-Strict renaming'
+              Logging.log.info '------------- Set non-Strict renaming'
             } else {
               renameStrict = true
             }
@@ -3353,32 +3610,32 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
         //           N: 1: AniDB Fallback
         //              2: STOP
           if (tvdbID > 0) {
-            println "----------- Using TVDB ID Supplied."
+            Logging.log.info "----------- Using TVDB ID Supplied."
             if (absoluteOrdering) {
-              log.finest "----------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidb:[${anidbID}]"
+              Logging.log.info "----------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidb:[${anidbID}]"
               return renameOptionForTVDBAbsoluteEpisodes(f, anidbMatchDetails, tvdbID, 1, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, useNonStrictOnTVDBSpecials)
             } else {
-              log.finest "------------- Send to renameOptionForTVDBAirdateEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidb:[${anidbID}]"
+              Logging.log.info "------------- Send to renameOptionForTVDBAirdateEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidb:[${anidbID}]"
               return renameOptionForTVDBAirdateEpisodes(f, tvdbID, 1, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBSpecials, anidbMatchDetails, useNonStrictOnTVDBSpecials)
             }
           } else {
-            println "----------- No TVDB ID Supplied. Checking if Anime has Animelist Entry"
+            Logging.log.info "----------- No TVDB ID Supplied. Checking if Anime has Animelist Entry"
             if (anidbMatchDetails.hasAnimeListEntry) {
               def myanimeListGetTVDBID = filebotAnimeListReturnFromAID(anidbID, true)
-              println "------------- Has AnimeList Entry with TVDBID:[${myanimeListGetTVDBID}]"
+              Logging.log.info "------------- Has AnimeList Entry with TVDBID:[${myanimeListGetTVDBID}]"
               if (absoluteOrdering) {
-                log.finest "------------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${myanimeListGetTVDBID}], renamePass:[1], anidb:[${anidbID}]"
+                Logging.log.info "------------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${myanimeListGetTVDBID}], renamePass:[1], anidb:[${anidbID}]"
                 return renameOptionForTVDBAbsoluteEpisodes(f, anidbMatchDetails, myanimeListGetTVDBID, 1, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, useNonStrictOnTVDBSpecials)
               } else {
-                log.finest "------------- Send to renameOptionForTVDBAirdateEpisodes with tvdbID:[${myanimeListGetTVDBID}], renamePass:[1], anidb:[${anidbID}]"
+                Logging.log.info "------------- Send to renameOptionForTVDBAirdateEpisodes with tvdbID:[${myanimeListGetTVDBID}], renamePass:[1], anidb:[${anidbID}]"
                 return renameOptionForTVDBAirdateEpisodes(f, myanimeListGetTVDBID, 1, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBSpecials, anidbMatchDetails, useNonStrictOnTVDBSpecials)
               }
             }
           }
-          println "----------- Renamepass:2 Can't match to AniDB"
-          println '//-----------------------------//'
-          println '//            STOP             //'
-          println '//-----------------------------//'
+          Logging.log.info "----------- Renamepass:2 Can't match to AniDB"
+          Logging.log.info '//-----------------------------//'
+          Logging.log.info '//            STOP             //'
+          Logging.log.info '//-----------------------------//'
           renameOptionsSet = true
           renameQuery = ''
           performRename = false
@@ -3389,10 +3646,10 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
           renameStrict = true
           break
         default:
-          println "----------- unknown:1-2.3"
-          println '//-----------------------------//'
-          println '//            STOP             //'
-          println '//-----------------------------//'
+          Logging.log.info "----------- unknown:1-2.3"
+          Logging.log.info '//-----------------------------//'
+          Logging.log.info '//            STOP             //'
+          Logging.log.info '//-----------------------------//'
           renameOptionsSet = true
           renameQuery = ''
           performRename = false
@@ -3407,11 +3664,11 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
       //      N:  1: Rename with AniDB as "Special"
       //          2: Absolute Ordering, Send to renameOptionForTVDBAbsoluteEpisodes, renamePass:1, AniDB
       //          2: Airdate Ordering, Send to renameOptionForTVDBAirdateEpisodes, renamePass:1, AniDB
-      println "----------- Episode Number:[${myEpisodeNumber}] is less then AniDB Episode Count WITH Specials range:[${myAniDBEpisodeCountWithSpecials}]"
-      println "----------- Episode Number:[${myEpisodeNumber}] is probably a special"
+      Logging.log.info "----------- Episode Number:[${myEpisodeNumber}] is less then AniDB Episode Count WITH Specials range:[${myAniDBEpisodeCountWithSpecials}]"
+      Logging.log.info "----------- Episode Number:[${myEpisodeNumber}] is probably a special"
       switch (renamePass) {
         case 1:
-          println '----------- Using AniDB (Filter as Special)'
+          Logging.log.info '----------- Using AniDB (Filter as Special)'
           isSpecialEpisode = true
           renameQuery = anidbID
           performRename = true
@@ -3422,8 +3679,8 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
           renameStrict = true
           if ( (useNonStrictOnAniDBFullMatch && aniDBJWDMatchNumber == 1 ) || (useNonStrictOnAniDBSpecials && (isSpecialEpisode || isSpecialType)) ) {
             renameStrict = false
-            println '------------- Set Not-Strict'
-            println '------------- Remove episode.special Filter'
+            Logging.log.info '------------- Set Not-Strict'
+            Logging.log.info '------------- Remove episode.special Filter'
             renameFilter = ''
           } else {
             renameStrict = true
@@ -3431,28 +3688,28 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
           break
         case 2:
           if ( tvdbID > 0 ) {
-            println "----------- Using TVDB ID Supplied."
+            Logging.log.info "----------- Using TVDB ID Supplied."
             if (absoluteOrdering) {
-              log.finest "----------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidb:[${anidbID}], and processAsSpecial:[true]"
+              Logging.log.info "----------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidb:[${anidbID}], and processAsSpecial:[true]"
               return renameOptionForTVDBAbsoluteEpisodes(f, anidbMatchDetails, tvdbID, 1, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, useNonStrictOnTVDBSpecials, true)
             } else {
-              log.finest "------------- Send to renameOptionForTVDBAirdateEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidb:[${anidbID}], and processAsSpecial:[true]"
+              Logging.log.info "------------- Send to renameOptionForTVDBAirdateEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidb:[${anidbID}], and processAsSpecial:[true]"
               return renameOptionForTVDBAirdateEpisodes(f, tvdbID, 1, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBSpecials, anidbMatchDetails, useNonStrictOnTVDBSpecials, true)
             }
           } else {
-            println "----------- No TVDB ID Supplied. Checking if Anime has Animelist Entry"
+            Logging.log.info "----------- No TVDB ID Supplied. Checking if Anime has Animelist Entry"
             if ( anidbMatchDetails.hasAnimeListEntry) {
               def myanimeListGetTVDBID = filebotAnimeListReturnFromAID(anidbID, true)
-              println "------------- Has AnimeList Entry with TVDBID:[${myanimeListGetTVDBID}]"
+              Logging.log.info "------------- Has AnimeList Entry with TVDBID:[${myanimeListGetTVDBID}]"
               if (absoluteOrdering) {
-                log.finest "------------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${myanimeListGetTVDBID}], renamePass:[1], anidb:[${anidbID}], and processAsSpecial:[true]"
+                Logging.log.info "------------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${myanimeListGetTVDBID}], renamePass:[1], anidb:[${anidbID}], and processAsSpecial:[true]"
                 return renameOptionForTVDBAbsoluteEpisodes(f, anidbMatchDetails, myanimeListGetTVDBID, 1, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, useNonStrictOnTVDBSpecials, true)
               } else {
-                log.finest "------------- Send to renameOptionForTVDBAirdateEpisodes with tvdbID:[${myanimeListGetTVDBID}], renamePass:[1], anidb:[${anidbID}], and processAsSpecial:[true]"
+                Logging.log.info "------------- Send to renameOptionForTVDBAirdateEpisodes with tvdbID:[${myanimeListGetTVDBID}], renamePass:[1], anidb:[${anidbID}], and processAsSpecial:[true]"
                 return renameOptionForTVDBAirdateEpisodes(f, myanimeListGetTVDBID, 1, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBSpecials, anidbMatchDetails, useNonStrictOnTVDBSpecials, true)
               }
             }
-            println "------------- No AnimeList Entry. AniDB Fallback will be used (No Episode Filter)"
+            Logging.log.info "------------- No AnimeList Entry. AniDB Fallback will be used (No Episode Filter)"
             renameOptionsSet = true
             renameStrict = true
             renameQuery = anidbID
@@ -3463,17 +3720,17 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
             renameFilter = ''
             if ( (useNonStrictOnAniDBFullMatch && aniDBJWDMatchNumber == 1 ) || (useNonStrictOnAniDBSpecials && (isSpecialEpisode || isSpecialType)) ) {
               renameStrict = false
-              println '------------- Set non-Strict renaming'
+              Logging.log.info '------------- Set non-Strict renaming'
             } else {
               renameStrict = true
             }
           }
           break
         default:
-          println "----------- unknown:1-2.4"
-          println '//-----------------------------//'
-          println '//            STOP             //'
-          println '//-----------------------------//'
+          Logging.log.info "----------- unknown:1-2.4"
+          Logging.log.info '//-----------------------------//'
+          Logging.log.info '//            STOP             //'
+          Logging.log.info '//-----------------------------//'
           renameOptionsSet = true
           renameQuery = ''
           performRename = false
@@ -3530,50 +3787,51 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
  * @param useNonStrictOnTVDBSpecials
  * @return [groupByRenameOptions: groupByRenameOptions, statsRenamedUsingScript: statsRenamedUsingScript, statsRenamedUsingFilebot: statsRenamedUsingFilebot]
  */
+@SuppressWarnings('unused')
 LinkedHashMap episodeRenameOptionPassOne(Integer renamePass, LinkedHashMap group, ArrayList<File> files, Boolean hasSeasonality, Integer mySeasonalityNumber, BigDecimal firstANIDBWTMatchNumber, BigDecimal secondANIDBWTMatchNumber, BigDecimal thirdANIDBWTMatchNumber, BigDecimal fileBotANIDBJWDMatchNumber, LinkedHashMap anidbFirstMatchDetails, LinkedHashMap anidbSecondMatchDetails, LinkedHashMap anidbThirdMatchDetails, LinkedHashMap fileBotANIDBJWDMatchDetails, BigDecimal firstTVDBDWTMatchNumber, BigDecimal secondTVDBDWTMatchNumber, BigDecimal thirdTVDBDWTMatchNumber, BigDecimal fileBotTheTVDBJWDMatchNumber, LinkedHashMap theTVDBFirstMatchDetails, LinkedHashMap theTVDBSecondMatchDetails, LinkedHashMap theTVDBThirdMatchDetails, LinkedHashMap fileBotTheTVDBJWDMatchDetails, Boolean performRename, Boolean fileBotAniDBMatchUsed, Boolean animeFoundInAniDB, Boolean animeFoundInTVDB, Boolean fileBotTheTVDBMatchUsed, Integer statsRenamedUsingScript, Integer statsRenamedUsingFilebot, Boolean useNonStrictOnAniDBFullMatch, Boolean useNonStrictOnAniDBSpecials, JsonObject animeOffLineDatabaseJsonObject, Boolean useNonStrictOnTVDBSpecials) {
-  LinkedHashMap groupByRenameOptions
+  LinkedHashMap groupByRenameOptions = [:]
   LinkedHashMap emptyJWDMatchDetails = [score: 0.00000000, db:'', dbid:0, primarytitle: null, animename: null, matchname: null, alias: true]
   Boolean firstPassOptionsSet = false
-  println '// ---------- deliberations on order, DB, filter ---------- //'
+  Logging.log.info '// ---------- deliberations on order, DB, filter ---------- //'
   // --- airdate Syntax --- //
   if (group.order == 'airdate') {
-    println '//--- Airdate Syntax'
+    Logging.log.info '//--- Airdate Syntax'
     if ( animeFoundInTVDB ) {
       if ( fileBotTheTVDBMatchUsed ){
         renamerSource = 'filebot'
       }
-      println '--- Anime found in TheTVDB'
+      Logging.log.info '--- Anime found in TheTVDB'
       if ( firstTVDBDWTMatchNumber > 0.9800000000000000000 ) {
-        println '----- 1st TVDB match 0.98+'
+        Logging.log.info '----- 1st TVDB match 0.98+'
         if ( theTVDBFirstMatchDetails.alias == true ) {
-          println '------- 1st TVDB match is an Alias (Increased Chance AniDB Series is not Season 1 for TVDB Series)'
+          Logging.log.info '------- 1st TVDB match is an Alias (Increased Chance AniDB Series is not Season 1 for TVDB Series)'
           if ( firstANIDBWTMatchNumber < 0.9800000000000000000 ) {
-            println "------- Can't use AnimeLists as 1st AniDB match 0.98-"
-            println "------- Sending to groupGenerationByTVDB"
-            groupByRenameOptions = groupGenerationByTVDB(files, theTVDBFirstMatchDetails.dbid, renamePass, animeOffLineDatabaseJsonObject, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+            Logging.log.info "------- Can't use AnimeLists as 1st AniDB match 0.98-"
+            Logging.log.info "------- Sending to groupGenerationByTVDB"
+            groupByRenameOptions = groupGenerationByTVDB(files, theTVDBFirstMatchDetails.dbid as Integer, renamePass, animeOffLineDatabaseJsonObject, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
             statsRenamedUsingScript++
             firstPassOptionsSet = true
           }
           if ( firstANIDBWTMatchNumber > 0.9800000000000000000 ) {
-            println '------- We can use AnimeLists as 1st AniDB match 0.98+'
-            println "------- Sending to groupGenerationByAnimeLists, PreferedDB: anidb"
+            Logging.log.info '------- We can use AnimeLists as 1st AniDB match 0.98+'
+            Logging.log.info "------- Sending to groupGenerationByAnimeLists, PreferedDB: anidb"
             groupByRenameOptions = groupGenerationByAnimeLists(files, 'anidb', anidbFirstMatchDetails, theTVDBFirstMatchDetails, renamePass, animeOffLineDatabaseJsonObject, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
             statsRenamedUsingScript++
             firstPassOptionsSet = true
           }
         }
         if ( theTVDBFirstMatchDetails.alias == false ) {
-          println '------- 1st TVDB match is NOT an alias (Increased Chance AniDB Series is Season 1 for TVDB Series)'
+          Logging.log.info '------- 1st TVDB match is NOT an alias (Increased Chance AniDB Series is Season 1 for TVDB Series)'
           if ( firstANIDBWTMatchNumber < 0.9800000000000000000 ) {
-            println "------- Can't use AnimeLists as 1st AniDB match 0.98-"
-            println "------- Sending to groupGenerationByTVDB"
-            groupByRenameOptions = groupGenerationByTVDB(files, theTVDBFirstMatchDetails.dbid, renamePass, animeOffLineDatabaseJsonObject, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+            Logging.log.info "------- Can't use AnimeLists as 1st AniDB match 0.98-"
+            Logging.log.info "------- Sending to groupGenerationByTVDB"
+            groupByRenameOptions = groupGenerationByTVDB(files, theTVDBFirstMatchDetails.dbid as Integer, renamePass, animeOffLineDatabaseJsonObject, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
             statsRenamedUsingScript++
             firstPassOptionsSet = true
           }
           if ( firstANIDBWTMatchNumber > 0.9800000000000000000 ) {
-            println '------- We can use AnimeLists as  1st AniDB match 0.98+'
-            println "------- Sending to groupGenerationByAnimeLists, PreferedDB: anidb"
+            Logging.log.info '------- We can use AnimeLists as  1st AniDB match 0.98+'
+            Logging.log.info "------- Sending to groupGenerationByAnimeLists, PreferedDB: anidb"
             groupByRenameOptions = groupGenerationByAnimeLists(files, 'anidb', anidbFirstMatchDetails, theTVDBFirstMatchDetails, renamePass, animeOffLineDatabaseJsonObject, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
             statsRenamedUsingScript++
             firstPassOptionsSet = true
@@ -3581,38 +3839,38 @@ LinkedHashMap episodeRenameOptionPassOne(Integer renamePass, LinkedHashMap group
         }
       }
       if ( firstTVDBDWTMatchNumber < 0.9800000000000000000 && fileBotTheTVDBJWDMatchNumber > 0.9800000000000000000 )   {
-        println '----- Filebot TVDB match 0.98+, 1st TVDB Match 0.98-'
+        Logging.log.info '----- Filebot TVDB match 0.98+, 1st TVDB Match 0.98-'
         if ( fileBotTheTVDBJWDMatchDetails.alias == true ) {
-          println '------- filebot TVDB match is an Alias (Increased Chance AniDB Series is not Season 1 for TVDB Series)'
+          Logging.log.info '------- filebot TVDB match is an Alias (Increased Chance AniDB Series is not Season 1 for TVDB Series)'
           if ( firstANIDBWTMatchNumber < 0.9800000000000000000 ) {
-            println "------- Can't use AnimeLists as 1st AniDB match 0.98-"
-            println "------- Sending to groupGenerationByTVDB"
-            groupByRenameOptions = groupGenerationByTVDB(files, fileBotTheTVDBJWDMatchDetails.dbid, renamePass, animeOffLineDatabaseJsonObject, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+            Logging.log.info "------- Can't use AnimeLists as 1st AniDB match 0.98-"
+            Logging.log.info "------- Sending to groupGenerationByTVDB"
+            groupByRenameOptions = groupGenerationByTVDB(files, fileBotTheTVDBJWDMatchDetails.dbid as Integer, renamePass, animeOffLineDatabaseJsonObject, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
             statsRenamedUsingFilebot++
             renamerSource = 'filebot'
             firstPassOptionsSet = true
           }
           if ( firstANIDBWTMatchNumber > 0.9800000000000000000 ) {
-            println '------- We can use AnimeLists as 1st AniDB match 0.98+'
-            println "------- Sending to groupGenerationByAnimeLists, PreferedDB: anidb"
+            Logging.log.info '------- We can use AnimeLists as 1st AniDB match 0.98+'
+            Logging.log.info "------- Sending to groupGenerationByAnimeLists, PreferedDB: anidb"
             groupByRenameOptions = groupGenerationByAnimeLists(files, 'anidb', anidbFirstMatchDetails, fileBotTheTVDBJWDMatchDetails, renamePass, animeOffLineDatabaseJsonObject, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
             statsRenamedUsingScript++
             firstPassOptionsSet = true
           }
         }
         if ( fileBotTheTVDBJWDMatchDetails.alias == false ) {
-          println '------- filebot TVDB match is NOT an alias (Increased Chance AniDB Series is Season 1 for TVDB Series)'
+          Logging.log.info '------- filebot TVDB match is NOT an alias (Increased Chance AniDB Series is Season 1 for TVDB Series)'
           if ( firstANIDBWTMatchNumber < 0.9800000000000000000 ) {
-            println "------- Can't use AnimeLists as 1st AniDB match 0.98-"
-            println "------- Sending to groupGenerationByTVDB"
-            groupByRenameOptions = groupGenerationByTVDB(files, fileBotTheTVDBJWDMatchDetails.dbid, renamePass, animeOffLineDatabaseJsonObject, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+            Logging.log.info "------- Can't use AnimeLists as 1st AniDB match 0.98-"
+            Logging.log.info "------- Sending to groupGenerationByTVDB"
+            groupByRenameOptions = groupGenerationByTVDB(files, fileBotTheTVDBJWDMatchDetails.dbid as Integer, renamePass, animeOffLineDatabaseJsonObject, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
             statsRenamedUsingFilebot++
             renamerSource = 'filebot'
             firstPassOptionsSet = true
           }
           if ( firstANIDBWTMatchNumber > 0.9800000000000000000 ) {
-            println '------- We can use AnimeLists as 1st AniDB match 0.98+'
-            println "------- Sending to groupGenerationByAnimeLists, PreferedDB: anidb"
+            Logging.log.info '------- We can use AnimeLists as 1st AniDB match 0.98+'
+            Logging.log.info "------- Sending to groupGenerationByAnimeLists, PreferedDB: anidb"
             groupByRenameOptions = groupGenerationByAnimeLists(files, 'anidb', anidbFirstMatchDetails, fileBotTheTVDBJWDMatchDetails, renamePass, animeOffLineDatabaseJsonObject, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
             statsRenamedUsingScript++
             firstPassOptionsSet = true
@@ -3620,33 +3878,33 @@ LinkedHashMap episodeRenameOptionPassOne(Integer renamePass, LinkedHashMap group
         }
       }
       if ( firstTVDBDWTMatchNumber < 0.9800000000000000000 && (fileBotTheTVDBJWDMatchNumber < 0.9800000000000000000 || fileBotTheTVDBMatchUsed || fileBotTheTVDBJWDMatchNumber == 0) ) {
-        println '------ None of our TVDB Options are above 0.98+, exploring ANIDB'
+        Logging.log.info '------ None of our TVDB Options are above 0.98+, exploring ANIDB'
         if ( firstANIDBWTMatchNumber > 0.9800000000000000000 ) {
-          println "------- using 1st AniDB match as it's 0.98+"
-          println "------- Sending to groupGenerationByAniDB"
+          Logging.log.info "------- using 1st AniDB match as it's 0.98+"
+          Logging.log.info "------- Sending to groupGenerationByAniDB"
           groupByRenameOptions = groupGenerationByAniDB( files, anidbFirstMatchDetails, renamePass, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, firstANIDBWTMatchNumber, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
           firstPassOptionsSet = true
           statsRenamedUsingScript++
         }
         if ( firstANIDBWTMatchNumber < 0.9800000000000000000 && fileBotANIDBJWDMatchNumber > 0.9800000000000000000 && fileBotANIDBJWDMatchDetails.dbid != anidbFirstMatchDetails.dbid ) {
-          println "------- using Filebot match as it's 0.98+"
-          println "------- Sending to groupGenerationByAniDB"
+          Logging.log.info "------- using Filebot match as it's 0.98+"
+          Logging.log.info "------- Sending to groupGenerationByAniDB"
           statsRenamedUsingFilebot++
           groupByRenameOptions = groupGenerationByAniDB( files, fileBotANIDBJWDMatchDetails, renamePass, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, fileBotANIDBJWDMatchNumber, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
           firstPassOptionsSet = true
         }
-        if ( secondANIDBWTMatchNumber > 0.9800000000000000000  && firstPassOptionsSet == false) {
-          println "------- using 2nd AniDB match as it's 0.98+"
-          println "------- Sending to groupGenerationByAniDB"
+        if ( secondANIDBWTMatchNumber > 0.9800000000000000000  && !firstPassOptionsSet) {
+          Logging.log.info "------- using 2nd AniDB match as it's 0.98+"
+          Logging.log.info "------- Sending to groupGenerationByAniDB"
           groupByRenameOptions = groupGenerationByAniDB( files, anidbSecondMatchDetails, renamePass, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, secondANIDBWTMatchNumber, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
           firstPassOptionsSet = true
           statsRenamedUsingScript++
         }
       }
       if ( !firstPassOptionsSet ) {
-        println '//-----------------------------//'
-        println '//  STOP - airdate.1-1st.4    //'
-        println '//-----------------------------//'
+        Logging.log.info '//-----------------------------//'
+        Logging.log.info '//  STOP - airdate.1-1st.4    //'
+        Logging.log.info '//-----------------------------//'
         firstPassOptionsSet = true
         groupByRenameOptions = files.groupBy { File f ->
           performRename = false
@@ -3664,33 +3922,33 @@ LinkedHashMap episodeRenameOptionPassOne(Integer renamePass, LinkedHashMap group
       }
     }
     if ( animeFoundInAniDB && !animeFoundInTVDB ) {
-      println '--- Anime found Only in AniDB'
+      Logging.log.info '--- Anime found Only in AniDB'
       if ( firstANIDBWTMatchNumber > 0.9800000000000000000 ) {
-        println "------- using 1st AniDB match as it's 0.98+"
-        println "------- Sending to groupGenerationByAniDB"
+        Logging.log.info "------- using 1st AniDB match as it's 0.98+"
+        Logging.log.info "------- Sending to groupGenerationByAniDB"
         groupByRenameOptions = groupGenerationByAniDB( files, anidbFirstMatchDetails, renamePass, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, firstANIDBWTMatchNumber, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
         firstPassOptionsSet = true
         statsRenamedUsingScript++
       }
       if ( firstANIDBWTMatchNumber < 0.9800000000000000000 && fileBotANIDBJWDMatchNumber > 0.9800000000000000000 ) {
-        println "------- using Filebot match as it's 0.98+"
-        println "------- Sending to groupGenerationByAniDB"
+        Logging.log.info "------- using Filebot match as it's 0.98+"
+        Logging.log.info "------- Sending to groupGenerationByAniDB"
         groupByRenameOptions = groupGenerationByAniDB( files, fileBotANIDBJWDMatchDetails, renamePass, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, fileBotANIDBJWDMatchNumber, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
         firstPassOptionsSet = true
         statsRenamedUsingFilebot++
         renamerSource = 'filebot'
       }
-      if ( secondANIDBWTMatchNumber > 0.9800000000000000000  && firstPassOptionsSet == false) {
-        println "------- using 2nd AniDB match as it's 0.98+"
-        println "------- Sending to groupGenerationByAniDB"
+      if ( secondANIDBWTMatchNumber > 0.9800000000000000000  && !firstPassOptionsSet) {
+        Logging.log.info "------- using 2nd AniDB match as it's 0.98+"
+        Logging.log.info "------- Sending to groupGenerationByAniDB"
         groupByRenameOptions = groupGenerationByAniDB( files, anidbSecondMatchDetails, renamePass, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, secondANIDBWTMatchNumber, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
         firstPassOptionsSet = true
         statsRenamedUsingScript++
       }
       if ( !firstPassOptionsSet ) {
-        println '//-----------------------------//'
-        println '//  STOP - airdate.2-1st    //'
-        println '//-----------------------------//'
+        Logging.log.info '//-----------------------------//'
+        Logging.log.info '//  STOP - airdate.2-1st    //'
+        Logging.log.info '//-----------------------------//'
         firstPassOptionsSet = true
         groupByRenameOptions = files.groupBy { File f ->
           performRename = false
@@ -3713,35 +3971,35 @@ LinkedHashMap episodeRenameOptionPassOne(Integer renamePass, LinkedHashMap group
     if ( fileBotAniDBMatchUsed ){
       renamerSource = 'filebot'
     }
-    println "//--- Absolute Ordering Detected"
+    Logging.log.info "//--- Absolute Ordering Detected"
     if (( !animeFoundInAniDB || (firstANIDBWTMatchNumber < 0.9800000000000000000 && fileBotANIDBJWDMatchNumber < 0.9800000000000000000 )) && animeFoundInTVDB) {
-      println '--- Anime found Only in TVDB with matches above 0.98+'
+      Logging.log.info '--- Anime found Only in TVDB with matches above 0.98+'
       if ( firstTVDBDWTMatchNumber > 0.9800000000000000000 ) {
-        println '----- Using 1st TVDB Match as it 0.98+'
-        println '----- Sending to groupGenerationByTVDB'
-        groupByRenameOptions = groupGenerationByTVDB(files, theTVDBFirstMatchDetails.dbid, renamePass,  animeOffLineDatabaseJsonObject, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+        Logging.log.info '----- Using 1st TVDB Match as it 0.98+'
+        Logging.log.info '----- Sending to groupGenerationByTVDB'
+        groupByRenameOptions = groupGenerationByTVDB(files, theTVDBFirstMatchDetails.dbid as Integer, renamePass,  animeOffLineDatabaseJsonObject, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
         firstPassOptionsSet = true
         statsRenamedUsingScript++
       }
       if ( firstTVDBDWTMatchNumber < 0.9800000000000000000 && fileBotTheTVDBJWDMatchNumber > 0.9800000000000000000 ) {
-        println '----- Using Filebot TVDB Match as it 0.98+'
-        println '----- Sending to groupGenerationByTVDB'
+        Logging.log.info '----- Using Filebot TVDB Match as it 0.98+'
+        Logging.log.info '----- Sending to groupGenerationByTVDB'
         firstPassOptionsSet = true
         statsRenamedUsingFilebot++
-        groupByRenameOptions = groupGenerationByTVDB(files, fileBotTheTVDBJWDMatchDetails.dbid, renamePass,  animeOffLineDatabaseJsonObject, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+        groupByRenameOptions = groupGenerationByTVDB(files, fileBotTheTVDBJWDMatchDetails.dbid as Integer, renamePass,  animeOffLineDatabaseJsonObject, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
       }
       if ( secondTVDBDWTMatchNumber > 0.9800000000000000000 && !firstPassOptionsSet ) {
-        println '----- Using 2nd TVDB Match as it 0.98+ (wow)'
-        println '----- Sending to groupGenerationByTVDB'
+        Logging.log.info '----- Using 2nd TVDB Match as it 0.98+ (wow)'
+        Logging.log.info '----- Sending to groupGenerationByTVDB'
         firstPassOptionsSet = true
-        groupByRenameOptions = groupGenerationByTVDB(files, theTVDBSecondMatchDetails.dbid, renamePass,  animeOffLineDatabaseJsonObject, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+        groupByRenameOptions = groupGenerationByTVDB(files, theTVDBSecondMatchDetails.dbid as Integer, renamePass,  animeOffLineDatabaseJsonObject, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
         statsRenamedUsingScript++
       }
-      if ( firstPassOptionsSet == false ) {
-        println '----- No Suitable TVDB Options found'
-        println '//-----------------------------//'
-        println '//  STOP - absolute.1-1st.4    //'
-        println '//-----------------------------//'
+      if (!firstPassOptionsSet) {
+        Logging.log.info '----- No Suitable TVDB Options found'
+        Logging.log.info '//-----------------------------//'
+        Logging.log.info '//  STOP - absolute.1-1st.4    //'
+        Logging.log.info '//-----------------------------//'
         firstPassOptionsSet = true
         groupByRenameOptions = files.groupBy { File f ->
           performRename = false
@@ -3759,54 +4017,54 @@ LinkedHashMap episodeRenameOptionPassOne(Integer renamePass, LinkedHashMap group
       }
     }
     if ( firstANIDBWTMatchNumber > 0.9800000000000000000 && firstTVDBDWTMatchNumber > 0.9800000000000000000 && group.isSpecialType ) {
-      println '------- 1st AniDB match 0.98+ && 1st TVDB match 0.98+ and group.isSpecialType = true'
-      println '------- Sending to groupGenerationByAnimeLists, preferredDB: anidb'
+      Logging.log.info '------- 1st AniDB match 0.98+ && 1st TVDB match 0.98+ and group.isSpecialType = true'
+      Logging.log.info '------- Sending to groupGenerationByAnimeLists, preferredDB: anidb'
       groupByRenameOptions = groupGenerationByAnimeLists(files, 'anidb', anidbFirstMatchDetails, theTVDBFirstMatchDetails, renamePass, animeOffLineDatabaseJsonObject, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
       firstPassOptionsSet = true
       statsRenamedUsingScript++
     }
     if ( firstANIDBWTMatchNumber > 0.9800000000000000000 && firstTVDBDWTMatchNumber > 0.9800000000000000000 && !group.isSpecialType) {
-      println '------- 1st AniDB match 0.98+ && 1st TVDB match 0.98+ and NOT a special'
-      println '------- Sending to groupGenerationByAnimeLists, preferredDB: anidb'
+      Logging.log.info '------- 1st AniDB match 0.98+ && 1st TVDB match 0.98+ and NOT a special'
+      Logging.log.info '------- Sending to groupGenerationByAnimeLists, preferredDB: anidb'
       groupByRenameOptions = groupGenerationByAnimeLists(files, 'anidb', anidbFirstMatchDetails, theTVDBFirstMatchDetails, renamePass, animeOffLineDatabaseJsonObject, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
       firstPassOptionsSet = true
       statsRenamedUsingScript++
     }
     if ( firstANIDBWTMatchNumber < 0.9800000000000000000 && fileBotANIDBJWDMatchNumber > 0.9800000000000000000 && firstTVDBDWTMatchNumber > 0.9800000000000000000 ) {
-      println '------- Filebot match 0.98+'
-      println '------- Sending to groupGenerationByAnimeLists, preferredDB: anidb'
+      Logging.log.info '------- Filebot match 0.98+'
+      Logging.log.info '------- Sending to groupGenerationByAnimeLists, preferredDB: anidb'
       groupByRenameOptions = groupGenerationByAnimeLists(files, 'anidb', fileBotANIDBJWDMatchDetails, theTVDBFirstMatchDetails, renamePass, animeOffLineDatabaseJsonObject, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
       firstPassOptionsSet = true
       statsRenamedUsingScript++
     }
-    if ( animeFoundInAniDB && firstTVDBDWTMatchNumber < 0.9800000000000000000 ) {
-      println '----- Anime in ANIDB and 1st TVDB < 0.98'
+    if ( animeFoundInAniDB && firstTVDBDWTMatchNumber <= 0.9800000000000000000 ) {
+      Logging.log.info '----- Anime in ANIDB and 1st TVDB <= 0.98'
       if ( firstANIDBWTMatchNumber > 0.9800000000000000000 ) {
-        println "------- using 1st AniDB match as it's 0.98+"
-        println '------- Sending to groupGenerationByAniDB'
+        Logging.log.info "------- using 1st AniDB match as it's 0.98+"
+        Logging.log.info '------- Sending to groupGenerationByAniDB'
         groupByRenameOptions = groupGenerationByAniDB( files, anidbFirstMatchDetails, renamePass, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, firstANIDBWTMatchNumber, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
         firstPassOptionsSet = true
         statsRenamedUsingScript++
       }
       if ( firstANIDBWTMatchNumber < 0.9800000000000000000 && fileBotANIDBJWDMatchNumber > 0.9800000000000000000 ) {
-        println "------- using Filebot match as it's 0.98+"
-        println '------- Sending to groupGenerationByAniDB'
+        Logging.log.info "------- using Filebot match as it's 0.98+"
+        Logging.log.info '------- Sending to groupGenerationByAniDB'
         groupByRenameOptions = groupGenerationByAniDB( files, fileBotANIDBJWDMatchDetails, renamePass, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, firstANIDBWTMatchNumber, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
         firstPassOptionsSet = true
         statsRenamedUsingFilebot++
       }
-      if ( secondANIDBWTMatchNumber > 0.9800000000000000000  && firstPassOptionsSet == false) {
-        println "------- using 2nd AniDB match as it's 0.98+"
-        println '------- Sending to groupGenerationByAniDB'
+      if ( secondANIDBWTMatchNumber > 0.9800000000000000000  && !firstPassOptionsSet) {
+        Logging.log.info "------- using 2nd AniDB match as it's 0.98+"
+        Logging.log.info '------- Sending to groupGenerationByAniDB'
         groupByRenameOptions = groupGenerationByAniDB( files, anidbSecondMatchDetails, renamePass, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, firstANIDBWTMatchNumber, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
         firstPassOptionsSet = true
         statsRenamedUsingScript++
       }
-      if ( firstPassOptionsSet == false ) {
-        println '--- 1st, 2nd AniDB < 0.98 && Filebot < 0.98'
-        println '//-----------------------------//'
-        println '//  STOP - absolute.2-1st.4      //'
-        println '//-----------------------------//'
+      if (!firstPassOptionsSet) {
+        Logging.log.info '--- 1st, 2nd AniDB < 0.98 && Filebot < 0.98'
+        Logging.log.info '//-----------------------------//'
+        Logging.log.info '//  STOP - absolute.2-1st.4      //'
+        Logging.log.info '//-----------------------------//'
         firstPassOptionsSet = true
         groupByRenameOptions = files.groupBy { File f ->
           performRename = false
@@ -3823,11 +4081,12 @@ LinkedHashMap episodeRenameOptionPassOne(Integer renamePass, LinkedHashMap group
         }
       }
     }
-    if ( firstPassOptionsSet == false ) {
-      println '//-----------------------------//'
-      println '//  STOP - absolute.3-1st.4    //'
-      println '//-----------------------------//'
-      println "animeFoundInAniDB:[${animeFoundInAniDB}], firstANIDBWTMatchNumber:[${firstANIDBWTMatchNumber}], group.isSpecialType:[${group.isSpecialType}]"
+    if (!firstPassOptionsSet) {
+      Logging.log.info '//-----------------------------//'
+      Logging.log.info '//  STOP - absolute.3-1st.4    //'
+      Logging.log.info '//-----------------------------//'
+      Logging.log.info "animeFoundInAniDB:[${animeFoundInAniDB}], firstANIDBWTMatchNumber:[${firstANIDBWTMatchNumber}], group.isSpecialType:[${group.isSpecialType}]"
+      Logging.log.info "animeFoundInTVDB:[${animeFoundInTVDB}], firstTVDBDWTMatchNumber:[${firstTVDBDWTMatchNumber}], group.isSpecialType:[${group.isSpecialType}]"
       groupByRenameOptions = files.groupBy { File f ->
         performRename = false
         renameQuery = ''

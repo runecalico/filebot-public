@@ -4,6 +4,53 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.2] - 2021-12-27
+### Changed
+- searchForMoviesJWD() - Added switch for changing tempAnimeName based on group.animename
+- searchForMoviesJWD() - Added Alt Movie #4 - Adding 'the' before 'movie', when it only has 'movie'
+
+## [1.7.1] - 2021-12-26
+### Changed
+- episodeRenameOptionsPassOne() - Line 3991 - Switch `if ( animeFoundInAniDB && firstTVDBDWTMatchNumber < 0.9800000000000000000 )` to `if ( animeFoundInAniDB && firstTVDBDWTMatchNumber <= 0.9800000000000000000 )`
+- basenameGenerator() & searchForMoviesJWD() - Check for v{Digit} at end of anime name and add additioinal basename without it. aka  when anime series v2 is detected, add additional basename of anime series
+- ovaOnaOadSpecialBonusSyntaxMatcher - Modify Regex
+
+## [1.7.0] - 2021-12-24
+### Changed
+- basenameGenerator() - Redid the Roman Ordinal's to generate alternatives for Roman Ordinals (2nd, II, 2) just like with interger seasons
+- basenameGenerator() - Added getNumberFromRomanOrdinal() to get integer equiv of Roman Ordinal
+- basenameGenerator() - Apply seriesNameGenerator() to both basename and group.altTitle when group.hasSeriesSyntax is true
+- basenameGenerator() - Add basename without 'the' if animename starts with it.
+### Added
+- seriesNameGenerator() - Generate HashSet of "Series" name variations. 
+
+## [1.6.1] - 2021-11-18
+### Changed
+- Update detectEpisodeNumberFromFile invocations with new param (returnOnlyIntegerEpisode)
+
+## [1.6.0] - 2021-11-15
+### Changed
+- Expanded the try/catch to echo out the error, also worked to limit the methods in the try to a single one (so we know the error is only from that method)
+- renameOptionForTVDBAbsoluteEpisodes()- Fixed - line 2467 If statement used mySeasonalityNumber for compare, but was using myanimeListGetTVDBSeason for the value
+
+## [1.5.3] - 2021-11-13
+### Added
+- Changed all println to Logging.log.info/fine/finer/finest, Apply some Intellij suggested Fixes here and there
+
+## [1.5.2] - 2021-11-xx
+### Added
+- I forgot to update for this point release.
+
+## [1.5.1] - 2021-07-03
+### Added
+- Switched regex to use global variables, introduced the following:
+    - stripYearDateRegex
+    - ovaOnaOadSpecialBonusSyntaxMatcher
+
+## [1.5.0] - 2021-06-06
+- searchForMoviesJWD() - Switch baseAnimeName to jwdStringBlender(group.anime) from just group.anime 
+- filebotMovieFallBack() - Added for logic around Filebot Movie Fall Back lookup of AniDB ID using IMDB/TMDB
+
 ## [1.4.3] - 2021-04-07
 ### Changed
 - renameOptionForTVDBAbsoluteEpisodes() - Add renameStrict = true at 1574 for edge cases where it wouldn't be set (at all), causing script abend
