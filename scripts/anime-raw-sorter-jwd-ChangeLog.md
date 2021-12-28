@@ -4,6 +4,106 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [3.5.3] - 2021-12-26
+### Changed
+- animeNameGroupGenerator() - Added Movie only regex removal of matchNumberDashtoEndofLine
+- groupGenerationNew() - Add filename check for [ddd] text, for filenames that actually start with the episode in brackets (ugh), example: `[26] {480} Waste Not, Want Not.mp4`. Set useDetectAnimeName to `true`  
+- groupGenerationNew() - Fix invalid path condition with myInputFolder when there is only 1 file being processed (Which also fixed an error with animeBaseFolder() when all files are in the same directory)
+
+## [3.5.2] - 2021-12-26
+### Changed
+- ordinalSeriesMatcher - Modified Regex (lookbehind for 'the')
+- wordSeasonalityMatcher - Modified Regex (lookbehind for 'the')
+- groupGenerationNew() - groupBy() - update all instances of when removing stripYearDateRegex, replace with space then follow up with stripMultipleAdjacentSpaces 
+`anime.replaceAll(/${stripYearDateRegex}/, ' ').replaceAll(/${stripMultipleAdjacentSpaces}/, '')`
+
+## [3.5.1] - 2021-12-24
+### Changed
+- animeNameGroupGenerator() - Added insanity check for () Alt title for groups that enclose the season in them, aka (Season 2)
+- Added Filebot xattr["originalfilename"] with original file name (prior to rename)
+
+## [3.5.0] - 2021-12-23
+### Changed
+- groupGenerationNew() - groupBy() - Added new xattr keyword - xattr["originalfolder"] ==> Store the relative folder path to the 
+original file PRIOR to rename/movement by filebot. This is very useful when the file has been misnamed, or placed in the
+wrong series AND the filename is something like "episode 1.mkv", which is not helpful trying to determine what it is :)
+- groupGenerationNew() - If animeParentFolder is Season xx, then use the parent directory of that directory as "animeParentFolder"
+
+
+## [3.4.1] - 2021-11-25
+### Changed
+- renameWrapper() - Add additional logging on individual vs group renaming
+
+## [3.4.0] - 2021-11-21
+### Changed
+- Added support for renaming "invalid" (bad) files, controlled by renameInvalid, invalidOutputFolder and checkCRC options
+- Initial Invalid detection is files that fail CRC (if they have it in file name) and Files with "null" media length
+- changed videoExtraDirectoryMatcher to  `/(?i)(^teaser[s]?|^extra[s]?|bonus|preview[s]?|menu[s]?|TV Ad[s]?)$/`
+
+## [3.3.2] - 2021-11-20
+### Changed
+- Do not process Episode Groups that are empty/null (this happens when both Filebot & This script can't generate a name)
+- videoExtraFilesMatcher - Add `^(?:ed|op)[0-9](?<!\s\d{1,4})(?>\.\d)?\.\w{3}$` to match edN.xxx or opN.xxx
+
+## [3.3.1] - 2021-11-13
+### Changed
+Changed all println to Logging.log.info/fine/finer/finest, Apply some Intellij suggested Fixes here and there
+
+## [3.3.0] - 2021-10-24
+- animeNameGroupGenerator() - Updated checks to use @Field variables for most Regex Matches 
+- groupGenerationNew() - Updated checks to use @Field variables for most Regex Matches
+- groupGenerationNew() - Added [TDG Season x] Override for anime name
+- acceptFile() - Updated Extra checks to use def variables ignoreVideoExtraFoldersRegex & ignoreVideoExtraFilesRegex for "Extra" detection
+
+## [3.2.1] - 2021-10-22
+- animeNameGroupGenerator() - Updated () Check for cases where () is actually *part* of the title, aka Nekomonogatari (Kuro)
+- groupGenerationNew() - Added animeRegexBlenderName == ' ' check alongside existing null/'' check
+
+## [3.2.0] - 2021-10-21
+- animeNameGroupGenerator() - Added check for possible Alt title when numerical series syntax is detected, sometimes the alt title *is* using numerical series syntax
+
+## [3.1.2] - 2021-10-16
+- animeNameGroupGenerator() - Added Episode # detection, Added check for episode # to Seasonality (Sx) Check. If no episode the treat as special
+
+## [3.1.1] - 2021-10-09
+- Added animeDetectedName to groupGenerationNew() & animeNameGroupGenerator() to track how often Filebot detects a different anime name during Series Rename Generation
+
+## [3.1.0] - 2021-10-03
+- Added option to rename Extras using extraFormat
+
+## [3.0.0] - 2021-08-06
+- Major revamp of groupGeneration
+  - Split out logic around generating the group name (which forms the basis of the Anime name) into animeNameGroupGenerator()
+  - In all cases where it is not actually necessary to use the File f object, switched to using String variable
+  - animeNameGroupGenerator() is called repeatedly until the anime name can not be processed anymore
+  - Added Initial logic on using a parent (immediate or farther up) as the Anime name in cases where regexBlender is known to fail
+  - Switched the default useAutoDetectName from using Filebot's detected Anime Name as anime, to using it for AltTitle, while
+    - using the Folder (Not necessarily the parent) as anime/myFileNameForMatching
+- animeNameGroupGenerator() - New method that returns the Anime Name Group and Group Options
+
+## [2.3.0] - 2021-07-03
+- Switched regex to use global variables, introduced the following:
+  - stripYearDateRegex
+  - stripTrailingSpacesDashRegex
+  - stripMultipleAdjacentSpaces
+  - stripTVDBSeasonalityAndEverythingAfter
+  - stripLeadingSpacesDashRegex
+  - airDateOrderMatcherRegex
+  - tvdbSeasonalityMatcher
+  - ovaOnaOadSpecialBonusSyntaxMatcher
+- groupGeneration() - Added edge case detection for AnimeRegexBlender when it returns just episode, to use useDetectAnimeName
+
+## [2.2.0] - 2021-06-06
+- Movie Renaming - Added option enableFileBotMovieLookups to use the IMDB/TMDB ID from FileBot's detectmovie & Anime-Lists XML to map to an AniDBID when normal methods fail AND useNonStrictOnAniDBMovies is enabled.
+
+## [2.1.3] - 2021-06-05
+- groupGeneration() - Added workaround for LNSubs/LightNovel release group hyphen based naming scheme (WTH?)
+
+## [2.1.2] - 2021-04-24
+- groupGeneration() - Added \bspe\d{1,2} to regex matcher for "OVA" Type
+- groupGeneration() - Added workaround removal of feat in Files from [Anime-Release]
+
 ## [2.1.1] - 2021-03-29
 - Reset mySeasonalityNumber to zero when processing each episode group (The value would otherwise be whatever the last group was)
 
