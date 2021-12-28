@@ -1,5 +1,10 @@
+//file:noinspection unused
+//file:noinspection GrMethodMayBeStatic
 package lib
-//--- VERSION 1.1.1
+
+import net.filebot.Logging
+
+//--- VERSION 1.1.2
 // https://http-builder-ng.github.io/http-builder-ng/
 @Grab('io.github.http-builder-ng:http-builder-ng-core:1.0.4')
 
@@ -23,23 +28,23 @@ Map anilistGetSeasonTitles(String animeSeason, Integer animeYear){
   Map anilistQueryResponseJson = queryAnilistForSeason(queryPage, animeSeason, animeYear)
   // ---------- Populate Season Titles ---------- //
   anilistQueryResponseJson.data.Page.media.each { title ->
-    // log.finest "ID: ${title.id}, Title: ${title.title.romaji}"
+    Logging.log.finest "ID: ${title.id}, Title: ${title.title.romaji}"
     anilistSeasonTitles.put(title.id, title.title.romaji)
   }
   // log.finest "${anilistSeasonTitles}"
 
   // ---------- Get/Parse additional pages as needed ---------- //
   while ( anilistQueryResponseJson.data.Page.pageInfo.hasNextPage == true ) {
-    // log.finest 'Need to fetch Another page'
+    Logging.log.finest 'Need to fetch Another page'
     queryPage++
-    // log.finest "queryPage: ${queryPage}"
+    Logging.log.finest "queryPage: ${queryPage}"
     anilistQueryResponseJson = queryAnilistForSeason(queryPage, animeSeason, animeYear)
     anilistQueryResponseJson.data.Page.media.each { title ->
-      // log.finest "ID: ${title.id}, Title: ${title.title.romaji}"
+      Logging.log.finest "ID: ${title.id}, Title: ${title.title.romaji}"
       anilistSeasonTitles.put(title.id, title.title.romaji)
     }
   }
-  // log.finest "${anilistSeasonTitles}"
+  Logging.log.finest "${anilistSeasonTitles}"
   return anilistSeasonTitles
 }
 
@@ -84,8 +89,8 @@ Map queryAnilistForSeason(Integer queryPage, String animeSeason, Integer animeYe
       request.body = [query: query, variables: queryVariables] // Works!
 
       response.failure { FromServer resp, Object body ->
-        log.error "POST request failed, HTTP - ${resp.properties}"
-        log.error "${body}"
+        Logging.log.severe "POST request failed, HTTP - ${resp.properties}"
+        Logging.log.severe "${body}"
       }
   }
 }
