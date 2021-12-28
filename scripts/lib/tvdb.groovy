@@ -1,11 +1,14 @@
+//file:noinspection unused
+//file:noinspection GrMethodMayBeStatic
 package lib
 
+import net.filebot.Logging
 import net.filebot.WebServices
 import net.filebot.web.Episode
 import net.filebot.web.SortOrder
 import net.filebot.web.TheTVDBSeriesInfo
 
-//--- VERSION 1.2.0
+//--- VERSION 1.2.2
 
 /**
  * Have filebot Search TVDB using a list, and return the results as a Set
@@ -18,7 +21,7 @@ import net.filebot.web.TheTVDBSeriesInfo
 Set filebotTVDBSearch(Set searchList, locale) {
   resultsAsSet = [] as HashSet
   searchList.each { item ->
-        myTVDBSearch = TheTVDB.search(item, locale)
+        myTVDBSearch = WebServices.TheTVDB.search(item, locale)
         if (myTVDBSearch.isEmpty()) {
         } else {
           resultsAsSet += myTVDBSearch
@@ -35,8 +38,15 @@ Set filebotTVDBSearch(Set searchList, locale) {
  * @return  Collection<Episode> of Episodes from TVDB
  */
 Collection<Episode> filebotTVDBgetEpisodeList(Integer tvdbSeriesID) {
-  TheTVDBSeriesInfo myTVDBseriesInfo = TheTVDB.getSeriesInfo(tvdbSeriesID, Locale.ENGLISH)
-  return TheTVDB.getEpisodeList(myTVDBseriesInfo.id, myTVDBseriesInfo.order as SortOrder, Locale.ENGLISH)
+  TheTVDBSeriesInfo myTVDBseriesInfo
+  try {
+    myTVDBseriesInfo = WebServices.TheTVDB.getSeriesInfo(tvdbSeriesID, Locale.ENGLISH)
+  } catch (e) {
+    Logging.log.severe "WebServices.TheTVDB.getSeriesInfo Caught error: ${e}"
+    Episode myEpisode = new Episode()
+    return [myEpisode]
+  }
+  return WebServices.TheTVDB.getEpisodeList(myTVDBseriesInfo.id, myTVDBseriesInfo.order as SortOrder, Locale.ENGLISH)
 }
 
 /**
@@ -100,7 +110,7 @@ def filebotTVDBSeasonContainsEpisodeNumber(Collection<Episode> myTVDBEpisodes, I
           }
           break
         default:
-          println '1:ERROR in filebotTVDBSeasonContainsEpisodeNumber'
+          Logging.log.warning '1:ERROR in filebotTVDBSeasonContainsEpisodeNumber'
           return []
           break
       }
@@ -129,13 +139,13 @@ def filebotTVDBSeasonContainsEpisodeNumber(Collection<Episode> myTVDBEpisodes, I
           }
           break
         default:
-          println '2:ERROR in filebotTVDBSeasonContainsEpisodeNumber'
+          Logging.log.warning '2:ERROR in filebotTVDBSeasonContainsEpisodeNumber'
           return []
           break
       }
       break
     default:
-      println '3:ERROR in filebotTVDBSeasonContainsEpisodeNumber'
+      Logging.log.warning '3:ERROR in filebotTVDBSeasonContainsEpisodeNumber'
       return []
       break
   }
