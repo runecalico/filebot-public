@@ -1,5 +1,8 @@
+//file:noinspection unused
+//file:noinspection GrMethodMayBeStatic
 package lib
-//--- VERSION 1.0.0
+
+//--- VERSION 1.0.1
 
 import org.apache.commons.io.FilenameUtils
 
