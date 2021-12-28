@@ -165,7 +165,7 @@ if ( $LastExitCode) {
 # Prune for lower resolutions Initial Sort
 $ACTION="move"
 $MODE="episode"
-$MyScript = "$MYScriptPath/sorting_ideas.groovy"
+$MyScript = "$MYScriptPath/WorkingImport-sorting_ideas.groovy"
 
 $FileBotSourceDirectory="Z:\1-InitialSort.2\releases"
 $FIleBotDestDirectory="Z:\1-InitialSort-LowRes\releases"
