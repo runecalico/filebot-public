@@ -1,12 +1,18 @@
+//file:noinspection unused
+//file:noinspection GrMethodMayBeStatic
 package lib
 
 import com.cedarsoftware.util.io.JsonObject
+import net.filebot.Logging
 import net.filebot.WebServices
+import net.filebot.util.XPathUtilities
 import net.filebot.web.Episode
 import net.filebot.web.SeriesInfo
 import net.filebot.web.SortOrder
+import org.apache.commons.lang3.StringUtils
 
-//--- VERSION 1.3.1
+//--- VERSION 1.5.2
+
 // https://http-builder-ng.github.io/http-builder-ng/
 // I couldn't figure out how to use the URL method and set a User Agent string (as required by AniDB to download the file)
 // So we will use http-builder-ng instead.
@@ -39,7 +45,7 @@ import java.nio.file.Path
  */
 @SuppressWarnings('GrMethodMayBeStatic')
 def anidbXMLEntryGetAnimePrimaryTitle(xmlNode) {
-  // log.finest "----  anidbXMLEntryGetAnimePrimaryTitle: xmlNode: ${xmlNode}"
+  Logging.log.finest "----  anidbXMLEntryGetAnimePrimaryTitle: xmlNode: ${xmlNode}"
   def myQuery = xmlNode.children().find { anidbEntryTitles ->
     ((anidbEntryTitles['@type'] == 'main') && (anidbEntryTitles['@xml:lang'] == 'x-jat'))
   }
@@ -78,6 +84,7 @@ def anidbXMLEntryGetAnimePrimaryTitle(xmlNode) {
   } else {
     return myQuery
   }
+  return myQuery
 }
 
 /**
@@ -88,7 +95,7 @@ def anidbXMLEntryGetAnimePrimaryTitle(xmlNode) {
  */
 @SuppressWarnings('GrMethodMayBeStatic')
 List anidbXMLEntryGetAnimeOMTitles(xmlNode) {
-  // log.finest "----  anidbXMLEntryGetAnimeOMNames: xmlNode: ${xmlNode}"
+  Logging.log.finest "----  anidbXMLEntryGetAnimeOMNames: xmlNode: ${xmlNode}"
   def myQuery = xmlNode.children().findAll { anidbEntryTitles ->
     (((anidbEntryTitles['@type'] == 'main') || (anidbEntryTitles['@type'] == 'official') )  && ((anidbEntryTitles['@xml:lang'] == 'en') || (anidbEntryTitles['@xml:lang'] =~ /^x-/) ) )
   }
@@ -100,13 +107,36 @@ List anidbXMLEntryGetAnimeOMTitles(xmlNode) {
 }
 
 /**
- * Return All English/x-* Synonyms Names of an AniDB Entry from the anime-titles.xml
+ * Return All Official/Main Names of an AniDB Entry from the anime-titles.xml that are "romantic" languages (mostly)
+ *
+ * @param xmlNode The XML Node representing the AniDB XML Offline Title Entry [See anidbXMLTitleSearch()]
+ * @return All English/x-* Official/Main Names of an AniDB Entry
+ */
+@SuppressWarnings('GrMethodMayBeStatic')
+List anidbXMLEntryGetAnimeTitles(xmlNode) {
+  Logging.log.finest "----  anidbXMLEntryGetAnimeOMNames: xmlNode: ${xmlNode}"
+  def myQuery = xmlNode.children().findAll { anidbEntryTitles ->
+//    (((anidbEntryTitles['@type'] == 'main') || (anidbEntryTitles['@type'] == 'official') )  && ((anidbEntryTitles['@xml:lang'] == 'en') || (anidbEntryTitles['@xml:lang'] =~ /^x-/) ) )
+    (((anidbEntryTitles['@type'] == 'main') || (anidbEntryTitles['@type'] == 'official') ) )
+  }
+  List myAnswer = []
+  myQuery.each { anidbEntryTitles ->
+    myRegexMatcher = anidbEntryTitles.text() =~ /^[ -~]*$/
+    if ( myRegexMatcher.find() ) {
+      myAnswer << anidbEntryTitles.text()
+    }
+  }
+  return myAnswer
+}
+
+/**
+ * Return All Synonyms Names of an AniDB Entry from the anime-titles.xml that are "romantic" languages (mostly)
  *
  * @param xmlNode The XML Node representing the AniDB XML Offline Title Entry [See anidbXMLTitleSearch()]
  * @return All English/x-* Synonyms Names of an AniDB Entry
  */
 List anidbXMLEntryGetAnimeSynonyms(xmlNode) {
-  // log.finest "----  anidbXMLEntryGetAnimeSynonyms: xmlNode: ${xmlNode}"
+  Logging.log.finest "----  anidbXMLEntryGetAnimeSynonyms: xmlNode: ${xmlNode}"
   def myQuery = xmlNode.children().findAll { anidbEntryTitles ->
     // ((anidbEntryTitles['@type'] == 'syn') && ((anidbEntryTitles['@xml:lang'] == 'en') || (anidbEntryTitles['@xml:lang'] =~ /^x-/) ) )
     ( anidbEntryTitles['@type'] == 'syn' )
@@ -130,7 +160,7 @@ List anidbXMLEntryGetAnimeSynonyms(xmlNode) {
  */
 @SuppressWarnings('GrMethodMayBeStatic')
 List anidbXMLEntryGetAnimeShorts(xmlNode) {
-  // log.finest "----  anidbXMLEntryGetAnimeShorts: xmlNode: ${xmlNode}"
+  Logging.log.finest "----  anidbXMLEntryGetAnimeShorts: xmlNode: ${xmlNode}"
   def myQuery = xmlNode.children().findAll { anidbEntryTitles ->
     ((anidbEntryTitles['@type'] == 'short') && ((anidbEntryTitles['@xml:lang'] == 'en') || (anidbEntryTitles['@xml:lang'] =~ /^x-/) ) )
   }
@@ -150,6 +180,8 @@ List anidbXMLEntryGetAnimeShorts(xmlNode) {
  */
 @SuppressWarnings('GrMethodMayBeStatic')
 def anidbXMLGetAnimeEntry(xmldoc, aid) {
+  // We can't use net.filebot.util.XPathUtilities with groovy.xml.XmlParser which is groovy.util.node, while
+  // net.filebot.util.XPathUtilities is org.w3c.dom.Node (Which is what Filebot Cached files are)
   return xmldoc.children().find { entry ->
     entry['@aid'] == "${aid}"
   }
@@ -166,13 +198,13 @@ def anidbXMLGetAnimeEntry(xmldoc, aid) {
  * @return The TVDB Entry Name (if it exists) or null (if it doesn't)
  */
 def animeListXMLGetTVDBNAme(fbCacheName, aid, locale) {
-  theTVDBSearch = net.filebot.util.XPathUtilities.selectNode("anime-list/anime[@anidbid='$aid']", fbCacheName)
+  theTVDBSearch = XPathUtilities.selectNode("anime-list/anime[@anidbid='$aid']", fbCacheName)
   if ( theTVDBSearch == null ) {
     return null
   }
   // Under normal circumstances as long as theTVDBSearch is not null, the rest should work fine
   // We convert to Integer, which should only work if it's a TV Series (movies etc return text)
-  theTVDBID = tryQuietly { net.filebot.util.XPathUtilities.selectString('@tvdbid', theTVDBSearch).toInteger() }
+  theTVDBID = tryQuietly { XPathUtilities.selectString('@tvdbid', theTVDBSearch).toInteger() }
   if ( theTVDBID == null ) {
     return null
   }
@@ -180,6 +212,7 @@ def animeListXMLGetTVDBNAme(fbCacheName, aid, locale) {
   if ( myOptionsTVDB == null ) {
     return null
   }
+  //noinspection GroovyAssignabilityCheck
   return myOptionsTVDB[0].toString()
 }
 
@@ -193,14 +226,49 @@ def animeListXMLGetTVDBNAme(fbCacheName, aid, locale) {
  * @return The TVDB ID (if it exists) or null (if it doesn't)
  */
 def animeListXMLGetTVDBID(fbCacheName, aid, locale) {
-  theTVDBSearch = net.filebot.util.XPathUtilities.selectNode("anime-list/anime[@anidbid='$aid']", fbCacheName)
+  def theTVDBSearch = XPathUtilities.selectNode("anime-list/anime[@anidbid='$aid']", fbCacheName)
   if ( theTVDBSearch == null ) {
     return null
   }
   // Under normal circumstances as long as theTVDBSearch is not null, the rest should work fine
   // We convert to Integer, which should only work if it's a TV Series (movies etc return text)
-  theTVDBID = tryQuietly { net.filebot.util.XPathUtilities.selectString('@tvdbid', theTVDBSearch).toInteger() }
+  theTVDBID = tryQuietly { XPathUtilities.selectString('@tvdbid', theTVDBSearch).toInteger() }
   return theTVDBID
+}
+
+/**
+ * Return the ANIDB ID based on the IMDB Entry in 'Anime Lists'
+ *
+ * @param fbCacheName Filebot Cache of Scudd Lee's Anime Lists
+ * @param imdbid The IMDB ID to retrieve the XML node entry for
+ * @return The AniDB ID (if it exists) or null (if it doesn't)
+ */
+def animeListXMLGetAniDBFromIMDBID(fbCacheName, def imdbid){
+  String theIMDBID = "tt"+StringUtils.leftPad(imdbid.toString(), 7, "0")
+//  def aniDBSearch = XPathUtilities.selectNode("anime-list/anime[@imdbid='$theIMDBID']", fbCacheName)
+  def aniDBSearch = XPathUtilities.selectNode("anime-list//anime[contains(@imdbid, '${theIMDBID}')]", fbCacheName)
+  Logging.log.finest "aniDBSearch:${aniDBSearch}"
+  if (aniDBSearch == null) {
+    return null
+  }
+  return tryQuietly { XPathUtilities.selectString('@anidbid', aniDBSearch).toInteger() }
+}
+
+/**
+ * Return the ANIDB ID based on the TMDB Entry in 'Anime Lists'
+ *
+ * @param fbCacheName Filebot Cache of Scudd Lee's Anime Lists
+ * @param tmdbid The IMDB ID to retrieve the XML node entry for
+ * @return The AniDB ID (if it exists) or null (if it doesn't)
+ */
+def animeListXMLGetAniDBFromTMDBID(fbCacheName, Integer tmdbid){
+//  def aniDBSearch = XPathUtilities.selectNode("anime-list/anime[@tmdbid='$tmdbid']", fbCacheName)
+  def aniDBSearch = XPathUtilities.selectNode("anime-list//anime[contains(@tmdbid, '${tmdbid}')]", fbCacheName)
+  Logging.log.finest "aniDBSearch:${aniDBSearch}"
+  if (aniDBSearch == null) {
+    return null
+  }
+  return tryQuietly { XPathUtilities.selectString('@anidbid', aniDBSearch).toInteger() }
 }
 
 /**
@@ -214,17 +282,17 @@ def animeListXMLGetTVDBID(fbCacheName, aid, locale) {
  * @return The TVDB Season (if it exists) or null (if it doesn't)
  */
 def animeListXMLGetTVDBSeason(fbCacheName, aid, locale) {
-  theTVDBSearch = net.filebot.util.XPathUtilities.selectNode("anime-list/anime[@anidbid='$aid']", fbCacheName)
+  theTVDBSearch = XPathUtilities.selectNode("anime-list/anime[@anidbid='$aid']", fbCacheName)
   if ( theTVDBSearch == null ) {
     return null
   }
   // We convert to Integer, which should only work if it's a TV Series (movies etc return text)
-  theTVDBID = tryQuietly { net.filebot.util.XPathUtilities.selectString('@tvdbid', theTVDBSearch).toInteger() }
+  theTVDBID = tryQuietly { XPathUtilities.selectString('@tvdbid', theTVDBSearch).toInteger() }
   if ( theTVDBID == null ) {
     return null
   }
   // See if we an find a season ..
-  theTVDBSeason = tryQuietly { net.filebot.util.XPathUtilities.selectString("@defaulttvdbseason", theTVDBSearch).toInteger() }
+  theTVDBSeason = tryQuietly { XPathUtilities.selectString("@defaulttvdbseason", theTVDBSearch).toInteger() }
   if ( theTVDBSeason == null ) {
     return null
   }
@@ -265,8 +333,8 @@ void aniDBXMLDownload(String userAgent, String xmlFileName = 'anime-titles.xml',
       }.get {
         Download.toFile(delegate, new File(gzipFileName))
         response.failure { FromServer resp, Object body ->
-          log.error "Download FAILED, HTTP - ${resp.properties}"
-          log.error "${body}"
+          Logging.log.severe "Download FAILED, HTTP - ${resp.properties}"
+          Logging.log.severe "${body}"
         }
       }
       // And decompress it
@@ -280,8 +348,8 @@ void aniDBXMLDownload(String userAgent, String xmlFileName = 'anime-titles.xml',
     }.get {
         Download.toFile(delegate, new File(gzipFileName))
         response.failure { FromServer resp, Object body ->
-          log.error "Download FAILED, HTTP - ${resp.properties}"
-          log.error "${body}"
+          Logging.log.severe "Download FAILED, HTTP - ${resp.properties}"
+          Logging.log.severe "${body}"
         }
     }
     // Decompress it
@@ -318,8 +386,8 @@ void aniDBSynonymDownload(String xmlFileName = 'anime-synonyms.xml', Integer ref
       }.get {
         Download.toFile(delegate, new File(xmlFileName))
         response.failure { FromServer resp, Object body ->
-          log.error "Download FAILED, HTTP - ${resp.properties}"
-          log.error "${body}"
+          Logging.log.severe "Download FAILED, HTTP - ${resp.properties}"
+          Logging.log.severe "${body}"
         }
       }
     }
@@ -330,8 +398,8 @@ void aniDBSynonymDownload(String xmlFileName = 'anime-synonyms.xml', Integer ref
     }.get {
         Download.toFile(delegate, new File(xmlFileName))
         response.failure { FromServer resp, Object body ->
-          log.error "Download FAILED, HTTP - ${resp.properties}"
-          log.error "${body}"
+          Logging.log.severe "Download FAILED, HTTP - ${resp.properties}"
+          Logging.log.severe "${body}"
         }
     }
   }
@@ -345,10 +413,11 @@ void aniDBSynonymDownload(String xmlFileName = 'anime-synonyms.xml', Integer ref
  * @return the search results as a set for all the search terms
  */
 Set filebotAniDBSearch(Set searchList, locale) {
-  resultsAsSet = [] as HashSet
+  HashSet resultsAsSet = []
+  HashSet myAniDBSearch = []
   searchList.each { item ->
-        myAniDBSearch = AniDB.search(item, locale)
-        if (myAniDBSearch.isEmpty()) {
+        myAniDBSearch = WebServices.AniDB.search(item as String, locale) as HashSet
+        if ( myAniDBSearch.isEmpty() ) {
         } else {
           resultsAsSet << myAniDBSearch
         }
@@ -393,9 +462,9 @@ Set anidbXMLTitleSearch(aniDBTitleXML, Set searchList, locale, Boolean returnAID
     if ( returnAID ) {
       anidbID = anidbAnimeEntry['@aid'].toInteger()
     } else {
-      // println "ReturnAllOM: ${returnAllOM}"
+      Logging.log.finest "ReturnAllOM: ${returnAllOM}"
       returnAllOM == false ? (officialTitle = anidbXMLEntryGetAnimePrimaryTitle(anidbAnimeEntry)) : (officialTitle = anidbXMLEntryGetAnimeOMTitles(anidbAnimeEntry))
-      // println "officialTitle: ${officialTitle}"
+      Logging.log.finest "officialTitle: ${officialTitle}"
     }
     // println "Parsing AniDB ID: ${anidbID}"
     searchList.each { searchItem ->
@@ -404,7 +473,7 @@ Set anidbXMLTitleSearch(aniDBTitleXML, Set searchList, locale, Boolean returnAID
         titleText = title.text()
         myRegexMatcher = title.text() =~ /^[ -~]*$/
         if ( myRegexMatcher.find() ) {
-          // println "Processing Title: ${title.text()}"
+          Logging.log.finest "Processing Title: ${title.text()}"
         } else {
           return
         }
@@ -424,7 +493,6 @@ Set anidbXMLTitleSearch(aniDBTitleXML, Set searchList, locale, Boolean returnAID
           // jwdcompare = jaroWinklerDistance.apply(altjwdStringBlender(searchItem.toString()), altjwdStringBlender(title.text()))
           jwdcompare = jaroWinklerDistance.apply(altjwdStringBlender(searchItemString), altjwdStringBlender(titleText))
           if ( jwdcompare >= jwdCutoff ) {
-            //            // println "Found this exact Match (${jwdcompare})? ${title.text()} for AID: ${anidbID} with OfficialTitle: ${searchItem.toString()}"
             // returnAID == true ? (resultsAsSet << anidbID) : (resultsAsSet << "${searchItem.toString()}")
             returnAID == true ? (resultsAsSet << anidbID) : returnAllOM == false ? (resultsAsSet << "${officialTitle.text()}") : (resultsAsSet <<  officialTitle)
           }
@@ -498,7 +566,7 @@ def filebotAnimeListReturnFromAID(Integer aniDBID, Boolean tvdbIDOnly = false, B
 Collection<Episode> filebotAniDBgetEpisodeList(Integer aniDBSeriesID, String whatAboutSpecials = 'exclude') {
   SeriesInfo myAniDBseriesInfo
   try {
-    myAniDBseriesInfo = AniDB.getSeriesInfo(aniDBSeriesID, Locale.ENGLISH)
+    myAniDBseriesInfo = WebServices.AniDB.getSeriesInfo(aniDBSeriesID, Locale.ENGLISH)
   } catch (e) {
 //    Collection<Episode> myAniDBseriesInfo
 //    return myAniDBseriesInfo
@@ -506,16 +574,16 @@ Collection<Episode> filebotAniDBgetEpisodeList(Integer aniDBSeriesID, String wha
   }
   switch (whatAboutSpecials) {
     case 'exclude':
-      return AniDB.getEpisodeList(myAniDBseriesInfo.id, myAniDBseriesInfo.order as SortOrder, Locale.ENGLISH).findAll { it.episode }
+      return WebServices.AniDB.getEpisodeList(myAniDBseriesInfo.id, myAniDBseriesInfo.order as SortOrder, Locale.ENGLISH).findAll { it.episode }
       break
     case 'include':
-      return AniDB.getEpisodeList(myAniDBseriesInfo.id, myAniDBseriesInfo.order as SortOrder, Locale.ENGLISH)
+      return WebServices.AniDB.getEpisodeList(myAniDBseriesInfo.id, myAniDBseriesInfo.order as SortOrder, Locale.ENGLISH)
       break
     case 'only':
-      return AniDB.getEpisodeList(myAniDBseriesInfo.id, myAniDBseriesInfo.order as SortOrder, Locale.ENGLISH).findAll { it.special }
+      return WebServices.AniDB.getEpisodeList(myAniDBseriesInfo.id, myAniDBseriesInfo.order as SortOrder, Locale.ENGLISH).findAll { it.special }
       break
     default:
-      return AniDB.getEpisodeList(myAniDBseriesInfo.id, myAniDBseriesInfo.order as SortOrder, Locale.ENGLISH).findAll { it.episode }
+      return WebServices.AniDB.getEpisodeList(myAniDBseriesInfo.id, myAniDBseriesInfo.order as SortOrder, Locale.ENGLISH).findAll { it.episode }
       break
   }
 }
@@ -561,7 +629,7 @@ Integer filebotAniDBEpisodeCount(Collection<Episode> myAniDBEpisodes) {
 Integer aniDBGetEpisodeNumberForAID(JsonObject fileBotJsonCacheObject, Integer animeID) {
   JsonObject myAniDBEntry = fileBotJsonCacheObject.data.find { aodentry ->
     aodentry.sources.find { it ==~ /https:\/\/anidb\.net\/anime\/${animeID}$/ }
-  }
+  } as JsonObject
   // --- It will be null if an AID is not in the AOD List --- //
   if ( myAniDBEntry == null ) {
     Collection<Episode> myAniDBEpisodeList = filebotAniDBgetEpisodeList(animeID)
@@ -571,7 +639,7 @@ Integer aniDBGetEpisodeNumberForAID(JsonObject fileBotJsonCacheObject, Integer a
       Collection<Episode> myAniDBEpisodeList = filebotAniDBgetEpisodeList(animeID)
       return filebotAniDBEpisodeCount(myAniDBEpisodeList)
     } else {
-      return myAniDBEntry.episodes
+      return myAniDBEntry.episodes as Integer
     }
   }
 }
@@ -652,9 +720,8 @@ Set anidbHashTitleSearch(LinkedHashMap aniDBCompleteXMLList, Set searchList, loc
         } else {
           // JWD Comparison
           // jwdcompare = jaroWinklerDistance.apply(altjwdStringBlender(searchItem.toString()), altjwdStringBlender(title.text()))
-          jwdcompare = jaroWinklerDistance.apply(searchItemStringCompare, titleText)
+          jwdcompare = jaroWinklerDistance.apply(searchItemStringCompare, titleText as CharSequence)
           if ( jwdcompare >= jwdCutoff ) {
-            //            // println "Found this exact Match (${jwdcompare})? ${title.text()} for AID: ${anidbID} with OfficialTitle: ${searchItem.toString()}"
             // returnAID == true ? (resultsAsSet << anidbID) : (resultsAsSet << "${searchItem.toString()}")
             returnAID == true ? (resultsAsSet << anidbID) : returnAllOM == false ? (resultsAsSet << "${officialTitle}") : (resultsAsSet <<  officialTitle)
           }
@@ -675,6 +742,7 @@ Set anidbHashTitleSearch(LinkedHashMap aniDBCompleteXMLList, Set searchList, loc
  * @param aniDBSynonymXMLFilename The filename for AniDB Synonym XML
  * @return Compiled/Merged entries from both AniDB Title/Synonym XML files
  */
+@SuppressWarnings('GrReassignedInClosureLocalVar')
 LinkedHashMap loadAniDBOfflineXML(String aniDBTitleXMLFilename, String aniDBSynonymXMLFilename) {
   LinkedHashMap aniDBTitleEntries = [:]
   LinkedHashMap aniDBSynonymEntries = [:]
@@ -698,9 +766,10 @@ LinkedHashMap loadAniDBOfflineXML(String aniDBTitleXMLFilename, String aniDBSyno
   def aniDBTitleXML = new groovy.xml.XmlParser(false, false).parse(aniDBTitleXMLFilename)
   aniDBTitleXML.children().each {anidbAnimeEntry ->
     anidbID = anidbAnimeEntry['@aid'].toInteger()
-    //  log.finest "anidbID:[${anidbID}]"
+    Logging.log.finest "anidbID:[${anidbID}]"
     def anidbAnimeEntryPrimaryTitle = anidbXMLEntryGetAnimePrimaryTitle(anidbAnimeEntry).text()
-    anidbAnimeEntryTitles = anidbXMLEntryGetAnimeOMTitles(anidbAnimeEntry)
+//    anidbAnimeEntryTitles = anidbXMLEntryGetAnimeOMTitles(anidbAnimeEntry)
+    anidbAnimeEntryTitles = anidbXMLEntryGetAnimeTitles(anidbAnimeEntry)
     anidbAnimeEntryTitlesCompare = []
     anidbAnimeEntrySynonyms = anidbXMLEntryGetAnimeSynonyms(anidbAnimeEntry)
     anidbAnimeEntrySynonyms2 = []
