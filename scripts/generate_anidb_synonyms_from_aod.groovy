@@ -493,6 +493,19 @@ aodAniDBEntries.each { Integer anidbID, aodentry ->
       log.finest "--------- Auto-Adding Synonym [${addThisTitle}]"
       searchMasterList << [ (altjwdStringBlender(addThisTitle)): addThisTitle]
     }
+    if ( title =~ /^the\s/ ) {
+      addThisTitle = title.replaceAll(/(?i)^the\s/, '').toLowerCase()
+      log.finest "--------- Auto-Adding Synonym [${addThisTitle}]"
+      searchMasterList << [ (altjwdStringBlender(addThisTitle)): addThisTitle]
+    }
+  }
+  /* Adding in variations on official Synonyms */
+  aniDBTitleEntries.get(anidbID).synonyms.each { synonym ->
+    if ( synonym =~ /^the\s/ ) {
+      addThisTitle = synonym.replaceAll(/(?i)^the\s/, '').toLowerCase()
+      log.finest "--------- Auto-Adding Synonym [${addThisTitle}]"
+      searchMasterList << [ (altjwdStringBlender(addThisTitle)): addThisTitle]
+    }
   }
   /* Adding in the Synonyms from the AOD Entry */
   log.finest "--- With Synonyms: ${aodentry.synonymscompare.flatten()}"
