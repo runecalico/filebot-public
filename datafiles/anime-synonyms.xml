@@ -14348,6 +14348,10 @@
     <title xml:lang="en" type="syn">anthology no. 1</title>
     <title xml:lang="en" type="syn">anthology no.1</title>
   </anime>
+  <anime aid="5007">
+    <title xml:lang="en" type="official">bavi stock i: hateshi naki target</title>
+    <title xml:lang="en" type="syn">bavi stock i: hateshi naki hyouteki</title>
+  </anime>
   <anime aid="5008">
     <title xml:lang="en" type="official">the chocolate panic picture show</title>
     <title xml:lang="en" type="syn">the chocolate picture panic show</title>
@@ -14937,9 +14941,9 @@
     <title xml:lang="en" type="syn">taiho shichauzo (2007)</title>
   </anime>
   <anime aid="5235">
-    <title xml:lang="en" type="official">kimi ga aruji de shitsuji ga ore de: they are my noble masters</title>
+    <title xml:lang="en" type="official">kimi ga aruji de shitsuji ga ore de</title>
+    <title xml:lang="en" type="syn">kimi ga aruji de shitsuji ga ore de: they are my noble masters</title>
     <title xml:lang="en" type="syn">you are the master, the servant is me</title>
-    <title xml:lang="en" type="syn">kimi ga aruji de shitsuji ga ore de</title>
   </anime>
   <anime aid="5238">
     <title xml:lang="en" type="official">hoshi no ko chobin</title>
@@ -15986,6 +15990,7 @@
   </anime>
   <anime aid="5731">
     <title xml:lang="en" type="official">koneko no studio</title>
+    <title xml:lang="en" type="syn">kitten`s studio</title>
     <title xml:lang="en" type="syn">kitty's studio</title>
     <title xml:lang="en" type="syn">kitten's studio</title>
   </anime>
@@ -18580,6 +18585,7 @@
   <anime aid="6768">
     <title xml:lang="en" type="official">koneko no rakugaki</title>
     <title xml:lang="en" type="syn">kitty's graffiti</title>
+    <title xml:lang="en" type="syn">kitten`s doodles</title>
     <title xml:lang="en" type="syn">little cats' scribbling</title>
     <title xml:lang="en" type="syn">kitten's scribbling</title>
     <title xml:lang="en" type="syn">the kitten artist</title>
@@ -25824,7 +25830,7 @@
     <title xml:lang="en" type="syn">gekijouban mouretsu pirates</title>
   </anime>
   <anime aid="9294">
-    <title xml:lang="en" type="official">aura: maryuuinkouga saigo no tatakai</title>
+    <title xml:lang="en" type="official">aura: maryuuin kouga saigo no tatakai</title>
     <title xml:lang="en" type="syn">aura: maryuin kouga saigo no tatakai</title>
     <title xml:lang="en" type="syn">aura: maryuinkoga saigo no tatakai</title>
   </anime>
@@ -28683,7 +28689,6 @@
     <title xml:lang="en" type="syn">comic artist and his assistants</title>
     <title xml:lang="en" type="syn">the comic artist and his assistants the animation</title>
     <title xml:lang="en" type="syn">the manga creator and the assistant and</title>
-    <title xml:lang="en" type="syn">manashi</title>
     <title xml:lang="en" type="syn">comic artist and assistants</title>
     <title xml:lang="en" type="syn">mangaka-san and assistant-san and...</title>
   </anime>
@@ -33292,10 +33297,12 @@
     <title xml:lang="en" type="syn">okusama ga seitokaichou! ova</title>
   </anime>
   <anime aid="11744">
-    <title xml:lang="en" type="official">too many cooks spoil the broth.</title>
+    <title xml:lang="en" type="official">the sound of tiger &amp; bunny: too many cooks spoil the broth.</title>
     <title xml:lang="en" type="syn">the sound of tiger &amp; bunny</title>
+    <title xml:lang="en" type="syn">sound of tiger &amp; bunny too many cooks spoil the broth.</title>
     <title xml:lang="en" type="syn">tiger &amp; bunny: too many cooks spoil the broth</title>
     <title xml:lang="en" type="syn">tiger &amp; bunny: too many cooks spoil the broth.</title>
+    <title xml:lang="en" type="syn">too many cooks spoil the broth.</title>
   </anime>
   <anime aid="11745">
     <title xml:lang="en" type="official">the reflection</title>
@@ -34880,7 +34887,7 @@
   </anime>
   <anime aid="12206">
     <title xml:lang="en" type="official">hua jianghu: buliang ren</title>
-    <title xml:lang="en" type="syn">degenerate drawing jianghu season1</title>
+    <title xml:lang="en" type="syn">degenerate drawing jianghu season 1</title>
   </anime>
   <anime aid="12207">
     <title xml:lang="en" type="official">fantastic cell</title>
@@ -35828,12 +35835,12 @@
   </anime>
   <anime aid="12504">
     <title xml:lang="en" type="official">hua jianghu: buliang ren ii</title>
+    <title xml:lang="en" type="syn">degenerate drawing jianghu season 2</title>
     <title xml:lang="en" type="syn">hua jiang hu: bu liang ren di er ji</title>
     <title xml:lang="en" type="syn">hua jianghu: buliang ren 2</title>
     <title xml:lang="en" type="syn">hua jiang hu zhi bu liang ren 2nd season</title>
     <title xml:lang="en" type="syn">hua jiang hu: bu liang ren 2nd season</title>
     <title xml:lang="en" type="syn">hua jianghu zhi buliang ren ii</title>
-    <title xml:lang="en" type="syn">degenerate drawing jianghu season2</title>
     <title xml:lang="en" type="syn">hua jiang hu zhi bu liang ren 2</title>
   </anime>
   <anime aid="12506">
@@ -43870,8 +43877,8 @@
   <anime aid="14647">
     <title xml:lang="en" type="official">hua jianghu: buliang ren iii</title>
     <title xml:lang="en" type="syn">hua jiang hu: bu liang ren san ji yu</title>
+    <title xml:lang="en" type="syn">degenerate drawing jianghu season 3</title>
     <title xml:lang="en" type="syn">hua jiang hu: bu liang ren 3rd season</title>
-    <title xml:lang="en" type="syn">degenerate drawing jianghu season3</title>
   </anime>
   <anime aid="14649">
     <title xml:lang="en" type="official">wu dong qiankun</title>
@@ -49438,8 +49445,9 @@
   </anime>
   <anime aid="16314">
     <title xml:lang="en" type="official">hua jianghu: buliang ren iv</title>
+    <title xml:lang="en" type="syn">the degenerate drawing jianghu s4</title>
     <title xml:lang="en" type="syn">hua jiang hu: bu liang ren 4th season</title>
-    <title xml:lang="en" type="syn">degenerate drawing jianghu s4</title>
+    <title xml:lang="en" type="syn">degenerate drawing jianghu season 4</title>
   </anime>
   <anime aid="16320">
     <title xml:lang="en" type="official">mahou shoujo magical destroyers</title>
@@ -51129,8 +51137,10 @@
   </anime>
   <anime aid="17014">
     <title xml:lang="en" type="official">ninjala (2022)</title>
+    <title xml:lang="en" type="syn">ninjala cartoon anime</title>
     <title xml:lang="en" type="syn">ninjala tv</title>
     <title xml:lang="en" type="syn">ninjala (tv)</title>
+    <title xml:lang="en" type="syn">ninjala animated series</title>
   </anime>
   <anime aid="17015">
     <title xml:lang="en" type="official">eiyuu ou, bu o kiwameru tame tenseisu: soshite, sekai saikyou no minarai kishi</title>
@@ -51438,7 +51448,8 @@
   <anime aid="17145">
     <title xml:lang="en" type="official">hua jianghu: buliang ren v</title>
     <title xml:lang="en" type="syn">painting rivers and lakes 5, hua jiang hu: bu liang ren 5th season</title>
-    <title xml:lang="en" type="syn">degenerate drawing jianghu s5</title>
+    <title xml:lang="en" type="syn">the degenerate drawing jianghu s5</title>
+    <title xml:lang="en" type="syn">degenerate drawing jianghu season 5</title>
   </anime>
   <anime aid="17146">
     <title xml:lang="en" type="official">kami wa game ni uete iru.</title>
