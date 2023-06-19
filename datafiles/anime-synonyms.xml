@@ -11497,7 +11497,6 @@
   </anime>
   <anime aid="3559">
     <title xml:lang="en" type="official">genji tsuushin agedama</title>
-    <title xml:lang="en" type="syn">agedama</title>
     <title xml:lang="en" type="syn">murasaki shikibu genji monogatari</title>
   </anime>
   <anime aid="3560">
@@ -44711,7 +44710,6 @@
   <anime aid="14349">
     <title xml:lang="en" type="official">hashiri tsuzukete yokattatte.</title>
     <title xml:lang="en" type="syn">i'm glad i could keep running</title>
-    <title xml:lang="en" type="syn">hashiyoka</title>
     <title xml:lang="en" type="syn">hashiri tsuzukete yokattatte</title>
   </anime>
   <anime aid="14350">
@@ -51782,8 +51780,10 @@
     <title xml:lang="en" type="syn">immemorial love for you 2nd season</title>
   </anime>
   <anime aid="16176">
-    <title xml:lang="en" type="official">eiga black clover: mahou mikado no ken</title>
+    <title xml:lang="en" type="official">eiga black clover: mahoutei no ken</title>
+    <title xml:lang="en" type="syn">gekijouban bc</title>
     <title xml:lang="en" type="syn">black clover: mahou tei no ken</title>
+    <title xml:lang="en" type="syn">eiga black clover: mahou mikado no ken</title>
     <title xml:lang="en" type="syn">black clover movie: sword of the wizard king</title>
   </anime>
   <anime aid="16177">
