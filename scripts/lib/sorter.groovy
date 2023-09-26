@@ -5,13 +5,15 @@ import net.filebot.Logging
 import net.filebot.WebServices
 import net.filebot.web.SearchResult
 
-//--- VERSION 1.7.2
+//--- VERSION 1.10.0
 
-import net.filebot.web.TheTVDBSeriesInfo
+//import net.filebot.web.TheTVDBSeriesInfo
+import net.filebot.web.SeriesInfo
 import org.apache.commons.text.similarity.JaroWinklerDistance
 import com.cedarsoftware.util.io.JsonObject
 import net.filebot.web.Episode
 import java.util.regex.Matcher
+//import org.apache.commons.lang3.ObjectUtils
 
 // VOID - /(?i)((^[a-z\s]+)\(?((19\d\d|20\d\d)\)?\s))/
 // VOID - /(?i)((^[a-z\s-]+)\(?((19\d\d|20\d\d)\)?\b))/
@@ -52,21 +54,23 @@ HashSet seriesNameGenerator ( String baseAnimeName, Integer mySeasonalityNumber,
     Logging.log.info "----- Adding Series # Anime Name to Anime Name List - ${generatedAnimeName}"
     tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
   } else if ( hasRomanSeries )  {
-    generatedAnimeName = baseAnimeName + ' ' + group.seriesNumber // anime I/II/III/IV/V
+    generatedAnimeName = baseAnimeName + ' ' + getRomanOrdinal(mySeasonalityNumber) // anime II
     Logging.log.info "----- Adding Series Anime Name to Anime Name List - ${generatedAnimeName}"
     tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
   }
   return tempBaseGeneratedAnimeNames
 }
+
 /**
  * Generate the base anime names we will be using to build possible Anime Series names to search for
  * Basenames are the base part of the series name, later we add/modify based on things like the various seasonality syntax (Partial, Ordinal etc)
  *
  * @param group The LinkedHashMap for this group of files
  * @param useBaseAnimeNameWithSeriesSyntax Should we add the Base Anime Name when the Series has "Series" Syntax
+ * @param seriesBasenameGeneratorOverrideJsonFile The Series Basename Override file
  * @return  ArrayList of [[group], baseGeneratedAnimeNames ]
  */
-ArrayList basenameGenerator ( LinkedHashMap group, Boolean useBaseAnimeNameWithSeriesSyntax ) {
+ArrayList seriesBasenameGenerator(LinkedHashMap group, Boolean useBaseAnimeNameWithSeriesSyntax, ArrayList seriesBasenameGeneratorOverrideJsonFile) {
   tempBaseGeneratedAnimeNames = [] as HashSet
   baseGeneratedAnimeNames = [] as HashSet
   String baseAnimeName
@@ -74,462 +78,601 @@ ArrayList basenameGenerator ( LinkedHashMap group, Boolean useBaseAnimeNameWithS
   Logging.log.finest "${groupInfoGenerator(group)}"
   Logging.log.finest "group.class:${group.getClass()}"
   Logging.log.info "--- group.anime - ${group.anime}"
+  Logging.log.info "--- group.altTitle - ${group.altTitle}"
   switch(group.anime) {
+    // A little bit off
+    case ~/phi brain/:
+      baseAnimeName =  'Phi Brain: Kami no Puzzle'
+      group.anime = baseAnimeName
+      break
+    case ~/drawing jianghu of bu liang ren/:
+      baseAnimeName =  'Hua Jianghu: Buliang Ren'
+      group.anime = baseAnimeName
+      break
+    case ~/blocker army machine blaster/:
+      baseAnimeName =  'blocker army iv machine blaster'
+      group.anime = baseAnimeName
+      break
+    case ~/saikyo robo daiouja/:
+      baseAnimeName =  'Saikyou Robo Daiouja'
+      group.anime = baseAnimeName
+      break
+    // While the short name is good, when you add the year .. less so
+    case ~/genjitsu/:
+      baseAnimeName =  'Genjitsu Shugi Yuusha no Oukoku Saikenki'
+      group.anime = baseAnimeName
+      break
+    case ~/genjitsu shugi yuusha/:
+      baseAnimeName =  'Genjitsu Shugi Yuusha no Oukoku Saikenki'
+      group.anime = baseAnimeName
+      break
+    // Close .. but not close enough
+    case ~/battle through the heaven 3 years agreement/:
+      baseAnimeName =  'Battle Through The Heaven 3 Year Agreement'
+      group.anime = baseAnimeName
+      break
     // How is this supposed to actually find something?
     case ~/fanrenxiuxianzhuan mdzf/:
       baseAnimeName =  'Fanren Xiuxian Chuan Mo Dao Zheng Feng'
+      group.anime = baseAnimeName
       break
     // Huh.  It actually DOES have TV in the official name
     case ~/yarou nanana kaibutsu kraken o oe!/:
       baseAnimeName =  'TV Yarou Nanana: Kaibutsu Kraken o Oe!'
+      group.anime = baseAnimeName
       break
     // the duke and his maid
     case ~/the duke and his maid/:
       baseAnimeName =  'The Duke of Death and His Maid'
+      group.anime = baseAnimeName
       break
     // tdg
     case ~/tdg/:
       baseAnimeName =  'Tales of Demons and Gods'
+      group.anime = baseAnimeName
       break
     // Taishou Otome Otogibanashi
     case ~/taishou otome/:
       baseAnimeName =  'Taishou Otome Otogibanashi'
+      group.anime = baseAnimeName
       break
     // Lion Force
     case ~/lion force/:
       baseAnimeName =  'Hyakujuu Ou Golion'
+      group.anime = baseAnimeName
       break
     // Iruma-kun is not an accepted short
     case ~/iruma-kun/:
       baseAnimeName =  'Mairimashita! Iruma-kun'
+      group.anime = baseAnimeName
       break
     // Mini Dragon (Miss Kobayashi's Dragon Maid S Short Animation Series) is considered special episodes
-    case ~/mini dragon/:
-      baseAnimeName =  'Kobayashi-san Chi no Maidragon S'
-      group.isSpecialEpisode = true
-      break
+//    case ~/mini dragon/:
+//      baseAnimeName =  'Kobayashi-san Chi no Maidragon S'
+//      group.anime = baseAnimeName
+//      group.isSpecialEpisode = true
+//      break
     case ~/stellar transformations/:
       baseAnimeName =  'stellar transformation'
+      group.anime = baseAnimeName
       break
     // Monster Farm in TVDB is not anime
     case ~/monster farm/:
       baseAnimeName =  'monster rancher'
+      group.anime = baseAnimeName
       break
     // Filebot detected name is *almost* there ..
     case ~/kmplx m3 the dark metal/:
       baseAnimeName =  'M3 the dark metal'
+      group.anime = baseAnimeName
       break
     // Close ..
     case ~/granblue/:
       baseAnimeName =  'Granblue Fantasy The Animation'
+      group.anime = baseAnimeName
       break
     // Close ..
     case ~/hige wo soru soshite joshikousei wo hirou/:
       baseAnimeName =  'Hige o Soru. Soshite Joshikousei o Hirou.'
+      group.anime = baseAnimeName
       break
     // Considered a Special, not a "Real" series
-    case ~/mobile suit gundam zz frag/:
-      baseAnimeName =  'Kidou Senshi Gundam ZZ'
-      group.isSpecialEpisode = true
-      break
+//    case ~/mobile suit gundam zz frag/:
+//      baseAnimeName =  'Kidou Senshi Gundam ZZ'
+//      group.anime = baseAnimeName
+//      group.isSpecialEpisode = true
+//      break
     // Not a common short name for it..
     case ~/kono sekai the animation/:
       baseAnimeName =  'The World Ends with You the Animation'
+      group.anime = baseAnimeName
       break
     // Close, and yet so far ..
     case ~/jiranaide, nagatoro-san/:
       baseAnimeName =  'Ijiranaide, Nagatoro-san'
+      group.anime = baseAnimeName
       break
     // Special Name != Anime name
-    case ~/sk crazy rock jam/:
-      baseAnimeName =  'SK8 the Infinity'
-      group.isSpecialEpisode = true
-      break
+//    case ~/sk crazy rock jam/:
+//      baseAnimeName =  'SK8 the Infinity'
+//      group.anime = baseAnimeName
+//      group.isSpecialEpisode = true
+//      break
     // Special Name != Anime name
     case ~/himouto! umaru-chans/:
       baseAnimeName =  'Himouto! Umaru-chan'
+      group.anime = baseAnimeName
       break
     // Spelling is important
     case ~/nejimaki seirei senki tenkyo no aruderamin/:
       baseAnimeName =  'Nejimaki Seirei Senki: Tenkyou no Alderamin'
+      group.anime = baseAnimeName
       break
     // Because the actual romanization title has ... at the end in AniDB
     case ~/otome game no hametsu flag shika nai akuyaku reijou ni tensei shiteshimatta/:
       baseAnimeName =  'My Next Life as a Villainess: All Routes Lead to Doom!'
+      group.anime = baseAnimeName
       break
     case ~/Pokemon XY/:
       baseAnimeName =  'Pocket Monsters XY'
+      group.anime = baseAnimeName
       break
     case ~/motto! ojamajo doremi kaeru seki no himitsu/:
       baseAnimeName =  'Eiga Motto! Ojamajo Doremi Kaeru Ishi no Himitsu'
+      group.anime = baseAnimeName
       break
     case ~/turning mecard w secret of vandine/:
       baseAnimeName =  'Turning Mecard W: Vandyne-ui Bimil'
+      group.anime = baseAnimeName
       break
     // Spelling is important
     case ~/nantsu no taizai/:
       baseAnimeName =  'Nanatsu no Taizai'
+      group.anime = baseAnimeName
       break
   // Spelling is important
     case ~/otona no bogaya san/:
       baseAnimeName =  'Otona no Bouguya-san'
+      group.anime = baseAnimeName
       break
     case ~/girl gaku ~hijiri girls square gakuin~/:
       baseAnimeName =  'Girl Gaku. Sei Girls Square Gakuin'
+      group.anime = baseAnimeName
       break
     case ~/girl gaku/:
       baseAnimeName =  'Girl Gaku. Sei Girls Square Gakuin'
+      group.anime = baseAnimeName
       break
     case ~/hanyou no yashahime/:
       baseAnimeName =  'Han`you no Yashahime: Sengoku Otogizoushi'
+      group.anime = baseAnimeName
       break
     case ~/sk/:
       // while yes, sk is a short for Shaman King, however more recently it's a widely used short for SK8 The Infinity, so let's go with that for now.
       // Tho why SK vs SK8 as the short name to use ... only the release groups using SK know ..
       baseAnimeName =  'SK8 the Infinity'
+      group.anime = baseAnimeName
       break
     case ~/rezero kara hajimeru break time|re zero break time/:
       // AniDB has this as specials under Re:Zero kara Hajimeru Isekai Seikatsu
       baseAnimeName =  'Re:Zero kara Hajimeru Isekai Seikatsu'
+      group.anime = baseAnimeName
       break
     case ~/digimon savers kyuukyoku power burst mode hatsudou!!/:
       baseAnimeName =  'Digimon Savers The Movie: Kyuukyoku Power! Burst Mode Hatsudou!!'
+      group.anime = baseAnimeName
       break
     case ~/mushoku tensei/:
       baseAnimeName =  'Mushoku Tensei: Isekai Ittara Honki Dasu'
+      group.anime = baseAnimeName
       break
     case ~/munou no nana/:
       baseAnimeName =  'Munou na Nana'
+      group.anime = baseAnimeName
       break
     case ~/hanaukyo maid tai/:
       baseAnimeName =  'hanaukyou maid tai'
+      group.anime = baseAnimeName
       break
     case ~/wixoss divalive/:
       baseAnimeName =  'Wixoss Diva(A)Live'
+      group.anime = baseAnimeName
       break
     case ~/2 43 seiin volley bu/:
       baseAnimeName =  '2.43 Seiin Koukou Danshi Volley Bu'
+      group.anime = baseAnimeName
       break
     case ~/the wonderful adventures of nils/:
       baseAnimeName =  'Nils no Fushigi na Tabi'
+      group.anime = baseAnimeName
       break
     case ~/tatoeba last dungeon/:
       baseAnimeName = 'Suppose a Kid from the Last Dungeon Boonies Moved to a Starter Town'
+      group.anime = baseAnimeName
       break
     case ~/evangelion 1 0 you are alone/:
       baseAnimeName =  'evangelion 1.0 you are not alone'
+      group.anime = baseAnimeName
       break
     case ~/evangelion 1 11 - you are alone/:
       baseAnimeName =  'evangelion 1.0 you are not alone'
+      group.anime = baseAnimeName
       break
     case ~/evangelion 2 0 you can advance/:
       baseAnimeName =  'evangelion 2.0 you can not advance'
+      group.anime = baseAnimeName
       break
     case ~/evangelion 3 0 you can redo,/:
       baseAnimeName =  'evangelion 3.0 you can not redo,'
+      group.anime = baseAnimeName
       break
     case ~/otome game/:
       baseAnimeName =  'My Next Life as a Villainess: All Routes Lead to Doom!'
+      group.anime = baseAnimeName
       break
     case ~/otome game no hametsu/:
       baseAnimeName =  'My Next Life as a Villainess: All Routes Lead to Doom!'
+      group.anime = baseAnimeName
       break
     case ~/gate - jieitai kanochi nite, kaku tatakaeri/:
       baseAnimeName =  'Gate: Thus the JSDF Fought There'
+      group.anime = baseAnimeName
       break
     case ~/let's & go!! wgp/:
       baseAnimeName =  'Bakusou Kyoudai Lets Go!! WGP'
+      group.anime = baseAnimeName
       break
     case ~/let s go wgp/:
       baseAnimeName =  'Bakusou Kyoudai Lets Go!! WGP'
+      group.anime = baseAnimeName
       break
     case ~/recorder to randoseru re/:
       baseAnimeName =  'Recorder to Ransel Re'
+      group.anime = baseAnimeName
       break
     case ~/recorder to randoseru do/:
       baseAnimeName =  'Recorder to Ransel Do'
+      group.anime = baseAnimeName
       break
     case ~/recorder to randoseru mi/:
       baseAnimeName =  'Recorder to Ransel Mi'
+      group.anime = baseAnimeName
       break
     case ~/pokmon journeys/:
       baseAnimeName =  'Pokemon Journeys: The Series'
+      group.anime = baseAnimeName
       break
     case ~/carpe reborn/:
       baseAnimeName =  'Yuan Long'
+      group.anime = baseAnimeName
       break
     case ~/yuan long - carp reborn/:
       baseAnimeName =  'Yuan Long'
+      group.anime = baseAnimeName
       break
     case ~/maou-sama, petit retry!/:
       baseAnimeName =  'Maou-sama, Retry!'
+      group.anime = baseAnimeName
       break
     case ~/ling long - ling cage - incarnation/:
       baseAnimeName =  'Ling Long: Incarnation Xia Ban Ji'
+      group.anime = baseAnimeName
       break
     case ~/infinite stratos/:
       baseAnimeName =  'IS: Infinite Stratos'
+      group.anime = baseAnimeName
       break
     case ~/pocket monsters twilight wings/:
       baseAnimeName =   'Pokemon: Twilight Wings'
+      group.anime = baseAnimeName
       break
     case ~/anime kapibara san/:
       baseAnimeName =   'Anime Kabibarasan'
+      group.anime = baseAnimeName
       break
     case ~/desolate era/:
       baseAnimeName =   'Mang Huang Ji'
+      group.anime = baseAnimeName
       break
     case ~/kyou kara ore wa/:
       baseAnimeName =   'Kyou kara Ore wa!!'
+      group.anime = baseAnimeName
       break
     case ~/higurashi no naku koro ni 2020/:
       baseAnimeName =   'Higurashi: When They Cry - Gou'
+      group.anime = baseAnimeName
       break
     case ~/ace of diamond act/:
       baseAnimeName =  'Ace of the Diamond: Act'
+      group.anime = baseAnimeName
       break
     case ~/isekai maou to shoukan/:
       baseAnimeName =  'Isekai Maou to Shoukan Shoujo no Dorei Majutsu'
+      group.anime = baseAnimeName
       break
     case ~/Arifureta/:
       baseAnimeName =  'Arifureta Shokugyou de Sekai Saikyou'
+      group.anime = baseAnimeName
       break
     case ~/honzuki no gekokujou - shisho ni naru tame ni wa shudan wo erandeiraremasen/:
       baseAnimeName =  'Ascendance of a Bookworm'
+      group.anime = baseAnimeName
       break
     case ~/honzuki no gekokujou shisho ni naru tame ni wa shudan o erandeiraremasen/:
       baseAnimeName =  'Ascendance of a Bookworm'
+      group.anime = baseAnimeName
       break
     case ~/milf isekai/:
       baseAnimeName =  'Do You Love Your Mom and Her Two-Hit Multi-Target Attacks'
+      group.anime = baseAnimeName
       break
     case ~/my teenage romcom snafu climax/:
       baseAnimeName =  'My Teen Romantic Comedy SNAFU Climax'
+      group.anime = baseAnimeName
       break
     case ~/redo of a healer/:
       baseAnimeName =  'Kaifuku Jutsushi no Yarinaoshi'
+      group.anime = baseAnimeName
       break
     // As of 02/24/2021 AniDB has the TV episodes as type "other" in AniDB, which the Entry being a Movie. Filebot can't do anything with that.
     // Switch to the TVDB name (which probably will not match anything in AniDB)
     case ~/wave!! surfing yappe!!/:
       baseAnimeName =  'WAVE!! -Let\'s go surfing!!- (TV)'
+      group.anime = baseAnimeName
       break
     default:
-      baseAnimeName = jwdStringBlender(group.anime)
+      // Use group.anime for consistency here, so we can do further processing on the baseAnimeName should we want to
+      // As we would use the "Raw" name on overrides ..
+      baseAnimeName = group.anime
+//      baseAnimeName = jwdStringBlender(group.anime)
       break
   }
   // ---------- Checking for Name Variations --- //
   // Anime names that don't really match well, so they need help
-  // This could possibly be replaced by custom synonym file .. or maybe some kind of regex match this replace with this file?
-  switch(baseAnimeName) {
-    case ~/marulks daily life/:
-      baseAnimeName = 'Made in Abyss: Dawn of the Deep Soul'
-      group.isSpecialEpisode = true
-      break
-  }
-  // Because the way I parse filenames nomad - megalo box 2 ends up nomad with alt title of megalo box ..
-  if ( baseAnimeName == 'nomad' && group.altTitle == 'megalo box') {
-    baseAnimeName = 'nomad: megalo box'
-    group.altTitle == null
-  }
-  // Because mirai nikki (2011) is the AniDB name of the regular season, while mirai nikki is just the OVA.
-  if ( baseAnimeName == 'mirai nikki' && !group.isSpecialType) {
-    baseAnimeName = 'Mirai Nikki (2011)'
-  }
-  // Because relying on synonyms can be a hit or miss ..
-  if ( baseAnimeName == 'shokugeki no souma' && ( group.seasonNumber == 4 || group.airdateSeasonNumber == 4 || group.seriesNumber == 4 || group.ordinalSeasonNumber == 4)  ) {
-    baseAnimeName = 'Food Wars! The Fourth Plate'
-    group.seasonNumber = null
-    group.hasSeasonality = false
-  }
-  // unfortunately it's still 2020 ..
-  if ( baseAnimeName == 'dragon quest dai no daibouken' && group.yearDateInName == "2021" ) {
-    baseAnimeName = 'Dragon Quest: The Adventure of Dai'
-    group.yearDateInName = null
-  }
-  if ( baseAnimeName == 'hunter x hunter' && group.yearDateInName == "2011" ) {
-    baseAnimeName = ' Hunter x Hunter 2011'
-    group.yearDateInName = null
-  }
-  // Helps for Mapping to BOTH AniDB & TVDB
-  if ( baseAnimeName == 'dragon quest' && group.yearDateInName == "2020" ) {
-    baseAnimeName = 'Dragon Quest: The Adventure of Dai'
-    group.yearDateInName = null
-  }
-  // There is no such thing as a 3rd season on TheTVDB, or... technically on AniDB either.
-  if ( baseAnimeName == 'mushishi' && group.airdateSeasonNumber == 3 ) {
-    baseAnimeName = 'Mushishi Zoku Shou (2014)'
-  }
-  // There is no such thing as a 3rd season ..
-  if ( baseAnimeName == 'strike witches dai 501 tougou sentou koukuudan road to berlin' && group.airdateSeasonNumber == 3) {
-    baseAnimeName = 'strike witches'
-  }
-  // Close ... but not close enough to actually FIND it (it seems) on AniDB
-  if ( group.anime == 'dungeon ni deai darou ka' && group.seriesNumber == 'iii' ) {
-    baseAnimeName =  'Dungeon ni Deai o Motomeru no wa Machigatteiru Darou ka'
-  }
-  // Why use Roman numerals when the anime doesn't actually use them?
-  if ( group.anime == 'to love ru darkness' && group.seriesNumber == 'ii' ) {
-    baseAnimeName = 'To Love-Ru: Trouble - Darkness'
-    group.seriesNumber = 2
+  // Using groupOverrides() to check for a match and return an updated group to us (if needed)
+  // group.groupOverride will either be null (no override applied)
+  group = groupOverrides(group, seriesBasenameGeneratorOverrideJsonFile)
+  if ( group.groupOverride != null ) {
+    Logging.log.info "--- Group Override Applied: [${group.groupOverride}]"
+    Logging.log.info "--- Group now: [${group}]"
+    baseAnimeName = group.anime
   }
   Logging.log.info "----- baseAnimeName - ${baseAnimeName}"
-  // If it ends with Special or Bonus, remove that and add that as a basename.
-  // VOID - myOVARegexMatcher = group.anime =~ /(?i)([-\s\(]+(\bOAV|\bOVA|\bONA|\bOAD|\bSPECIAL|\bsp\d{1,2}|\bbonus)(\b\d)?)[-\s\)]?$/
-  // VOID - myOVARegexMatcher = group.anime =~ /(?i)([-\s(]+(\bOAV|\bOVA|\bONA|\bOAD|\bSPECIAL|\bsp\d{1,2}|\bbonus)(\b\d)?)[-\s)]?$/
-  myOVARegexMatcher = group.anime =~ /${ovaOnaOadSpecialBonusSyntaxMatcher}/
-  if ( myOVARegexMatcher.find() ) {
-    generatedAnimeName = group.anime.replaceAll(/${ovaOnaOadSpecialBonusSyntaxMatcher}/, '')
-    tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
-    Logging.log.info "----- TEMP: OVAMatcher - Adding to base Name List - [${generatedAnimeName}] "
-  }
-  // Unfortunately there is at *least* one anime that officially ends with v3, so I can't just ignore the "version" and the end.
-  // - https://anidb.net/anime/5078
-  myRegexMatcher = group.anime =~ /${matchEndOfLineVersion}/
-  if ( myRegexMatcher.find() ) {
-    generatedAnimeName = group.anime.replaceAll(/${matchEndOfLineVersion}/, '')
-    tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
-    Logging.log.info "----- TEMP: End of Line Version - Adding to base Name List - [${generatedAnimeName}] "
-  }
-  if (!group.hasSeriesSyntax || (group.hasSeriesSyntax && useBaseAnimeNameWithSeriesSyntax) || (group.hasSeriesSyntax && group.order == 'airdate')) {
-    Logging.log.info "----- TEMP: Adding to base Name List - [${baseAnimeName}] "
-    tempBaseGeneratedAnimeNames += ["${baseAnimeName}"]
-  }
-  if ( baseAnimeName =~ /(?i)^the\s/ ) {
-    Logging.log.info "----- TEMP: 'the' prefix - Adding to base Name List - [${baseAnimeName}] "
-    tempBaseGeneratedAnimeNames += ["${baseAnimeName.replaceFirst(/(?i)^the\s/, '')}"]
-  }
-  // If it has "series" syntax that can mean series 1 (Interger Series Syntax), series i (Roman Ordinal Series Syntax), or series 2nd (Ordinal Series Syntax)
-  // Note: Ordinal Series Syntax is NOT the same as Ordinal Seasonality Syntax (series 2nd Season).  While it's more common to see Ordinal Seasonality Syntax
-  // There are some anime that actually use Ordinal Series Syntax.
-  if ( group.hasSeriesSyntax ) {
-    Logging.log.info "----- hasSeriesSyntax detected"
-    hasSeasonality = true
-    switch (group.seriesNumber) {
-      case ~/[0-9]/:
-        mySeasonalityNumber = group.seriesNumber.toInteger()
-        Logging.log.info "----- Numerical Series - mySeasonalityNumber: ${mySeasonalityNumber}"
-        hasRomanSeries = false
-        break
-      default:
+  // if there is an Alternative Title, iterate over that and the baseAnimeName when compiling our list of
+  // possible base Anime names to add to tempBaseGeneratedAnimeNames
+  def checkAnimeNameList = group.altTitle != null ? [ baseAnimeName, group.altTitle as String ] : [ baseAnimeName ]
+  checkAnimeNameList.each { anime ->
+    Logging.log.info "----- Checking Anime Name - ${anime}"
+    // If it ends with Special or Bonus, remove that and add that as a basename.
+    // VOID - myOVARegexMatcher = group.anime =~ /(?i)([-\s\(]+(\bOAV|\bOVA|\bONA|\bOAD|\bSPECIAL|\bsp\d{1,2}|\bbonus)(\b\d)?)[-\s\)]?$/
+    // VOID - myOVARegexMatcher = group.anime =~ /(?i)([-\s(]+(\bOAV|\bOVA|\bONA|\bOAD|\bSPECIAL|\bsp\d{1,2}|\bbonus)(\b\d)?)[-\s)]?$/
+    myOVARegexMatcher = anime =~ /${ovaOnaOadSpecialBonusSyntaxMatcher}/
+    if ( myOVARegexMatcher.find() ) {
+      generatedAnimeName = anime.replaceAll(/${ovaOnaOadSpecialBonusSyntaxMatcher}/, '')
+      tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
+      Logging.log.info "----- TEMP: OVAMatcher - Adding to base Name List - [${generatedAnimeName}] "
+    }
+    // Unfortunately there is at *least* one anime that officially ends with v3, so I can't just ignore the "version" and the end.
+    // - https://anidb.net/anime/5078
+    myRegexMatcher = anime =~ /${matchEndOfLineVersion}/
+    if ( myRegexMatcher.find() ) {
+      generatedAnimeName = anime.replaceAll(/${matchEndOfLineVersion}/, '')
+      tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
+      Logging.log.info "----- TEMP: End of Line Version - Adding to base Name List - [${generatedAnimeName}] "
+    }
+    if (!group.hasSeriesSyntax || (group.hasSeriesSyntax && useBaseAnimeNameWithSeriesSyntax) || (group.hasSeriesSyntax && group.order == 'airdate')) {
+      Logging.log.info "----- TEMP: Adding to base Name List - [${anime}] "
+      tempBaseGeneratedAnimeNames += ["${anime}"]
+    }
+    if ( anime =~ /(?i)^the\s/ ) {
+      Logging.log.info "----- TEMP: 'the' prefix - Adding to base Name List - [${anime.replaceFirst(/(?i)^the\\s/, '')}] "
+      tempBaseGeneratedAnimeNames += ["${anime.replaceFirst(/(?i)^the\s/, '')}"]
+    }
+    // If it has "series" syntax that can mean series 1 (Interger Series Syntax), series i (Roman Ordinal Series Syntax), or series 2nd (Ordinal Series Syntax)
+    // Note: Ordinal Series Syntax is NOT the same as Ordinal Seasonality Syntax (series 2nd Season).  While it's more common to see Ordinal Seasonality Syntax
+    // There are some anime that actually use Ordinal Series Syntax.
+    if ( group.hasSeriesSyntax ) {
+      Logging.log.info "----- hasSeriesSyntax detected"
+      hasSeasonality = true
+      switch (group.seriesNumber) {
+        case ~/[0-9]+/:
+          mySeasonalityNumber = group.seriesNumber.toInteger()
+          Logging.log.info "----- Numerical Series - mySeasonalityNumber: ${mySeasonalityNumber}"
+          hasRomanSeries = false
+          break
+        default:
 //        mySeasonalityNumber = group.seriesNumber
-        mySeasonalityNumber = getNumberFromRomanOrdinal(group.seriesNumber)
-        Logging.log.info "----- Roman Series - Ordinal: ${group.seriesNumber}"
-        Logging.log.info "----- Roman Series - mySeasonalityNumber: ${mySeasonalityNumber}"
-        hasRomanSeries = true
-        break
-    }
-    tempBaseGeneratedAnimeNames += seriesNameGenerator(baseAnimeName, mySeasonalityNumber, hasRomanSeries)
-    if ( group.altTitle != null ) {
-      Logging.log.info "----- Alternative Title Detected:[${group.altTitle}]"
-//      Logging.log.info "----- Adding Alternative Title to Anime Name List - ${group.altTitle}"
-      tempBaseGeneratedAnimeNames += seriesNameGenerator(group.altTitle as String, mySeasonalityNumber, hasRomanSeries)
-//      tempBaseGeneratedAnimeNames += ["${group.altTitle}"]
-      // Unfortunately there is at *least* one anime that officially ends with v3, so I can't just ignore the "version" and the end.
-      // - https://anidb.net/anime/5078
-      myRegexMatcher = group.altTitle =~ /${matchEndOfLineVersion}/
-      if ( myRegexMatcher.find() ) {
-        Logging.log.info "----- TEMP: End of Line Version - Adding to base Name List"
-        generatedAnimeName = group.altTitle.replaceAll(/${matchEndOfLineVersion}/, '')
-        tempBaseGeneratedAnimeNames += seriesNameGenerator(generatedAnimeName as String, mySeasonalityNumber, hasRomanSeries)
+          mySeasonalityNumber = getNumberFromRomanOrdinal(group.seriesNumber)
+          Logging.log.info "----- Roman Series - Ordinal: ${group.seriesNumber}"
+          Logging.log.info "----- Roman Series - mySeasonalityNumber: ${mySeasonalityNumber}"
+          hasRomanSeries = true
+          break
       }
-    }
-    if ( baseAnimeName =~ /(?i)^the\s/ ) {
-      Logging.log.info "----- 'the' prefix detected':[${baseAnimeName}]"
-      tempBaseGeneratedAnimeNames += seriesNameGenerator(baseAnimeName.replaceFirst(/(?i)^the\s/, ''), mySeasonalityNumber, hasRomanSeries)
-      // Unfortunately there is at *least* one anime that officially ends with v3, so I can't just ignore the "version" and the end.
-      // - https://anidb.net/anime/5078
-      myRegexMatcher = baseAnimeName =~ /${matchEndOfLineVersion}/
-      if ( myRegexMatcher.find() ) {
-        Logging.log.info "----- TEMP: End of Line Version - Adding to base Name List"
-        generatedAnimeName = baseAnimeName.replaceAll(/${matchEndOfLineVersion}/, '')
-        tempBaseGeneratedAnimeNames += seriesNameGenerator(generatedAnimeName as String, mySeasonalityNumber, hasRomanSeries)
-
-      }
-    }
-    // baseAnimeName = "${jwdStringBlender(group.anime)}" // Always add the group.anime name
-    // Logging.log.info "----- Adding Base Anime Name to base Name List - ${baseAnimeName}  - Season 1/0"
-    // tempBaseGeneratedAnimeNames += ["${baseAnimeName}"]
-//    if ( mySeasonalityNumber > 1 ) {
-//      // ---------- Add Series Name Varients as options ---------- //
-//      generatedAnimeName = baseAnimeName + ' ' + getOrdinalNumber(mySeasonalityNumber) // anime 2nd
-//      Logging.log.info "----- Adding Ordinal Seasonality Anime Name to Anime Name List - ${generatedAnimeName}"
-//      tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
-//      if ( mySeasonalityNumber < 10 ) {
-//        generatedAnimeName = baseAnimeName + ' ' + getRomanOrdinal(mySeasonalityNumber) // anime II
-//        Logging.log.info "----- Adding Seasonality Anime Name to Anime Name List - ${generatedAnimeName}"
-//        tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
-//      }
-//      generatedAnimeName = baseAnimeName + ' ' + mySeasonalityNumber // anime 2
-//      Logging.log.info "----- Adding Series # Anime Name to Anime Name List - ${generatedAnimeName}"
-//      tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
-//    } else if ( hasRomanSeries )  {
-//      generatedAnimeName = baseAnimeName + ' ' + group.seriesNumber // anime I/II/III/IV/V
-//      Logging.log.info "----- Adding Series Anime Name to Anime Name List - ${generatedAnimeName}"
-//      tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
-//    }
-//    if ( !hasRomanSeries ) {
-//      if ( mySeasonalityNumber > 1 ) {
-//        // ---------- Add Series Name Varients as options ---------- //
-//        generatedAnimeName = baseAnimeName + ' ' + getOrdinalNumber(mySeasonalityNumber) // anime 2nd
-//        Logging.log.info "----- Adding Ordinal Seasonality Anime Name to Anime Name List - ${generatedAnimeName}"
-//        tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
-//        if ( mySeasonalityNumber < 10 ) {
-//          generatedAnimeName = baseAnimeName + ' ' + getRomanOrdinal(mySeasonalityNumber) // anime II
-//          Logging.log.info "----- Adding Seasonality Anime Name to Anime Name List - ${generatedAnimeName}"
-//          tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
+      tempBaseGeneratedAnimeNames += seriesNameGenerator(anime, mySeasonalityNumber, hasRomanSeries)
+//      if ( group.altTitle != null ) {
+//        Logging.log.info "----- Alternative Title Detected:[${group.altTitle}]"
+////      Logging.log.info "----- Adding Alternative Title to Anime Name List - ${group.altTitle}"
+//        tempBaseGeneratedAnimeNames += seriesNameGenerator(group.altTitle as String, mySeasonalityNumber, hasRomanSeries)
+////      tempBaseGeneratedAnimeNames += ["${group.altTitle}"]
+//        // Unfortunately there is at *least* one anime that officially ends with v3, so I can't just ignore the "version" and the end.
+//        // - https://anidb.net/anime/5078
+//        myRegexMatcher = group.altTitle =~ /${matchEndOfLineVersion}/
+//        if ( myRegexMatcher.find() ) {
+//          Logging.log.info "----- TEMP: End of Line Version - Adding to base Name List"
+//          generatedAnimeName = group.altTitle.replaceAll(/${matchEndOfLineVersion}/, '')
+//          tempBaseGeneratedAnimeNames += seriesNameGenerator(generatedAnimeName as String, mySeasonalityNumber, hasRomanSeries)
 //        }
-//        generatedAnimeName = baseAnimeName + ' ' + mySeasonalityNumber // anime 2
-//        Logging.log.info "----- Adding Series # Anime Name to Anime Name List - ${generatedAnimeName}"
-//        tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
 //      }
-//    } else {
-//      generatedAnimeName = baseAnimeName + ' ' + mySeasonalityNumber // anime I/II/III/IV/V
-//      Logging.log.info "----- Adding Series Anime Name to Anime Name List - ${generatedAnimeName}"
-//      tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
-//      switch (mySeasonalityNumber) {
-//        case ~/i/:
-//          mySeasonalityNumber = 1
-//          break
-//        case ~/ii/:
-//          mySeasonalityNumber = 2
-//          break
-//        case ~/iii/:
-//          mySeasonalityNumber = 3
-//          break
-//        case ~/iv/:
-//          mySeasonalityNumber = 4
-//          break
-//        case ~/v/:
-//          mySeasonalityNumber = 5
-//          break
-//        case ~/vi/:
-//          mySeasonalityNumber = 6
-//          break
-//        case ~/vii/:
-//          mySeasonalityNumber = 7
-//          break
-//        case ~/viii/:
-//          mySeasonalityNumber = 8
-//          break
-//        case ~/ix/:
-//          mySeasonalityNumber = 9
-//          break
-//        case ~/x/:
-//          mySeasonalityNumber = 10
-//          break
-//        default:
-//          mySeasonalityNumber = group.seriesNumber
-//          break
-//      }
-//      Logging.log.info "----- Roman Series - mySeasonalityNumber is now: ${mySeasonalityNumber}"
-//    }
+      if ( anime =~ /(?i)^the\s/ ) {
+        Logging.log.info "----- 'the' prefix detected':[${anime}]"
+        tempBaseGeneratedAnimeNames += seriesNameGenerator(anime.replaceFirst(/(?i)^the\s/, ''), mySeasonalityNumber, hasRomanSeries)
+        // Unfortunately there is at *least* one anime that officially ends with v3, so I can't just ignore the "version" and the end.
+        // - https://anidb.net/anime/5078
+        myRegexMatcher = anime =~ /${matchEndOfLineVersion}/
+        if ( myRegexMatcher.find() ) {
+          Logging.log.info "----- TEMP: End of Line Version - Adding to base Name List"
+          generatedAnimeName = anime.replaceAll(/${matchEndOfLineVersion}/, '')
+          tempBaseGeneratedAnimeNames += seriesNameGenerator(generatedAnimeName as String, mySeasonalityNumber, hasRomanSeries)
+        }
+      }
+    }
   }
-//  if ( group.altTitle != null ) {
-//    Logging.log.info "----- Alternative Title Detected:[${group.altTitle}]"
-//    Logging.log.info "----- Adding Alternative Title to Anime Name List - ${group.altTitle}"
-//    tempBaseGeneratedAnimeNames += ["${group.altTitle}"]
+//  // If it ends with Special or Bonus, remove that and add that as a basename.
+//  // VOID - myOVARegexMatcher = group.anime =~ /(?i)([-\s\(]+(\bOAV|\bOVA|\bONA|\bOAD|\bSPECIAL|\bsp\d{1,2}|\bbonus)(\b\d)?)[-\s\)]?$/
+//  // VOID - myOVARegexMatcher = group.anime =~ /(?i)([-\s(]+(\bOAV|\bOVA|\bONA|\bOAD|\bSPECIAL|\bsp\d{1,2}|\bbonus)(\b\d)?)[-\s)]?$/
+//  myOVARegexMatcher = anime =~ /${ovaOnaOadSpecialBonusSyntaxMatcher}/
+//  if ( myOVARegexMatcher.find() ) {
+//    generatedAnimeName = anime.replaceAll(/${ovaOnaOadSpecialBonusSyntaxMatcher}/, '')
+//    tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
+//    Logging.log.info "----- TEMP: OVAMatcher - Adding to base Name List - [${generatedAnimeName}] "
 //  }
+//  // Unfortunately there is at *least* one anime that officially ends with v3, so I can't just ignore the "version" and the end.
+//  // - https://anidb.net/anime/5078
+//  myRegexMatcher = group.anime =~ /${matchEndOfLineVersion}/
+//  if ( myRegexMatcher.find() ) {
+//    generatedAnimeName = group.anime.replaceAll(/${matchEndOfLineVersion}/, '')
+//    tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
+//    Logging.log.info "----- TEMP: End of Line Version - Adding to base Name List - [${generatedAnimeName}] "
+//  }
+//  if (!group.hasSeriesSyntax || (group.hasSeriesSyntax && useBaseAnimeNameWithSeriesSyntax) || (group.hasSeriesSyntax && group.order == 'airdate')) {
+//    Logging.log.info "----- TEMP: Adding to base Name List - [${baseAnimeName}] "
+//    tempBaseGeneratedAnimeNames += ["${baseAnimeName}"]
+//  }
+//  if ( baseAnimeName =~ /(?i)^the\s/ ) {
+//    Logging.log.info "----- TEMP: 'the' prefix - Adding to base Name List - [${baseAnimeName}] "
+//    tempBaseGeneratedAnimeNames += ["${baseAnimeName.replaceFirst(/(?i)^the\s/, '')}"]
+//  }
+//  // If it has "series" syntax that can mean series 1 (Interger Series Syntax), series i (Roman Ordinal Series Syntax), or series 2nd (Ordinal Series Syntax)
+//  // Note: Ordinal Series Syntax is NOT the same as Ordinal Seasonality Syntax (series 2nd Season).  While it's more common to see Ordinal Seasonality Syntax
+//  // There are some anime that actually use Ordinal Series Syntax.
+//  if ( group.hasSeriesSyntax ) {
+//    Logging.log.info "----- hasSeriesSyntax detected"
+//    hasSeasonality = true
+//    switch (group.seriesNumber) {
+//      case ~/[0-9]+/:
+//        mySeasonalityNumber = group.seriesNumber.toInteger()
+//        Logging.log.info "----- Numerical Series - mySeasonalityNumber: ${mySeasonalityNumber}"
+//        hasRomanSeries = false
+//        break
+//      default:
+////        mySeasonalityNumber = group.seriesNumber
+//        mySeasonalityNumber = getNumberFromRomanOrdinal(group.seriesNumber)
+//        Logging.log.info "----- Roman Series - Ordinal: ${group.seriesNumber}"
+//        Logging.log.info "----- Roman Series - mySeasonalityNumber: ${mySeasonalityNumber}"
+//        hasRomanSeries = true
+//        break
+//    }
+//    tempBaseGeneratedAnimeNames += seriesNameGenerator(baseAnimeName, mySeasonalityNumber, hasRomanSeries)
+//    if ( group.altTitle != null ) {
+//      Logging.log.info "----- Alternative Title Detected:[${group.altTitle}]"
+////      Logging.log.info "----- Adding Alternative Title to Anime Name List - ${group.altTitle}"
+//      tempBaseGeneratedAnimeNames += seriesNameGenerator(group.altTitle as String, mySeasonalityNumber, hasRomanSeries)
+////      tempBaseGeneratedAnimeNames += ["${group.altTitle}"]
+//      // Unfortunately there is at *least* one anime that officially ends with v3, so I can't just ignore the "version" and the end.
+//      // - https://anidb.net/anime/5078
+//      myRegexMatcher = group.altTitle =~ /${matchEndOfLineVersion}/
+//      if ( myRegexMatcher.find() ) {
+//        Logging.log.info "----- TEMP: End of Line Version - Adding to base Name List"
+//        generatedAnimeName = group.altTitle.replaceAll(/${matchEndOfLineVersion}/, '')
+//        tempBaseGeneratedAnimeNames += seriesNameGenerator(generatedAnimeName as String, mySeasonalityNumber, hasRomanSeries)
+//      }
+//    }
+//    if ( baseAnimeName =~ /(?i)^the\s/ ) {
+//      Logging.log.info "----- 'the' prefix detected':[${baseAnimeName}]"
+//      tempBaseGeneratedAnimeNames += seriesNameGenerator(baseAnimeName.replaceFirst(/(?i)^the\s/, ''), mySeasonalityNumber, hasRomanSeries)
+//      // Unfortunately there is at *least* one anime that officially ends with v3, so I can't just ignore the "version" and the end.
+//      // - https://anidb.net/anime/5078
+//      myRegexMatcher = baseAnimeName =~ /${matchEndOfLineVersion}/
+//      if ( myRegexMatcher.find() ) {
+//        Logging.log.info "----- TEMP: End of Line Version - Adding to base Name List"
+//        generatedAnimeName = baseAnimeName.replaceAll(/${matchEndOfLineVersion}/, '')
+//        tempBaseGeneratedAnimeNames += seriesNameGenerator(generatedAnimeName as String, mySeasonalityNumber, hasRomanSeries)
+//
+//      }
+//    }
+//    // baseAnimeName = "${jwdStringBlender(group.anime)}" // Always add the group.anime name
+//    // Logging.log.info "----- Adding Base Anime Name to base Name List - ${baseAnimeName}  - Season 1/0"
+//    // tempBaseGeneratedAnimeNames += ["${baseAnimeName}"]
+////    if ( mySeasonalityNumber > 1 ) {
+////      // ---------- Add Series Name Varients as options ---------- //
+////      generatedAnimeName = baseAnimeName + ' ' + getOrdinalNumber(mySeasonalityNumber) // anime 2nd
+////      Logging.log.info "----- Adding Ordinal Seasonality Anime Name to Anime Name List - ${generatedAnimeName}"
+////      tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
+////      if ( mySeasonalityNumber < 10 ) {
+////        generatedAnimeName = baseAnimeName + ' ' + getRomanOrdinal(mySeasonalityNumber) // anime II
+////        Logging.log.info "----- Adding Seasonality Anime Name to Anime Name List - ${generatedAnimeName}"
+////        tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
+////      }
+////      generatedAnimeName = baseAnimeName + ' ' + mySeasonalityNumber // anime 2
+////      Logging.log.info "----- Adding Series # Anime Name to Anime Name List - ${generatedAnimeName}"
+////      tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
+////    } else if ( hasRomanSeries )  {
+////      generatedAnimeName = baseAnimeName + ' ' + group.seriesNumber // anime I/II/III/IV/V
+////      Logging.log.info "----- Adding Series Anime Name to Anime Name List - ${generatedAnimeName}"
+////      tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
+////    }
+////    if ( !hasRomanSeries ) {
+////      if ( mySeasonalityNumber > 1 ) {
+////        // ---------- Add Series Name Varients as options ---------- //
+////        generatedAnimeName = baseAnimeName + ' ' + getOrdinalNumber(mySeasonalityNumber) // anime 2nd
+////        Logging.log.info "----- Adding Ordinal Seasonality Anime Name to Anime Name List - ${generatedAnimeName}"
+////        tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
+////        if ( mySeasonalityNumber < 10 ) {
+////          generatedAnimeName = baseAnimeName + ' ' + getRomanOrdinal(mySeasonalityNumber) // anime II
+////          Logging.log.info "----- Adding Seasonality Anime Name to Anime Name List - ${generatedAnimeName}"
+////          tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
+////        }
+////        generatedAnimeName = baseAnimeName + ' ' + mySeasonalityNumber // anime 2
+////        Logging.log.info "----- Adding Series # Anime Name to Anime Name List - ${generatedAnimeName}"
+////        tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
+////      }
+////    } else {
+////      generatedAnimeName = baseAnimeName + ' ' + mySeasonalityNumber // anime I/II/III/IV/V
+////      Logging.log.info "----- Adding Series Anime Name to Anime Name List - ${generatedAnimeName}"
+////      tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
+////      switch (mySeasonalityNumber) {
+////        case ~/i/:
+////          mySeasonalityNumber = 1
+////          break
+////        case ~/ii/:
+////          mySeasonalityNumber = 2
+////          break
+////        case ~/iii/:
+////          mySeasonalityNumber = 3
+////          break
+////        case ~/iv/:
+////          mySeasonalityNumber = 4
+////          break
+////        case ~/v/:
+////          mySeasonalityNumber = 5
+////          break
+////        case ~/vi/:
+////          mySeasonalityNumber = 6
+////          break
+////        case ~/vii/:
+////          mySeasonalityNumber = 7
+////          break
+////        case ~/viii/:
+////          mySeasonalityNumber = 8
+////          break
+////        case ~/ix/:
+////          mySeasonalityNumber = 9
+////          break
+////        case ~/x/:
+////          mySeasonalityNumber = 10
+////          break
+////        default:
+////          mySeasonalityNumber = group.seriesNumber
+////          break
+////      }
+////      Logging.log.info "----- Roman Series - mySeasonalityNumber is now: ${mySeasonalityNumber}"
+////    }
+//  }
+////  if ( group.altTitle != null ) {
+////    Logging.log.info "----- Alternative Title Detected:[${group.altTitle}]"
+////    Logging.log.info "----- Adding Alternative Title to Anime Name List - ${group.altTitle}"
+////    tempBaseGeneratedAnimeNames += ["${group.altTitle}"]
+////  }
   tempBaseGeneratedAnimeNames.each { tempname ->
     Logging.log.info "----- BASE: Adding [${tempname}]"
     baseGeneratedAnimeNames += tempname
@@ -537,6 +680,155 @@ ArrayList basenameGenerator ( LinkedHashMap group, Boolean useBaseAnimeNameWithS
   }
   // baseGeneratedAnimeNames = baseAnimeNameGenerator()
   Logging.log.finest "${groupInfoGenerator(group)}"
+  Logging.log.info '// END---------- Basename Generation ---------- //'
+  return [[group], baseGeneratedAnimeNames ]
+}
+
+/**
+ * Generate the base anime names we will be using to build possible Anime Movie names to search for
+ * Basenames are the base part of the movie name, later we add/modify based on things like movie/the etc.
+ *
+ * @param group The LinkedHashMap for this group of files
+ * @param moviesBasenameGeneratorOverrideJsonFile The Movie Basename Override file
+ * @return  ArrayList of [[group], baseGeneratedAnimeNames ]
+ */
+ArrayList moviesBasenameGenerator(LinkedHashMap group, ArrayList moviesBasenameGeneratorOverrideJsonFile) {
+  tempBaseGeneratedAnimeNames = [] as HashSet
+  baseGeneratedAnimeNames = [] as HashSet
+  String baseAnimeName
+  Logging.log.info '// START---------- Basename Generation ---------- //'
+  Logging.log.finest "${groupInfoGenerator(group)}"
+  Logging.log.finest "group.class:${group.getClass()}"
+  Logging.log.info "--- group.anime - ${group.anime}"
+  Logging.log.info "--- group.altTitle - ${group.altTitle}"
+  switch(group.anime) {
+  // Close...
+    case ~/eiyuu banku koushi-den/:
+//      tempAnimeName = jwdStringBlender('Eiyuu Banka Koushi-den')
+      baseAnimeName = group.anime
+      group.anime = baseAnimeName
+      break
+    default:
+      // Use group.anime for consistency here, so we can do further processing on the baseAnimeName should we want to
+      // As we would use the "Raw" name on overrides ..
+      baseAnimeName = group.anime
+//      tempAnimeName = jwdStringBlender(group.anime)
+  }
+  myExceptionMatcher = group.anime =~ /(?i)(fate[ ]?stay night)/
+  if ( myExceptionMatcher.find() ) {
+    baseAnimeName = jwdStringBlender("Fate/Stay Night: Heaven`s Feel")
+    Logging.log.info "//----- AniDB Entry is a multi-part movie -  ${baseAnimeName}"
+  }
+  // ---------- Checking for Name Variations --- //
+  // Anime names that don't really match well, so they need help
+  // Using groupOverrides() to check for a match and return an updated group to us (if needed)
+  // group.groupOverride will either be null (no override applied)
+  group = groupOverrides(group, moviesBasenameGeneratorOverrideJsonFile)
+  if ( group.groupOverride != null ) {
+    Logging.log.info "--- Group Override Applied: [${group.groupOverride}]"
+    Logging.log.info "--- Group now: [${group}]"
+    baseAnimeName = group.anime
+  }
+  Logging.log.info "----- baseAnimeName - ${baseAnimeName}"
+  // group.filebotMovieTitle is a net.filebot.web.Movie object!
+  tempFileBotName = group.filebotMovieTitle != null ? jwdStringBlender(group.filebotMovieTitle.toString()) : ""
+  // --- Start of tempBaseGeneratedAnimeNames generation --- //
+  // if there is an Alternative Title, iterate over that and the baseAnimeName when compiling our list of
+  // possible base Anime names to add to tempBaseGeneratedAnimeNames
+  def checkAnimeNameList = group.altTitle != null ? [ baseAnimeName, group.altTitle ] : [ baseAnimeName]
+  checkAnimeNameList.each { anime ->
+    Logging.log.info "----- TEMP: Adding anime - [${anime}]"
+    tempBaseGeneratedAnimeNames += ["${anime}"]
+    // Unfortunately there is at *least* one anime that officially ends with v3, so I can't just ignore the "version" and the end.
+    // - https://anidb.net/anime/5078
+    myRegexMatcher = anime =~ /${matchEndOfLineVersion}/
+    if ( myRegexMatcher.find() ) {
+      generatedAnimeName = anime.replaceAll(/${matchEndOfLineVersion}/, '')
+      tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
+      Logging.log.info "----- TEMP: End of Line Version - Adding to base Name List - [${generatedAnimeName}] "
+    }
+    // myMovieRegexMatcher = group.anime =~ /(?i)(\bmovie\s[\d]{1,3}|\bmovie)\b/
+    Logging.log.info '--- Checking if we should add variations based on movie keyword'
+    // We want to check if the anime is (the) movie followed by one to three digits
+    // We would want to match
+    // pocket monsters the movie 1
+    // pocket monsters movie 1
+    // VOID - /(?i)(\s?(the)?(\smovie\s[\d]{1,3}|\smovie))\b/
+    Matcher myMovieRegexMatcher = anime =~ /(?i)(\s?(the)?(\smovie\s[\d]{1,3}))\b/
+    if ( myMovieRegexMatcher.find() ) {
+      animeTemp = anime.replaceAll(/(?i)(\s?(the)?(\smovie\s[\d]{1,3}))\b/, '').replaceAll(/${stripTrailingSpacesDashRegex}/, '')
+      Logging.log.info "----- TEMP: Adding 'movie' keyword variation #1 - [${animeTemp}]"
+      // Removing The, Movie and any 3 digits after movie
+      // Leaving
+      // pocket monsters
+      tempBaseGeneratedAnimeNames += ["${animeTemp}"]
+    }
+    // We want to check if the anime has (the) movie amd remove (the) movie from it.
+    // Leaving everything else alone
+    // We would want to match
+    // pocket monsters the movie 1
+    // pocket monsters movie 1
+    // gundam g no reconguista movie
+    // Leaving
+    // pocket monsters 1
+    // gundam g no reconguista
+    // VOID - /(?i)(\s?(the)?(\smovie)\s(?!\d))/
+    // VOID - /(?i)(\s?(the)?(\smovie(?!\s\d)))/
+    // VOID - /(?i)(\s?(the)?(\smovie\s[\d]{1,3}))\b/
+    myMovieRegexMatcher = anime =~ /(?i)(\s?(the)?(\smovie))\b/
+    if ( myMovieRegexMatcher.find() ) {
+      animeTemp = anime.replaceAll(/(?i)(\s?(the)?(\smovie))/, '').replaceAll(/${stripTrailingSpacesDashRegex}/, '')
+      Logging.log.info "----- TEMP: Adding 'movie' keyword variation #2 - [${animeTemp}]"
+      // Removing The, Movie but leaving the digits
+      // Leaving
+      // pocket monsters 1
+      tempBaseGeneratedAnimeNames += ["${animeTemp}"]
+    }
+    myMovieRegexMatcher = anime =~ /(?i)(\s?(the)?(\smovie\s[\d]{1,3}))\b/
+    if ( myMovieRegexMatcher.find() ) {
+      animeTemp = anime.replaceAll(/(?i)(?<=movie\s)([\d]{1,3})/, '')
+      Logging.log.info "----- TEMP: Adding 'movie' keyword variation #3 - [${animeTemp}]" // Removing the digits after movie
+      tempBaseGeneratedAnimeNames += ["${animeTemp}"]
+    }
+    // We want to add a the to any anime that already has the word movie in it and does not already have the in front of it.
+    // so we would match
+    // pocket monsters movie
+    // VOID - (?i)(\s?(?<!the)(\smovie(?!\s\d)))
+    myMovieRegexMatcher = anime =~ /(?i)(\s?(?<!the)(\smovie\s))/
+    if ( myMovieRegexMatcher.find() ) {
+      animeTemp = anime.replaceAll(/(?i)(movie)/, 'the movie').replaceAll(/${stripTrailingSpacesDashRegex}/, '')
+      Logging.log.info "----- TEMP: Adding 'movie' keyword variation #4 - [${animeTemp}]" // Adding 'the' before 'movie' (but only if it has movie)
+      tempBaseGeneratedAnimeNames += ["${animeTemp}"]
+    }
+    tempBaseGeneratedAnimeNames.each { tempname ->
+      Logging.log.info "--- BASE: Adding [${tempname}]"
+      baseGeneratedAnimeNames += tempname
+      baseGeneratedAnimeNames += ["${returnAniDBRomanization(tempname)}"]
+      // Taken from groupGeneration
+      // VOID - (?i)(~\s(.*))$
+      mySanityRegexMatcher = tempname =~ /(?i)(~(.*))$/
+      if (mySanityRegexMatcher.find() ) {
+        //noinspection GroovyAssignabilityCheck
+        mySanityAltTxt = mySanityRegexMatcher[0][2]
+        Logging.log.info "--- BASE: Adding possible Alternative Title: [${mySanityAltTxt}] using ~"
+        baseGeneratedAnimeNames += ["${mySanityAltTxt}"]
+        baseGeneratedAnimeNames += ["${returnAniDBRomanization(mySanityAltTxt)}"]
+        animeTemp = tempname.replaceAll(/(?i)(~(.*))$/, '').replaceAll(/(\s){2,20}/, ' ').replaceAll(/([\s-])*$/, '')
+        Logging.log.info "--- BASE: Adding possible Alternative Title: [${animeTemp}] using ~"
+        baseGeneratedAnimeNames += ["${animeTemp}"]
+        baseGeneratedAnimeNames += ["${returnAniDBRomanization(animeTemp)}"]
+      }
+      // (?i)(-\s(.*))$
+      mySanityRegexMatcher = tempname =~ /(?i)(-\s(.*))$/
+      if (mySanityRegexMatcher.find() ) {
+//      mySanityAltTxt = mySanityRegexMatcher[0][2]
+        animeTemp = tempname.replaceAll(/(?i)(-\s(.*))$/, '').replaceAll(/(\s){2,20}/, ' ').replaceAll(/([\s-])*$/, '')
+        Logging.log.info "--- BASE: Adding Title Text Variation [${animeTemp}] using -"
+        baseGeneratedAnimeNames += ["${animeTemp}"]
+        baseGeneratedAnimeNames += ["${returnAniDBRomanization(animeTemp)}"]
+      }
+    }
+  }
   Logging.log.info '// END---------- Basename Generation ---------- //'
   return [[group], baseGeneratedAnimeNames ]
 }
@@ -597,10 +889,10 @@ String renameMapperGenerator( String order, String db , Boolean dbHasAbsoluteNum
   return renameMapper
 }
 /**
- * Using a HashSet of Anime Series Names [Generated by basenameGenerator(), then seriesnameGenerator()] Search for
+ * Using a HashSet of Anime Series Names [Generated by seriesBasenameGenerator(), then seriesnameGenerator()] Search for
  * "matching" Anime in AniDB using JaroWinklerDistance to measure how close the Anime name is in AniDB to our search term.
  *
- * @param animeSeriesNames A Hashset of Anime Series Names [Generated by basenameGenerator(), then seriesnameGenerator()]
+ * @param animeSeriesNames A Hashset of Anime Series Names [Generated by seriesBasenameGenerator(), then seriesnameGenerator()]
  * @param aniDBJWDResults A LinkedHashMap of the AniDB Results format we use
  * @param animeFoundInAniDB  Boolean representing if the Anime was found in AniDB
  * @param locale The Locale (aka Locale.English)
@@ -823,10 +1115,10 @@ LinkedHashMap filebotAnidbJWDSearch(HashSet animeSeriesNames, LinkedHashMap aniD
 }
 
 /**
- * Using a HashSet of Anime Series Names [Generated by basenameGenerator(), then seriesnameGenerator()] Search for
+ * Using a HashSet of Anime Series Names [Generated by seriesBasenameGenerator(), then seriesnameGenerator()] Search for
  * "matching" Anime in TheTVDB using JaroWinklerDistance to measure how close the Anime name is in TheTVDB to our search term.
  *
- * @param animeSeriesNames A Hashset of Anime Series Names [Generated by basenameGenerator(), then seriesnameGenerator()]
+ * @param animeSeriesNames A Hashset of Anime Series Names [Generated by seriesBasenameGenerator(), then seriesnameGenerator()]
  * @param tvDBJWDResults A LinkedHashMap of the TheTVDB Results format we use
  * @param animeFoundInTVDB  Boolean representing if the Anime was found in AniDB
  * @param locale The Locale (aka Locale.English)
@@ -838,7 +1130,7 @@ LinkedHashMap filebotTVDBJWDSearch(HashSet animeSeriesNames, LinkedHashMap tvDBJ
   Boolean animeTVDBSearchFound = false
   String myQueryTVDB = ''
   ArrayList myOptionsTVDB
-  TheTVDBSeriesInfo myTVDBseriesInfo
+  SeriesInfo myTVDBseriesInfo
   ArrayList myTBDBSeriesInfoAliasNames
   BigDecimal jwdcompare = 0
   BigDecimal jwdcompare2 = 0
@@ -871,7 +1163,7 @@ LinkedHashMap filebotTVDBJWDSearch(HashSet animeSeriesNames, LinkedHashMap tvDBJ
           // myTVDBseriesInfo properties for Sword Art Online: [runtime:25, startDate:2012-07-07, genres:[Action, Adventure, Animation, Anime, Fantasy, Romance, Science Fiction],
           // overview:In the near future, a Virtual Reality Massive Multiplayer Online Role-Playing Game (VRMMORPG) called Sword Art Online has been released where players control their avatars with their bodies using a piece of technology called Nerve Gear. One day, players discover they cannot log out, as the game creator is holding them captive unless they reach the 100th floor of the game's tower and defeat the final boss. However, if they die in the game, they die in real life. Their struggle for survival starts now...,
           // certification:TV-14, rating:7.9, id:259640, slug:sword-art-online, lastUpdated:1599661699, name:Sword Art Online, network:Tokyo MX, ratingCount:18128,
-          // imdbId:tt2250192, type:TV Series, class:class net.filebot.web.TheTVDBSeriesInfo, spokenLanguages:[], status:Continuing,
+          // imdbId:tt2250192, type:TV Series, class:class net.filebot.web.SeriesInfo, spokenLanguages:[], status:Continuing,
           // order:null, language:en, airsTime:12:00 AM, aliasNames:[Sword Art Online II, S?do ?to Onrain, Sword Art Online Alicization, Sword Art Online Alicization: War of Underworld, SAO, S.A.O, Sword Art Online : Alicization, Sword Art Online : Alicization - War of Underground, Sword Art Online II , S.A.O 2, S.A.O 3, S.A.O 4, S.A.O II, S.A.O III, S.A.O IV, SAO 2, SAO 3, SAO 4, SAO II, SAO III, SAO IV, Sword Art Online 2, Sword Art Online 3, Sword Art Online 4, Sword Art Online III, Sword Art Online IV, ????, Sword Art Online (2012), ?????? ???? ???-????, ?????? ???? ???????, ????????????, ???????????, ?? ?? ???, ??????? ???? ??????, ????],
           // season:4, airsDayOfWeek:Sunday, database:TheTVDB]
           // Logging.log.info "myTVDBseriesInfo Class : ${myTVDBseriesInfo.getClass()}"
@@ -938,10 +1230,10 @@ LinkedHashMap filebotTVDBJWDSearch(HashSet animeSeriesNames, LinkedHashMap tvDBJ
 }
 
 /**
- * Using a HashSet of Anime Series Names [Generated by basenameGenerator(), then seriesnameGenerator()] Search for
+ * Using a HashSet of Anime Series Names [Generated by seriesBasenameGenerator(), then seriesnameGenerator()] Search for
  * "matching" Anime in AniDB using JaroWinklerDistance to measure how close the Anime name is in AniDB to our search term.
  *
- * @param animeSeriesNames A Hashset of Anime Series Names [Generated by basenameGenerator(), then seriesnameGenerator()]
+ * @param animeSeriesNames A Hashset of Anime Series Names [Generated by seriesBasenameGenerator(), then seriesnameGenerator()]
  * @param aniDBTitleXMLFilename  The local filename of the AniDB Offline XML file
  * @param aniDBSynonymXMLFilename The local filename of the AniDB Synonym XML File
  * @param useFilebotAniDBAliases Boolean: Should we use filebot Aliases for AniDB Series or use Synonyms/Aliases from AniDB XML files (I recommend not using Filebot Aliases)
@@ -950,7 +1242,7 @@ LinkedHashMap filebotTVDBJWDSearch(HashSet animeSeriesNames, LinkedHashMap tvDBJ
  * @return  LinkedHashMap of [firstANIDBWTMatchNumber: firstANIDBWTMatchNumber, firstAniDBWTMatchName:firstAniDBWTMatchName, anidbFirstMatchDetails: anidbFirstMatchDetails, secondANIDBWTMatchNumber: secondANIDBWTMatchNumber, secondAniDBWTMatchName:secondAniDBWTMatchName, anidbSecondMatchDetails: anidbSecondMatchDetails, thirdANIDBWTMatchNumber: thirdANIDBWTMatchNumber, thirdAniDBWTMatchName:thirdAniDBWTMatchName, anidbThirdMatchDetails:anidbThirdMatchDetails, fileBotANIDBJWDMatchDetails: fileBotANIDBJWDMatchDetails, fileBotANIDBJWDMatchNumber: fileBotANIDBJWDMatchNumber, animeFoundInAniDB: animeFoundInAniDB, statsANIDBJWDFilebotOnly:statsANIDBJWDFilebotOnly, statsANIDBFilebotMatchedScript:statsANIDBFilebotMatchedScript]
  */
 @SuppressWarnings(['GroovyUnusedAssignment', 'unused'])
-LinkedHashMap searchForMoviesJWD(LinkedHashMap group, String aniDBTitleXMLFilename, String aniDBSynonymXMLFilename, Boolean useFilebotAniDBAliases, Locale locale, JsonObject animeOfflineDatabase, LinkedHashMap aniDBCompleteXMLList) {
+LinkedHashMap searchForMoviesJWD(LinkedHashMap group, String aniDBTitleXMLFilename, String aniDBSynonymXMLFilename, Boolean useFilebotAniDBAliases, Locale locale, JsonObject animeOfflineDatabase, LinkedHashMap aniDBCompleteXMLList, ArrayList moviesBasenameGeneratorOverrideJsonFile) {
   // ---------- Set Variables ---------- //
   anidbJWDResults = [:]
   filteredanidbJWDResults = [:]
@@ -982,75 +1274,22 @@ LinkedHashMap searchForMoviesJWD(LinkedHashMap group, String aniDBTitleXMLFilena
   // Use Filebot AltTitle as fallback (since it's MovieDB)?
   // Rename (Add option to use Non-Strict on rename)
   // ---------- Basename Generation ---------- //
-  Logging.log.info '// START---------- Basename Generation ---------- //'
-  switch(group.anime) {
-  // Close...
-    case ~/eiyuu banku koushi-den/:
-      tempAnimeName = jwdStringBlender('Eiyuu Banka Koushi-den')
-      break
-    default:
-      tempAnimeName = jwdStringBlender(group.anime)
-  }
-  //  if ( group.altTitle != null ) {
-  //    baseAnimeNames += ["${group.alttitle}"]
-  //    baseAnimeNames += ["${ returnAniDBRomanization(group.alttitle) }"]
-  //  }
-//  Logging.log.info "--- TEMP: Adding group.anime - [${group.anime}]"
-  //  tempBaseGeneratedAnimeNames = ["${group.anime}"]
-  // group.filebotMovieTitle is a net.filebot.web.Movie object!
-  tempFileBotName = group.filebotMovieTitle != null ? jwdStringBlender(group.filebotMovieTitle.toString()) : ""
-  myExceptionMatcher = tempAnimeName =~ /(?i)(fate[ ]?stay night)/
-  if ( myExceptionMatcher.find() ) {
-    tempAnimeName = jwdStringBlender("Fate/Stay Night: Heaven`s Feel")
-    Logging.log.info "//----- AniDB Entry is a multi-part movie -  ${tempAnimeName}"
-  }
-  Logging.log.info "----- TEMP: Adding jwdStringBlender(group.anime) - [${tempAnimeName}]"
-  tempBaseGeneratedAnimeNames = ["${tempAnimeName}"]
-  // Unfortunately there is at *least* one anime that officially ends with v3, so I can't just ignore the "version" and the end.
-  // - https://anidb.net/anime/5078
-  myRegexMatcher = group.anime =~ /${matchEndOfLineVersion}/
-  if ( myRegexMatcher.find() ) {
-    generatedAnimeName = group.anime.replaceAll(/${matchEndOfLineVersion}/, '')
-    tempBaseGeneratedAnimeNames += ["${jwdStringBlender(generatedAnimeName)}"]
-    Logging.log.info "----- TEMP: End of Line Version - Adding to base Name List - [${generatedAnimeName}] "
-  }
-  // myMovieRegexMatcher = group.anime =~ /(?i)(\bmovie\s[\d]{1,3}|\bmovie)\b/
-  Logging.log.info '--- Checking if we should add variations based on movie keyword'
-  // VOID - Matcher myMovieRegexMatcher = group.anime =~ /(?i)(\s?(the)?(\smovie\s[\d]{1,3}|\smovie))\b/
-  Matcher myMovieRegexMatcher = group.anime =~ /(?i)(\s?(the)?(\smovie\s[\d]{1,3}))\b/
-  if ( myMovieRegexMatcher.find() ) {
-    animeTemp = group.anime.replaceAll(/(?i)(\s?(the)?(\smovie\s[\d]{1,3}))\b/, '')
-    Logging.log.info "----- TEMP: Adding 'movie' keyword variation #1 - [${animeTemp}]" // Removing The, Movie and any 3 digits after movie
-    tempBaseGeneratedAnimeNames += ["${animeTemp}"]
-  }
-  // VOID - myMovieRegexMatcher = group.anime =~ /(?i)(\s?(the)?(\smovie)\s(?!\d))/
-  myMovieRegexMatcher = group.anime =~ /(?i)(\s?(the)?(\smovie(?!\s\d)))/
-  if ( myMovieRegexMatcher.find() ) {
-    animeTemp = group.anime.replaceAll(/(?i)(\s?(the)?(\smovie))/, '')
-    Logging.log.info "----- TEMP: Adding 'movie' keyword variation #2 - [${animeTemp}]" // Removing The, Movie but leaving the digits
-    tempBaseGeneratedAnimeNames += ["${animeTemp}"]
-  }
-  myMovieRegexMatcher = group.anime =~ /(?i)(\s?(the)?(\smovie\s[\d]{1,3}))\b/
-  if ( myMovieRegexMatcher.find() ) {
-    animeTemp = group.anime.replaceAll(/(?i)(?<=movie\s)([\d]{1,3})/, '')
-    Logging.log.info "----- TEMP: Adding 'movie' keyword variation #3 - [${animeTemp}]" // Removing the digits after movie
-    tempBaseGeneratedAnimeNames += ["${animeTemp}"]
-  }
-  myMovieRegexMatcher = group.anime =~ /(?i)(\s?(?<!the)(\smovie(?!\s\d)))/
-  if ( myMovieRegexMatcher.find() ) {
-    animeTemp = group.anime.replaceAll(/(?i)([\s]?movie[\s]?)/, ' the movie ').replaceAll(/${stripTrailingSpacesDashRegex}/, '')
-    Logging.log.info "----- TEMP: Adding 'movie' keyword variation #4 - [${animeTemp}]" // Adding 'the' before 'movie' (but only if it has movie)
-    tempBaseGeneratedAnimeNames += ["${animeTemp}"]
-  }
-  tempBaseGeneratedAnimeNames.each { tempname ->
-    Logging.log.info "--- BASE: Adding [${tempname}]"
-    baseGeneratedAnimeNames += tempname
-    baseGeneratedAnimeNames += ["${returnAniDBRomanization(group.anime)}"]
-  }
-  Logging.log.info '// END---------- Basename Generation ---------- //'
-  Logging.log.info '// START---------- SeriesName Generation ---------- //'
+  returnThing = moviesBasenameGenerator(group, moviesBasenameGeneratorOverrideJsonFile)
+  Logging.log.finest "returnThing.class:${returnThing.getClass()}"
+  Logging.log.finest "/---"
+  Logging.log.finest "returnThing:${returnThing}"
+  Logging.log.finest "/---"
+  Logging.log.finest "groupBEFORE:${group}"
+  Logging.log.finest "/---"
+  group = returnThing[0] as LinkedHashMap
+  Logging.log.finest "groupAFTER:${group}"
+  baseGeneratedAnimeNames = returnThing[1] as HashSet
+  Logging.log.finest "/---"
+  Logging.log.finest "baseGeneratedAnimeNames:${baseGeneratedAnimeNames}"
+  // END---------- Basename Generation ---------- //
+  Logging.log.info '// START---------- MoviesName Generation ---------- //'
   baseGeneratedAnimeNames.each { basename ->
-    Logging.log.info "//--- Generating Possible Anime Series Names for ${basename}"
+    Logging.log.info "//--- Generating Possible Anime Movies Names for ${basename}"
     Logging.log.info "--- Adding ${basename}"
     baseAnimeNames += ["${basename}"]
     Logging.log.info '--- Checking if we should add variations based on Gekijouban keyword'
@@ -1060,27 +1299,37 @@ LinkedHashMap searchForMoviesJWD(LinkedHashMap group, String aniDBTitleXMLFilena
       Logging.log.info "----- Adding 'Gekijouban' keyword variation - [${animeTemp}]"
       baseAnimeNames += ["${animeTemp}"]
     }
-    // Taken from groupGeneration
-    // VOID - (?i)(~\s(.*))$
-    mySanityRegexMatcher = basename =~ /(?i)(~(.*))$/
-    if (mySanityRegexMatcher.find() ) {
-      //noinspection GroovyAssignabilityCheck
-      mySanityAltTxt = mySanityRegexMatcher[0][2]
-      Logging.log.info "----- Adding possible Alternative Title: [${mySanityAltTxt}] using ~"
-      baseAnimeNames += ["${mySanityAltTxt}"]
-      animeTemp = basename.replaceAll(/(?i)(~(.*))$/, '').replaceAll(/(\s){2,20}/, ' ').replaceAll(/([\s-])*$/, '')
-      Logging.log.info "----- Adding possible Alternative Title: [${animeTemp}] using ~"
+    Logging.log.info '--- Checking if it has Series Syntax'
+    if ( group.hasSeriesSyntax ) {
+      animeTemp = basename + " ${group.seriesNumber}"
+      Logging.log.info "----- Adding SeriesNumber:[group.seriesNumber] keyword variation - [${animeTemp}]"
       baseAnimeNames += ["${animeTemp}"]
     }
-    // (?i)(-\s(.*))$
-    mySanityRegexMatcher = basename =~ /(?i)(-\s(.*))$/
-    if (mySanityRegexMatcher.find() ) {
+//    // Taken from groupGeneration
+//    // VOID - (?i)(~\s(.*))$
+//    mySanityRegexMatcher = basename =~ /(?i)(~(.*))$/
+//    if (mySanityRegexMatcher.find() ) {
+//      //noinspection GroovyAssignabilityCheck
 //      mySanityAltTxt = mySanityRegexMatcher[0][2]
-      animeTemp = basename.replaceAll(/(?i)(-\s(.*))$/, '').replaceAll(/(\s){2,20}/, ' ').replaceAll(/([\s-])*$/, '')
-      Logging.log.info "-----  Adding Title Text Variation [${animeTemp}] using -"
-      baseAnimeNames += ["${animeTemp}"]
-    }
+//      Logging.log.info "----- Adding possible Alternative Title: [${mySanityAltTxt}] using ~"
+//      baseAnimeNames += ["${mySanityAltTxt}"]
+//      animeTemp = basename.replaceAll(/(?i)(~(.*))$/, '').replaceAll(/(\s){2,20}/, ' ').replaceAll(/([\s-])*$/, '')
+//      Logging.log.info "----- Adding possible Alternative Title: [${animeTemp}] using ~"
+//      baseAnimeNames += ["${animeTemp}"]
+//    }
+//    // (?i)(-\s(.*))$
+//    mySanityRegexMatcher = basename =~ /(?i)(-\s(.*))$/
+//    if (mySanityRegexMatcher.find() ) {
+////      mySanityAltTxt = mySanityRegexMatcher[0][2]
+//      animeTemp = basename.replaceAll(/(?i)(-\s(.*))$/, '').replaceAll(/(\s){2,20}/, ' ').replaceAll(/([\s-])*$/, '')
+//      Logging.log.info "-----  Adding Title Text Variation [${animeTemp}] using -"
+//      baseAnimeNames += ["${animeTemp}"]
+//    }
   }
+  //  if ( group.altTitle != null ) {
+  //    baseAnimeNames += ["${group.alttitle}"]
+  //    baseAnimeNames += ["${ returnAniDBRomanization(group.alttitle) }"]
+  //  }
   if ( group.filebotMovieTitle != null ) {
     Logging.log.fine "group.filebotMovieTitle:[${group.filebotMovieTitle}]"
     myMovieRegexMatcher = group.filebotMovieTitle =~ /${stripYearDateRegex}/
@@ -1422,25 +1671,203 @@ LinkedHashMap renameOptionsForEpisodesUsingAnimeLists(File f, String preferredDB
   // One-off titles that won't ever be added to theTVDB.com (movies, TV specials, one-shot OVAs) are marked by their AniDb.net type
   // Pornographic titles are marked by "hentai" regardless of episode count as they will never appear on theTVDB.com.
   Logging.log.info "------- We have got myanimeListGetTVDBID:[${myanimeListGetTVDBID}] from AnimeList"
-
   // Check if the TVDB ID Matches from the AniDB ID
-  //  Null: (AID has no Map in AnimeList)
-  //    preferAniDB: True
-  //      1: - tvdbMatchDetails.score == 1 && !tvdbMatchDetails.alias
-  //           Y: Send to renameOptionForAniDBAbsoluteEpisodes, renamePass,tvdbid
-  //           N: Send to renameOptionForAniDBAbsoluteEpisodes, renamePass, no tvdbid
-  //      2: - Absolute Ordering, Send to renameOptionForTVDBAbsoluteEpisodes, renamePass:1, no AniDB
-  //      2: - Airdate Ordering, Send to renameOptionForTVDBAirdateEpisodes, renamePass:1, no AniDB
-  //    preferAniDB: false
-  //       - Parse each episode #, lookup AID from TVDBID AnimeList Map
-  //        Has Map:
-  //          1: renameOptionsForEpisodesUsingAnimeLists, renamePass, AnimeList AID, tvdbid, preferAniDB
-  //          2: renameOptionsForEpisodesUsingAnimeLists, renamePass, AnimeList AID, tvdbid, prefertvdb
-  //        No Map:
-  //          1: - Absolute Ordering, Send to renameOptionForTVDBAbsoluteEpisodes, renamePass, no AniDB
-  //          1: - Airdate Ordering, Send to renameOptionForTVDBAirdateEpisodes, renamePass, no AniDB
-  //          2: - Send to renameOptionForAniDBAbsoluteEpisodes, renamePass:1, no tvdbid
-  if ( myanimeListGetTVDBID == null ) {
+  //  Match: Determine TVDB Options
+  //   Episode # is null?
+  //      1: Send to renameOptionForAniDBAbsoluteEpisodes, renamePass, tvdbID
+  //      2: Absolute Ordering, Send to renameOptionForTVDBAbsoluteEpisodes, renamePass:1, AniDB
+  //      2: Airdate Ordering, Send to renameOptionForTVDBAirdateEpisodes, renamePass:1, AniDB
+  //   Episode # has a dot in it (aka 5.5, 6.5 etc known as a special episode)
+  //      1: Absolute Ordering, Send to renameOptionForTVDBAbsoluteEpisodes, renamePass, AniDB
+  //      1: Airdate Ordering, Send to renameOptionForTVDBAirdateEpisodes, renamePass, AniDB
+  //      2: Send to renameOptionForAniDBAbsoluteEpisodes, renamePass:1, tvdbID
+  //    absolute
+  //      1: Is SpecialType?
+  //          Y: Send to renameOptionForAniDBAbsoluteEpisodes, renamePass, tvdbID
+  //          N: Send to renameOptionForTVDBAbsoluteEpisodes, renamePass, AniDB
+  //      2: is SpecialType?
+  //          Y: Send to renameOptionForAniDBAbsoluteEpisodes, renamePass, tvdbID
+  //          N: Send to renameOptionForAniDBAbsoluteEpisodes, renamePass:1, tvdbID
+  //    airdate
+  //      1: Send to renameOptionForTVDBAirdateEpisodes, renamePass, AniDB
+  //      2: Send to renameOptionForAniDBAbsoluteEpisodes, renamePass:1, tvdbID
+  if (myanimeListGetTVDBID == tvdbID ) {
+    Logging.log.info '--------- AnimeList AniDB to TVDB ID mapping found and matched.'
+    if ( myEpisodeNumber == null ) {
+      //   Episode # is null?
+      //      1: Send to renameOptionForAniDBAbsoluteEpisodes, renamePass, tvdbID
+      //      2: Absolute Ordering, Send to renameOptionForTVDBAbsoluteEpisodes, renamePass:1, AniDB
+      //      2: Airdate Ordering, Send to renameOptionForTVDBAirdateEpisodes, renamePass:1, AniDB
+      Logging.log.info "----------- Episode # detected as null, Filename:${f.name}"
+      switch (renamePass) {
+        case 1:
+          Logging.log.info "------------- Checking AniDB ${myanimeListGetTVDBID} - with tvdbID:[${tvdbID}]"
+          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, renamePass, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, tvdbID, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+          break
+        case 2:
+          if ( absoluteOrdering ) {
+            Logging.log.info "------------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidbID:{${anidbID}]"
+            return renameOptionForTVDBAbsoluteEpisodes(f, anidbMatchDetails, tvdbID, 1, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, useNonStrictOnTVDBSpecials)
+          } else {
+            Logging.log.info "------------- Send to renameOptionForTVDBAirdateEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidbID:{${anidbID}]"
+            return renameOptionForTVDBAirdateEpisodes(f, tvdbID, 1, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBSpecials, anidbMatchDetails, useNonStrictOnTVDBSpecials)
+          }
+          break
+        default:
+          Logging.log.info "----------- unknown:1-2.29"
+          Logging.log.info '//-----------------------------//'
+          Logging.log.info '//            STOP             //'
+          Logging.log.info '//-----------------------------//'
+          renameOptionsSet = true
+          renameQuery = tvdbID
+          performRename = false
+          renameDB = ''
+          renameOrder = ''
+          renameMapper = ''
+          renameFilter = ''
+          renameStrict = true
+          break
+      }
+    }
+    if ( myEpisodeNumber =~ /\d{1,3}\.\d{1,3}/ ) {
+      Logging.log.info "--------- myEpisodeNumber:[${myEpisodeNumber}] indicates a special episode (Dot Syntax)"
+      //   Episode # has a dot in it (aka 5.5, 6.5 etc known as a special episode)
+      //      1: Absolute Ordering, Send to renameOptionForTVDBAbsoluteEpisodes, renamePass, AniDB
+      //      1: Airdate Ordering, Send to renameOptionForTVDBAirdateEpisodes, renamePass, AniDB
+      //      2: Send to renameOptionForAniDBAbsoluteEpisodes, renamePass:1, tvdbID
+//      group.isSpecialEpisode = true
+      switch (renamePass) {
+        case 1:
+          if ( absoluteOrdering) {
+            Logging.log.info "----------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${tvdbID}], renamePass:[${renamePass}]"
+            return renameOptionForTVDBAbsoluteEpisodes(f, anidbMatchDetails, tvdbID, renamePass, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, useNonStrictOnTVDBSpecials)
+          } else {
+            Logging.log.info "----------- Send to renameOptionForTVDBAirdateEpisodes with anidb:[0], tvdbID:[${tvdbID}], renamePass:[${renamePass}]"
+            return renameOptionForTVDBAirdateEpisodes(f, tvdbID, renamePass, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBSpecials, anidbMatchDetails, useNonStrictOnTVDBSpecials)
+          }
+          break
+        case 2:
+          Logging.log.info "----------- Send to AniDB with ${anidbID}, tvdbID, renamePass:[1]"
+          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, tvdbID, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+          break
+        default:
+          Logging.log.info "----------- unknown:1-2.28"
+          Logging.log.info '//-----------------------------//'
+          Logging.log.info '//            STOP             //'
+          Logging.log.info '//-----------------------------//'
+          renameOptionsSet = true
+          renameQuery = tvdbID
+          performRename = false
+          renameDB = ''
+          renameOrder = ''
+          renameMapper = ''
+          renameFilter = ''
+          renameStrict = true
+          break
+      }
+    }
+    if ( absoluteOrdering ) {
+      //    absolute
+      //      1: Is SpecialType?
+      //          Y: Send to renameOptionForAniDBAbsoluteEpisodes, renamePass, tvdbID
+      //          N: Send to renameOptionForTVDBAbsoluteEpisodes, renamePass, AniDB
+      //      2: is SpecialType?
+      //          Y: Send to renameOptionForAniDBAbsoluteEpisodes, renamePass, tvdbID
+      //          N: Send to renameOptionForAniDBAbsoluteEpisodes, renamePass:1, tvdbID
+      isSpecialType = group.isSpecialType || anidbMatchDetails.isSpecialType
+      switch (renamePass) {
+        case 1:
+          if ( isSpecialType ) {
+            Logging.log.info "----------- Special Type Detected: Send to AniDB with ${anidbID}, tvdbID, renamePass:[${renamePass}]"
+            return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, renamePass, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, tvdbID, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+          }
+          Logging.log.info "----------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${tvdbID}], renamePass:[${renamePass}]"
+          return renameOptionForTVDBAbsoluteEpisodes(f, anidbMatchDetails, tvdbID, renamePass, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, useNonStrictOnTVDBSpecials)
+          break
+        case 2:
+          if ( isSpecialType ) {
+            Logging.log.info "----------- Special Type Detected: Send to AniDB with ${anidbID}, tvdbID:[${tvdbID}], renamePass:[${renamePass}]"
+            return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, renamePass, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, tvdbID, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+          }
+          // 01/25/2023
+          Logging.log.info "----------- Send to AniDB with ${anidbID}, tvdbID:[${tvdbID}], renamePass:[${renamePass}]"
+          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, renamePass, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, tvdbID, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+//          Logging.log.info "----------- Send to AniDB with ${anidbID}, tvdbID:[${tvdbID}], renamePass:[1]"
+//          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, tvdbID, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+          break
+          // 2023-01-30 - Add for 3rd Stage
+        case 3:
+          if ( isSpecialType ) {
+            Logging.log.info "----------- Special Type Detected: Send to AniDB with ${anidbID}, tvdbID[0], renamePass:[${renamePass}]"
+            return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, renamePass, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+          }
+          Logging.log.info "----------- Send to AniDB with ${anidbID}, tvdbID:[0], renamePass:[${renamePass}]"
+          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, renamePass, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+//          Logging.log.info "----------- Send to AniDB with ${anidbID}, tvdbID:[${tvdbID}], renamePass:[1]"
+//          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, tvdbID, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+          break
+        default:
+          Logging.log.info "----------- unknown:1-2.27"
+          Logging.log.info '//-----------------------------//'
+          Logging.log.info '//            STOP             //'
+          Logging.log.info '//-----------------------------//'
+          renameOptionsSet = true
+          renameQuery = tvdbID
+          performRename = false
+          renameDB = ''
+          renameOrder = ''
+          renameMapper = ''
+          renameFilter = ''
+          renameStrict = true
+          break
+      }
+    } else {
+      //    airdate
+      //      1: Send to renameOptionForTVDBAirdateEpisodes, renamePass, AniDB
+      //      2: Send to renameOptionForAniDBAbsoluteEpisodes, renamePass:1, tvdbID
+      switch (renamePass) {
+        case 1:
+          Logging.log.info "----------- Send to renameOptionForTVDBAirdateEpisodes with anidb:[${anidbID}], tvdbID:[${tvdbID}], renamePass:[${renamePass}]"
+          return renameOptionForTVDBAirdateEpisodes(f, tvdbID, renamePass, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBSpecials, anidbMatchDetails, useNonStrictOnTVDBSpecials)
+          break
+        case 2:
+          Logging.log.info "----------- Send to AniDB with ${anidbID}, tvdbID:[${tvdbID}], renamePass:[1]"
+          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, tvdbID, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
+          break
+        default:
+          Logging.log.info "----------- unknown:1-2.26"
+          Logging.log.info '//-----------------------------//'
+          Logging.log.info '//            STOP             //'
+          Logging.log.info '//-----------------------------//'
+          renameOptionsSet = true
+          renameQuery = tvdbID
+          performRename = false
+          renameDB = ''
+          renameOrder = ''
+          renameMapper = ''
+          renameFilter = ''
+          renameStrict = true
+          break
+      }
+    }
+    // Check if the TVDB ID Matches from the AniDB ID
+    //  Null: (AID has no Map in AnimeList)
+    //    preferAniDB: True
+    //      1: - tvdbMatchDetails.score == 1 && !tvdbMatchDetails.alias
+    //           Y: Send to renameOptionForAniDBAbsoluteEpisodes, renamePass,tvdbid
+    //           N: Send to renameOptionForAniDBAbsoluteEpisodes, renamePass, no tvdbid
+    //      2: - Absolute Ordering, Send to renameOptionForTVDBAbsoluteEpisodes, renamePass:1, no AniDB
+    //      2: - Airdate Ordering, Send to renameOptionForTVDBAirdateEpisodes, renamePass:1, no AniDB
+    //    preferAniDB: false
+    //       - Parse each episode #, lookup AID from TVDBID AnimeList Map
+    //        Has Map:
+    //          1: renameOptionsForEpisodesUsingAnimeLists, renamePass, AnimeList AID, tvdbid, preferAniDB
+    //          2: renameOptionsForEpisodesUsingAnimeLists, renamePass, AnimeList AID, tvdbid, prefertvdb
+    //        No Map:
+    //          1: - Absolute Ordering, Send to renameOptionForTVDBAbsoluteEpisodes, renamePass, no AniDB
+    //          1: - Airdate Ordering, Send to renameOptionForTVDBAirdateEpisodes, renamePass, no AniDB
+    //          2: - Send to renameOptionForAniDBAbsoluteEpisodes, renamePass:1, no tvdbid
+  } else if ( myanimeListGetTVDBID == null ) {
     Logging.log.info "--------- There is no AnimeList MAP for AniDB ID:[${anidbID}]"
     switch (renamePass){
       case 1:
@@ -1516,6 +1943,7 @@ LinkedHashMap renameOptionsForEpisodesUsingAnimeLists(File f, String preferredDB
         }
         break
       default:
+        Logging.log.info "----------- unknown:1-2.30"
         Logging.log.info '//-----------------------------//'
         Logging.log.info '//            STOP             //'
         Logging.log.info '//-----------------------------//'
@@ -1528,168 +1956,6 @@ LinkedHashMap renameOptionsForEpisodesUsingAnimeLists(File f, String preferredDB
         renameFilter = ''
         renameStrict = true
         break
-    }
-  }
-  // Check if the TVDB ID Matches from the AniDB ID
-  //  Match: Determine TVDB Options
-  //   Episode # is null?
-  //      1: Send to renameOptionForAniDBAbsoluteEpisodes, renamePass, tvdbID
-  //      2: Absolute Ordering, Send to renameOptionForTVDBAbsoluteEpisodes, renamePass:1, AniDB
-  //      2: Airdate Ordering, Send to renameOptionForTVDBAirdateEpisodes, renamePass:1, AniDB
-  //   Episode # has a dot in it (aka 5.5, 6.5 etc known as a special episode)
-  //      1: Absolute Ordering, Send to renameOptionForTVDBAbsoluteEpisodes, renamePass, AniDB
-  //      1: Airdate Ordering, Send to renameOptionForTVDBAirdateEpisodes, renamePass, AniDB
-  //      2: Send to renameOptionForAniDBAbsoluteEpisodes, renamePass:1, tvdbID
-  //    absolute
-  //      1: Is SpecialType?
-  //          Y: Send to renameOptionForAniDBAbsoluteEpisodes, renamePass, tvdbID
-  //          N: Send to renameOptionForTVDBAbsoluteEpisodes, renamePass, AniDB
-  //      2: is SpecialType?
-  //          Y: Send to renameOptionForAniDBAbsoluteEpisodes, renamePass, tvdbID
-  //          N: Send to renameOptionForAniDBAbsoluteEpisodes, renamePass:1, tvdbID
-  //    airdate
-  //      1: Send to renameOptionForTVDBAirdateEpisodes, renamePass, AniDB
-  //      2: Send to renameOptionForAniDBAbsoluteEpisodes, renamePass:1, tvdbID
-  if (myanimeListGetTVDBID == tvdbID) {
-    Logging.log.info '--------- AnimeList AniDB to TVDB ID mapping found and matched.'
-    if ( myEpisodeNumber == null ) {
-      //   Episode # is null?
-      //      1: Send to renameOptionForAniDBAbsoluteEpisodes, renamePass, tvdbID
-      //      2: Absolute Ordering, Send to renameOptionForTVDBAbsoluteEpisodes, renamePass:1, AniDB
-      //      2: Airdate Ordering, Send to renameOptionForTVDBAirdateEpisodes, renamePass:1, AniDB
-      Logging.log.info '----------- Episode # detected as null'
-      switch (renamePass) {
-        case 1:
-          Logging.log.info "------------- Checking AniDB ${myanimeListGetTVDBID} - with tvdbID:[${tvdbID}]"
-          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, renamePass, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, tvdbID, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
-          break
-        case 2:
-          if ( absoluteOrdering ) {
-            Logging.log.info "------------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidbID:{${anidbID}]"
-            return renameOptionForTVDBAbsoluteEpisodes(f, anidbMatchDetails, tvdbID, 1, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, useNonStrictOnTVDBSpecials)
-          } else {
-            Logging.log.info "------------- Send to renameOptionForTVDBAirdateEpisodes with tvdbID:[${tvdbID}], renamePass:[1], anidbID:{${anidbID}]"
-            return renameOptionForTVDBAirdateEpisodes(f, tvdbID, 1, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBSpecials, anidbMatchDetails, useNonStrictOnTVDBSpecials)
-          }
-          break
-        default:
-          Logging.log.info '//-----------------------------//'
-          Logging.log.info '//            STOP             //'
-          Logging.log.info '//-----------------------------//'
-          renameOptionsSet = true
-          renameQuery = tvdbID
-          performRename = false
-          renameDB = ''
-          renameOrder = ''
-          renameMapper = ''
-          renameFilter = ''
-          renameStrict = true
-          break
-      }
-    }
-    if ( myEpisodeNumber =~ /\d{1,3}\.\d{1,3}/ ) {
-      Logging.log.info "--------- myEpisodeNumber:[${myEpisodeNumber}] indicates a special episode (Dot Syntax)"
-      //   Episode # has a dot in it (aka 5.5, 6.5 etc known as a special episode)
-      //      1: Absolute Ordering, Send to renameOptionForTVDBAbsoluteEpisodes, renamePass, AniDB
-      //      1: Airdate Ordering, Send to renameOptionForTVDBAirdateEpisodes, renamePass, AniDB
-      //      2: Send to renameOptionForAniDBAbsoluteEpisodes, renamePass:1, tvdbID
-//      group.isSpecialEpisode = true
-      switch (renamePass) {
-        case 1:
-          if ( absoluteOrdering) {
-            Logging.log.info "----------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${tvdbID}], renamePass:[${renamePass}]"
-            return renameOptionForTVDBAbsoluteEpisodes(f, anidbMatchDetails, tvdbID, renamePass, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, useNonStrictOnTVDBSpecials)
-          } else {
-            Logging.log.info "----------- Send to renameOptionForTVDBAirdateEpisodes with anidb:[0], tvdbID:[${tvdbID}], renamePass:[${renamePass}]"
-            return renameOptionForTVDBAirdateEpisodes(f, tvdbID, renamePass, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBSpecials, anidbMatchDetails, useNonStrictOnTVDBSpecials)
-          }
-          break
-        case 2:
-          Logging.log.info "----------- Send to AniDB with ${anidbID}, tvdbID, renamePass:[1]"
-          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, tvdbID, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
-          break
-        default:
-          Logging.log.info '//-----------------------------//'
-          Logging.log.info '//            STOP             //'
-          Logging.log.info '//-----------------------------//'
-          renameOptionsSet = true
-          renameQuery = tvdbID
-          performRename = false
-          renameDB = ''
-          renameOrder = ''
-          renameMapper = ''
-          renameFilter = ''
-          renameStrict = true
-          break
-      }
-    }
-    if ( absoluteOrdering ) {
-      //    absolute
-      //      1: Is SpecialType?
-      //          Y: Send to renameOptionForAniDBAbsoluteEpisodes, renamePass, tvdbID
-      //          N: Send to renameOptionForTVDBAbsoluteEpisodes, renamePass, AniDB
-      //      2: is SpecialType?
-      //          Y: Send to renameOptionForAniDBAbsoluteEpisodes, renamePass, tvdbID
-      //          N: Send to renameOptionForAniDBAbsoluteEpisodes, renamePass:1, tvdbID
-      isSpecialType = group.isSpecialType || anidbMatchDetails.isSpecialType
-      switch (renamePass) {
-        case 1:
-          if ( isSpecialType ) {
-            Logging.log.info "----------- Special Type Detected: Send to AniDB with ${anidbID}, tvdbID, renamePass:[${renamePass}]"
-            return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, renamePass, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, tvdbID, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
-          }
-          Logging.log.info "----------- Send to renameOptionForTVDBAbsoluteEpisodes with tvdbID:[${tvdbID}], renamePass:[${renamePass}]"
-          return renameOptionForTVDBAbsoluteEpisodes(f, anidbMatchDetails, tvdbID, renamePass, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, useNonStrictOnTVDBSpecials)
-          break
-        case 2:
-          if ( isSpecialType ) {
-            Logging.log.info "----------- Special Type Detected: Send to AniDB with ${anidbID}, tvdbID, renamePass:[${renamePass}]"
-            return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, renamePass, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, tvdbID, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
-          }
-          Logging.log.info "----------- Send to AniDB with ${anidbID}, tvdbID:[${tvdbID}], renamePass:[1]"
-          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, tvdbID, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
-          break
-        default:
-          Logging.log.info '//-----------------------------//'
-          Logging.log.info '//            STOP             //'
-          Logging.log.info '//-----------------------------//'
-          renameOptionsSet = true
-          renameQuery = tvdbID
-          performRename = false
-          renameDB = ''
-          renameOrder = ''
-          renameMapper = ''
-          renameFilter = ''
-          renameStrict = true
-          break
-      }
-    } else {
-      //    airdate
-      //      1: Send to renameOptionForTVDBAirdateEpisodes, renamePass, AniDB
-      //      2: Send to renameOptionForAniDBAbsoluteEpisodes, renamePass:1, tvdbID
-      switch (renamePass) {
-        case 1:
-          Logging.log.info "----------- Send to renameOptionForTVDBAirdateEpisodes with anidb:[${anidbID}], tvdbID:[${tvdbID}], renamePass:[${renamePass}]"
-          return renameOptionForTVDBAirdateEpisodes(f, tvdbID, renamePass, animeOffLineDatabaseJsonObject, group, hasSeasonality, mySeasonalityNumber, useNonStrictOnAniDBSpecials, anidbMatchDetails, useNonStrictOnTVDBSpecials)
-          break
-        case 2:
-          Logging.log.info "----------- Send to AniDB with ${anidbID}, tvdbID:[${tvdbID}], renamePass:[1]"
-          return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, tvdbID, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
-          break
-        default:
-          Logging.log.info '//-----------------------------//'
-          Logging.log.info '//            STOP             //'
-          Logging.log.info '//-----------------------------//'
-          renameOptionsSet = true
-          renameQuery = tvdbID
-          performRename = false
-          renameDB = ''
-          renameOrder = ''
-          renameMapper = ''
-          renameFilter = ''
-          renameStrict = true
-          break
-      }
     }
   } else {
     // Check if the TVDB ID Matches from the AniDB ID
@@ -1739,6 +2005,7 @@ LinkedHashMap renameOptionsForEpisodesUsingAnimeLists(File f, String preferredDB
 //        }
         break
       default:
+        Logging.log.info "----------- unknown:1-2.25"
         Logging.log.info '//-----------------------------//'
         Logging.log.info '//            STOP             //'
         Logging.log.info '//-----------------------------//'
@@ -1813,7 +2080,7 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
     //            Y: Rename using TVDB
     //               - Filter to myanimeListGetTVDBSeason
     //            N: STOP
-    Logging.log.info '----------- Episode # detected as null'
+    Logging.log.info "----------- Episode # detected as null, Filename:${f.name}"
     switch (renamePass) {
       case 1:
         // EP # is Null
@@ -1910,6 +2177,7 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
             }
           }
         } else {
+          Logging.log.info "----------- unknown:1-2.36"
           Logging.log.info '//-----------------------------//'
           Logging.log.info '//            STOP             //'
           Logging.log.info '//-----------------------------//'
@@ -1924,6 +2192,7 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
         }
         break
       default:
+        Logging.log.info "----------- unknown:1-2.24"
         Logging.log.info '//-----------------------------//'
         Logging.log.info '//            STOP             //'
         Logging.log.info '//-----------------------------//'
@@ -1987,6 +2256,7 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
         }
         break
       default:
+        Logging.log.info "----------- unknown:1-2.23"
         Logging.log.info '//-----------------------------//'
         Logging.log.info '//            STOP             //'
         Logging.log.info '//-----------------------------//'
@@ -2064,6 +2334,7 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
                 return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
                 break
               default:
+                Logging.log.info "----------- unknown:1-2.22"
                 Logging.log.info '//-----------------------------//'
                 Logging.log.info '//            STOP             //'
                 Logging.log.info '//-----------------------------//'
@@ -2128,6 +2399,7 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
         }
         break
       default:
+        Logging.log.info "----------- unknown:1-2.21"
         Logging.log.info '//-----------------------------//'
         Logging.log.info '//            STOP             //'
         Logging.log.info '//-----------------------------//'
@@ -2200,6 +2472,7 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
           }
           break
         default:
+          Logging.log.info "----------- unknown:1-2.20"
           Logging.log.info '//-----------------------------//'
           Logging.log.info '//            STOP             //'
           Logging.log.info '//-----------------------------//'
@@ -2270,6 +2543,7 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
           }
           break
         default:
+          Logging.log.info "----------- unknown:1-2.19"
           Logging.log.info '//-----------------------------//'
           Logging.log.info '//            STOP             //'
           Logging.log.info '//-----------------------------//'
@@ -2334,6 +2608,7 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
           }
           break
         default:
+          Logging.log.info "----------- unknown:1-2.18"
           Logging.log.info '//-----------------------------//'
           Logging.log.info '//            STOP             //'
           Logging.log.info '//-----------------------------//'
@@ -2391,6 +2666,7 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
           }
           break
         default:
+          Logging.log.info "----------- unknown:1-2.17"
           Logging.log.info '//-----------------------------//'
           Logging.log.info '//            STOP             //'
           Logging.log.info '//-----------------------------//'
@@ -2441,6 +2717,7 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
           return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
           break
         default:
+          Logging.log.info "----------- unknown:1-2.16"
           Logging.log.info '//-----------------------------//'
           Logging.log.info '//            STOP             //'
           Logging.log.info '//-----------------------------//'
@@ -2507,6 +2784,7 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
               }
               break
             default:
+              Logging.log.info "----------- unknown:1-2.15"
               Logging.log.info '//-----------------------------//'
               Logging.log.info '//            STOP             //'
               Logging.log.info '//-----------------------------//'
@@ -2539,6 +2817,7 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
             renameFilter = hasSeasonality ? "s == ${mySeasonalityNumber}" : "s == ${myEpisodeSeason}"
             break
           default:
+            Logging.log.info "----------- unknown:1-2.14"
             Logging.log.info '//-----------------------------//'
             Logging.log.info '//            STOP             //'
             Logging.log.info '//-----------------------------//'
@@ -2615,6 +2894,7 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
           }
           break
         default:
+          Logging.log.info "----------- unknown:1-2.13"
           Logging.log.info '//-----------------------------//'
           Logging.log.info '//            STOP             //'
           Logging.log.info '//-----------------------------//'
@@ -2653,6 +2933,7 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
           return renameOptionForAniDBAbsoluteEpisodes(f, anidbMatchDetails, 1, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, group, anidbMatchDetails.score as BigDecimal, animeOffLineDatabaseJsonObject, 0, hasSeasonality, mySeasonalityNumber, useNonStrictOnTVDBSpecials)
           break
         default:
+          Logging.log.info "----------- unknown:1-2.12"
           Logging.log.info '//-----------------------------//'
           Logging.log.info '//            STOP             //'
           Logging.log.info '//-----------------------------//'
@@ -2686,6 +2967,7 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
           renameFilter = "s == ${myEpisodeSeason}"
           break
         default:
+          Logging.log.info "----------- unknown:1-2.11"
           Logging.log.info '//-----------------------------//'
           Logging.log.info '//            STOP             //'
           Logging.log.info '//-----------------------------//'
@@ -2752,6 +3034,7 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
           }
           break
         default:
+          Logging.log.info "----------- unknown:1-2.10"
           Logging.log.info '//-----------------------------//'
           Logging.log.info '//            STOP             //'
           Logging.log.info '//-----------------------------//'
@@ -2813,6 +3096,7 @@ LinkedHashMap renameOptionForTVDBAbsoluteEpisodes(File f, LinkedHashMap anidbMat
         }
         break
       default:
+        Logging.log.info "----------- unknown:1-2.9"
         Logging.log.info '//-----------------------------//'
         Logging.log.info '//            STOP             //'
         Logging.log.info '//-----------------------------//'
@@ -3121,6 +3405,7 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
         }
         break
       default:
+        Logging.log.info "----------- unknown:1-2.8"
         Logging.log.info '//-----------------------------//'
         Logging.log.info '//            STOP             //'
         Logging.log.info '//-----------------------------//'
@@ -3142,7 +3427,7 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
     //        Y: Absolute Ordering, Send to renameOptionForTVDBAbsoluteEpisodes, renamePass:1, AniDB
     //           Airdate Ordering, Send to renameOptionForTVDBAirdateEpisodes, renamePass:1, AniDB
     //        N: STOP
-    Logging.log.info '----------- Episode # detected as null'
+    Logging.log.info "----------- Episode # detected as null, Filename:${f.name}"
     // We can't detect an Episode # .. Use AniDB as a fallback..
     myEpisodeNumber = 0 // Else the checks following will blow up
     switch (renamePass) {
@@ -3199,6 +3484,7 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
               renameStrict = true
             }
           } else {
+            Logging.log.info "----------- unknown:1-2.37"
             Logging.log.info '//-----------------------------//'
             Logging.log.info '//            STOP             //'
             Logging.log.info '//-----------------------------//'
@@ -3215,6 +3501,7 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
         }
         break
       default:
+        Logging.log.info "----------- unknown:1-2.7"
         Logging.log.info '//-----------------------------//'
         Logging.log.info '//            STOP             //'
         Logging.log.info '//-----------------------------//'
@@ -3292,6 +3579,7 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
         }
         break
       default:
+        Logging.log.info "----------- unknown:1-2.6"
         Logging.log.info '//-----------------------------//'
         Logging.log.info '//            STOP             //'
         Logging.log.info '//-----------------------------//'
@@ -3369,6 +3657,7 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
         }
         break
       default:
+        Logging.log.info "----------- unknown:1-2.5"
         Logging.log.info '//-----------------------------//'
         Logging.log.info '//            STOP             //'
         Logging.log.info '//-----------------------------//'
@@ -3466,7 +3755,45 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
           }
         }
         break
+      case 3:
+        // Ep # < AniDB Ep #
+        //      2: TVDBID?
+        //        Y: STOP
+        //        N: AniDB "FallBack"
+        if ( tvdbID > 0 ) {
+          Logging.log.info "----------- unknown:1-2.31"
+          Logging.log.info '//-----------------------------//'
+          Logging.log.info '//            STOP             //'
+          Logging.log.info '//-----------------------------//'
+          renameOptionsSet = true
+          renameQuery = ''
+          performRename = false
+          renameDB = ''
+          renameOrder = ''
+          renameMapper = ''
+          renameFilter = ''
+          renameStrict = true
+        } else {
+          Logging.log.info "----------- No TVDB ID Supplied."
+          Logging.log.info "------------- AniDB Fallback will be used (good luck with that)"
+          renameOptionsSet = true
+          renameStrict = true
+          renameQuery = anidbID
+          performRename = true
+          renameDB = 'AniDB'
+          renameOrder = 'Absolute'
+          renameMapper = group.order == 'airdate' ? '[AnimeList.TheTVDB, episode]' : '[AnimeList.TheTVDB, episode]'
+          renameFilter = ''
+          if ( (useNonStrictOnAniDBFullMatch && aniDBJWDMatchNumber == 1 ) || (useNonStrictOnAniDBSpecials && (isSpecialEpisode || isSpecialType)) ) {
+            renameStrict = false
+            Logging.log.info '------------- Set non-Strict renaming'
+          } else {
+            renameStrict = true
+          }
+        }
+        break
       default:
+        Logging.log.info "----------- unknown:1-2.0"
         Logging.log.info '//-----------------------------//'
         Logging.log.info '//            STOP             //'
         Logging.log.info '//-----------------------------//'
@@ -3540,6 +3867,7 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
         }
         break
       default:
+        Logging.log.info "----------- unknown:1-2.1"
         Logging.log.info '//-----------------------------//'
         Logging.log.info '//            STOP             //'
         Logging.log.info '//-----------------------------//'
@@ -3633,6 +3961,7 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
             }
           }
           Logging.log.info "----------- Renamepass:2 Can't match to AniDB"
+          Logging.log.info "----------- unknown:1-2.32"
           Logging.log.info '//-----------------------------//'
           Logging.log.info '//            STOP             //'
           Logging.log.info '//-----------------------------//'
@@ -3645,8 +3974,65 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
           renameFilter = ''
           renameStrict = true
           break
+        case 3:
+          // Ep # > AniDB Ep #?
+          //    EP # > AniDB EP # + Specials?
+          //      Y: TVDBID?
+          //        Y: STOP
+          //        N: Animelist Entry?
+          //           Y: AniDB Fallback
+          //           N: STOP
+          if (tvdbID > 0) {
+            Logging.log.info "----------- unknown:1-2.33"
+            Logging.log.info '//-----------------------------//'
+            Logging.log.info '//            STOP             //'
+            Logging.log.info '//-----------------------------//'
+            renameOptionsSet = true
+            renameQuery = ''
+            performRename = false
+            renameDB = ''
+            renameOrder = ''
+            renameMapper = ''
+            renameFilter = ''
+            renameStrict = true
+          } else {
+            Logging.log.info "----------- No TVDB ID Supplied. Checking if Anime has Animelist Entry"
+            if (anidbMatchDetails.hasAnimeListEntry) {
+              def myanimeListGetTVDBID = filebotAnimeListReturnFromAID(anidbID, true)
+              Logging.log.info "------------- Has AnimeList Entry with TVDBID:[${myanimeListGetTVDBID}]"
+              Logging.log.info "------------- AniDB Fallback will be used (good luck with that)"
+              renameOptionsSet = true
+              renameStrict = true
+              renameQuery = anidbID
+              performRename = true
+              renameDB = 'AniDB'
+              renameOrder = 'Absolute'
+              renameMapper = group.order == 'airdate' ? '[AnimeList.TheTVDB, episode]' : '[AnimeList.TheTVDB, episode]'
+              renameFilter = ''
+              if ( (useNonStrictOnAniDBFullMatch && aniDBJWDMatchNumber == 1 ) || (useNonStrictOnAniDBSpecials && (isSpecialEpisode || isSpecialType)) ) {
+                renameStrict = false
+                Logging.log.info '------------- Set non-Strict renaming'
+              } else {
+                renameStrict = true
+              }
+            } else {
+              Logging.log.info "----------- unknown:1-2.34"
+              Logging.log.info '//-----------------------------//'
+              Logging.log.info '//            STOP             //'
+              Logging.log.info '//-----------------------------//'
+              renameOptionsSet = true
+              renameQuery = ''
+              performRename = false
+              renameDB = ''
+              renameOrder = ''
+              renameMapper = ''
+              renameFilter = ''
+              renameStrict = true
+            }
+          }
+          break
         default:
-          Logging.log.info "----------- unknown:1-2.3"
+          Logging.log.info "----------- unknown:1-2.2"
           Logging.log.info '//-----------------------------//'
           Logging.log.info '//            STOP             //'
           Logging.log.info '//-----------------------------//'
@@ -3724,6 +4110,26 @@ LinkedHashMap renameOptionForAniDBAbsoluteEpisodes(File f, LinkedHashMap anidbMa
             } else {
               renameStrict = true
             }
+          }
+          break
+        // 2023/01/30 - Added for 3rd Stage
+        case 3:
+          Logging.log.info '----------- Using AniDB (Filter as Special)'
+          isSpecialEpisode = true
+          renameQuery = anidbID
+          performRename = true
+          renameDB = 'AniDB'
+          renameOrder = 'Absolute'
+          renameMapper = group.order == 'airdate' ? '[AnimeList.TheTVDB, episode]' : '[AnimeList.TheTVDB, episode]'
+          renameFilter = 'episode.special'
+          renameStrict = true
+          if ( (useNonStrictOnAniDBFullMatch && aniDBJWDMatchNumber == 1 ) || (useNonStrictOnAniDBSpecials && (isSpecialEpisode || isSpecialType)) ) {
+            renameStrict = false
+            Logging.log.info '------------- Set Not-Strict'
+            Logging.log.info '------------- Remove episode.special Filter'
+            renameFilter = ''
+          } else {
+            renameStrict = true
           }
           break
         default:
@@ -4103,5 +4509,53 @@ LinkedHashMap episodeRenameOptionPassOne(Integer renamePass, LinkedHashMap group
     }
   }
   return [groupByRenameOptions: groupByRenameOptions, statsRenamedUsingScript: statsRenamedUsingScript, statsRenamedUsingFilebot: statsRenamedUsingFilebot]
+}
+
+/**
+ * Compare our group to an ArrayList of match/set values to see if we should override (replace) values in group with values from the override on matching entries
+ * This is generally for situations where we need to match on multiple group options beyond just the name (season #, Year in Date, Release group etc) OR when we want
+ * to override group options beyond just the name.  For *many* situations where it's a matter of matching the name to a series we can accomplish that using
+ * an custom series alias added to our title list used in the JWD compare stage.
+ * @param group
+ * @param overrides - normally this is a JsonSlurper of series_basename_overrides.json file
+ * @return
+ */
+@SuppressWarnings('unused')
+LinkedHashMap groupOverrides(LinkedHashMap group, ArrayList overrides){
+  def returnThing = overrides.find { Map override ->
+    LinkedHashMap setGroup = [:]
+    LinkedHashMap matchGroup = [:]
+    Map matchMap = override.match as Map
+    Map setMap = override.set as Map
+    Boolean isMatch = true
+
+    Logging.log.fine "Creating setGroup Map"
+    setGroup = group.collectEntries { k, v ->
+      [ k, setMap.containsKey(k) ? setMap.get(k) : v]
+    } as LinkedHashMap
+    Logging.log.fine "...setGroup:${setGroup}"
+
+    Logging.log.fine "Creating matchGroup Map"
+    matchGroup = group.collectEntries { k, v ->
+      [ k, matchMap.containsKey(k) ? matchMap.get(k) : v]
+    } as LinkedHashMap
+
+    Logging.log.fine "Checking each key/value in group - isMatch:[${isMatch}]"
+    group.each { k, v ->
+      if(matchGroup[k] != v) {
+        Logging.log.fine "Key: ${k}, matchGroup Value[${matchGroup[k]}] does not match [${v}], matchGroup Value Class[${matchGroup[k].getClass()}] vs match class[${v.getClass()}]"
+        isMatch = false
+      }
+    }
+
+    Logging.log.fine "isMatch: ${isMatch}"
+    if ( isMatch ) {
+      group = setGroup
+      Logging.log.fine "Setting group to setGroup:${setGroup}"
+      return isMatch
+    }
+  }
+  group.groupOverride = returnThing
+  return group
 }
 

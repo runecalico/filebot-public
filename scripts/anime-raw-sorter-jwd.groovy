@@ -1,5 +1,5 @@
 #!/usr/bin/env filebot -script
-//--- VERSION 3.5.3
+//--- VERSION 3.11.0
 // http://docs.groovy-lang.org/latest/html/documentation/grape.html
 // https://mvnrepository.com/artifact/org.apache.commons/commons-text
 //file:noinspection GroovyAssignabilityCheck
@@ -10,7 +10,10 @@
 ])
 
 import com.cedarsoftware.util.io.JsonObject
+import groovy.json.JsonSlurper
 import groovy.transform.Field
+import net.filebot.Cache
+import net.filebot.CacheType
 import org.apache.commons.io.FilenameUtils
 import org.apache.commons.text.similarity.JaroWinklerDistance
 import net.filebot.media.AutoDetection
@@ -21,6 +24,7 @@ import net.filebot.hash.VerificationUtilities
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.regex.Matcher
+import org.apache.commons.lang3.StringUtils
 
 import static org.apache.commons.lang3.StringUtils.removeEnd
 
@@ -52,7 +56,8 @@ import static org.apache.commons.lang3.StringUtils.removeEnd
 // VOID - /(?i)([-\s]*S)([\d]{1,2})\b(?!$)/
 @Field String tvdbSeasonalityPruningMatcher = /(?i)([-\s]*S)([\d]{1,2})\b(?!$)/
 // VOID - /(?i)^\b((S\d{1,2})?(\.)?(E\d{1,3}\b|E\d{1,3}v[\d]{1,2}\b))|^((ep\d{1,2})|episode[\s]?\d{1,2})/
-@Field String tvdbOrEpisodeStartingMatcher = /(?i)^\b((S\d{1,2})?(\.)?(E\d{1,3}\b|E\d{1,3}v[\d]{1,2}\b))|^((ep-\d{1,2}|ep\d{1,2})|episode[\s]?\d{1,2}|S\d{1,2}\s)/
+// VOID - /(?i)^\b((S\d{1,2})?(\.)?(E\d{1,3}\b|E\d{1,3}v[\d]{1,2}\b))|^((ep-\d{1,2}|ep\d{1,2})|episode[\s]?\d{1,2}|S\d{1,2}\s)/
+@Field String tvdbOrEpisodeStartingMatcher = /(?i)^\b((S\d{1,2})?(\.)?(E\d{1,3}\b|E\d{1,3}v[\d]{1,2}\b))|^((ep-\d{1,2}|ep\d{1,2})|episode[\s]?\d{1,2}|S\d{1,2}\s|(S\d{1,2})?(OVA\d{1,3}\b))/
 // VOID - (?i)([-\s]*S)([\d]{1,2})\b
 // VOID - (?i)\b([-\s]*S[\d]{1,2})|(\d{1,2}x\d{1,3}v\d{1,2}|\d{1,2}x\d{1,3})\b
 // VOID - (?i)\b((S\d{1,2}|\d{1,2})(?>\.|\s)?(?>[ExS]\d{1,3})[_]?(?>v\d{1,2})?)
@@ -67,10 +72,13 @@ import static org.apache.commons.lang3.StringUtils.removeEnd
 // VOID - /(?i)([-\s\(]+(\bOAV|\bOVA|\bONA|\bOAD|\bSPECIAL|\bsp\d{1,2}|\bbonus)(\b\d)?).*?$/
 // VOID - /(?i)([-\s\(]+(\bOAV|\bOVA|\bONA|\bOAD|\bSPECIAL|\bsp\d{1,2}|\bbonus)(\s\d)?)[-\s\)]?/
 // VOID - /(?i)([-\s\(]+(\bOAV|\bOVA|\bONA|\bOAD|\bSPECIAL|\bsp\d{1,2}|\bbonus)(\s?\d)?)[-\s\)]?/
-@Field String ovaOnaOadSpecialBonusSyntaxMatcher = /(?i)([-\s(\[]+(\bOAV|\bOVA|\bONA|\bOAD|\bSPECIAL\b|\bsp\d{1,2}|\bspe\d{1,2}|\bbonus)(\b\d)?)[-\s\)]?/
+@Field String ovaOnaOadSpecialBonusSyntaxMatcher = /(?i)([-\s(\[]+(\bOAV|\bOVA|\bONA|\bOAD|\bSPECIAL[s]?\b|\bsp\d{1,2}|\bspe\d{1,2}|\bbonus)(\b\d)?)[-\s\)]?/
 // VOID - /(?i:Sample|\b(NCOP|NCED)\d{0,3}\b|Clean\s*(ED|OP|Ending|Opening)|Creditless\s*(ED|OP|Ending|Opening)|Textless\s*(ED|OP|Ending|Opening)|\b(BD|Menu)\b\s*\b(BD|Menu)\b|Character\b.*\bPV\b.*\bCollection\b|ON\sAIR\sMaterials}Previews|PMV|\bPV\b|PV\d+)|Trailer|Extras|Featurettes|Extra.Episodes|Bonus.Features|Music.Video|Scrapbook|Behind.the.Scenes|Extended.Scenes|Deleted.Scenes|Mini.Series|s\d{2}c\d{2}|S\d+EXTRA|\d+xEXTRA|\b(OP|ED)\b(\d+)?|Formula.1.\d{4}(?=\b|_)/
 // VOID - /(?<=\b|_)(?i:Sample|\b(NCOP|NCED)\d{0,3}\b|Clean\s*(ED|OP|Ending|Opening)|Creditless\s*(ED|OP|Ending|Opening)|Textless\s*(ED|OP|Ending|Opening)|\b(BD|Menu)\b\s*\b(BD|Menu)\b|Character\b.*\bPV\b.*\bCollection\b|ON\sAIR\sMaterials}Previews|PMV|\bPV\b|PV\d+)|Trailer|Extras|Featurettes|Extra.Episodes|Bonus.Features|Music.Video|Scrapbook|Behind.the.Scenes|Extended.Scenes|Deleted.Scenes|Mini.Series|s\d{2}c\d{2}|S\d+EXTRA|\d+xEXTRA|\b(OP|ED)\b(\d+)?|Formula.1.\d{4}(?=\b|_)/
 @Field String videoExtraFilesMatcher = /(?<=\b|_)(?i:Omake|Sample|^(?:ed|op)[0-9](?<!\s\d{1,4})(?>\.\d)?\.\w{3}$|\b(NCOP|NCED)\d{0,3}\b|Clean\s*(ED|OP|Ending|Opening)|Creditless\s*(ED|OP|Ending|Opening)|Textless\s*(ED|OP|Ending|Opening)|\b(BD|Menu)\b\s*\b(BD|Menu)\b|Character\b.*\bPV\b.*\bCollection\b|ON\sAIR\sMaterials}Previews|PMV|\bPV\b|PV\d+)|Trailer|Extras|Featurettes|Extra.Episodes|Bonus.Features|Music.Video|Scrapbook|Behind.the.Scenes|Extended.Scenes|Deleted.Scenes|Mini.Series|s\d{2}c\d{2}|S\d+EXTRA|\d+xEXTRA|\b(OP|ED)\b(\d+)?|Formula.1.\d{4}(?=\b|_)/
+// VOID - /(?i)(\b(NCOP|NCED)[\d\\b]|\b(OP|ED)(\b\d+|\d[\s\\b]|\d{1,4}v\d{0,4}|\d+)|(ending$|opening$|amv$)|(^amv|^ending|^opening|^extra|^trailer|^preview|^scripts)|((character|series|episode)\s?preview[s]?)|(commercial|Promo(tion)?))/
+@Field String looseVideoExtraFilesMatcher = /(?i)(\b(NCOP|NCED)[\d\\b]|\b(OP|ED)(\b\d+|\d[\s\\b]|\d{1,4}v\d{0,4}|\d+)|(ending$|opening$|amv$)|(^amv|^ending|^opening|^extra|^trailer|^preview|^scripts)|((character|series|episode)\s?preview[s]?)|(commercial|Promo(tion)?|Credits))/
+
 // VOID - /(?i)^(extra[s]?|bonus|menu[s]?|TV Ad[s]?)$/
 // VOID - /(?i)(^extra[s]?|bonus|special[s]?|preview[s]?|menu[s]?|TV Ad[s]?)$/
 @Field String videoExtraDirectoryMatcher = /(?i)(^teaser[s]?|^extra[s]?|bonus|preview[s]?|menu[s]?|TV Ad[s]?)$/
@@ -101,7 +109,8 @@ import static org.apache.commons.lang3.StringUtils.removeEnd
 @Field String wordSeasonalityMatcher = /(?i)(?<!the)(\s+(first|second|third|fourth|fith|sixth|seventh|eighth|ninth|tenth)\s+(Season|part))/
 // void - /(?i)(\s+(\d|\d\d)[a-z]{2}\s+(Season|part)|\s+(part|season)\s*([\d]+))/
 // void - /(?i)(\s+(\d|\d\d)[a-z]{2}\s+(Season|part)|\s+(part)\s*([\d]+))/
-@Field String ordinalPartialSeasonalityMatcher = /(?i)(\s+(\d|\d\d)[a-z]{2}\s+(Season|part)(\s\d{1,2})?|\s+(part)\s*([\d]+))/
+// void - /(?i)(\s+(\d|\d\d)[a-z]{2}\s+(Season|part)(\s\d{1,2})?|\s+(part)\s*([\d]+))/
+@Field String ordinalPartialSeasonalityMatcher = /(?i)(\s+(\d|\d\d)[a-z]{2}\s+(Season|part)(\s\d{1,2})?|\s+(part)\s*([\d]+|(one|two|three|four|five|six|seven|eight|nine|ten)))/
 @Field String nameSeasonalitySyntaxMatcherOne = /(?i)(\s+(season)\s*([\d]+))/
 @Field String parentFolderNameSeasonalitySyntaxMatcherOne = /(?i)((season)\s*([\d]+))/
 // VOID - /(?i)([\s(]+(season)\s*([\d]+))\)?/
@@ -207,7 +216,8 @@ checkCRC           = any { checkCRC.toBoolean() } { true }
 // user-defined filters
 ignore      = any { ignore } { null }
 minFileSize = any { minFileSize.toLong() } { 50 * 1000L * 1000L }
-minLengthMS = any { minLengthMS.toLong() } { 10 * 60 * 1000L }
+minLengthMS = any { minLengthMS.toLong() } { 10 * 60 * 1000L } // 10 minutes
+minLengthExtraMS = any { minLengthExtraMS.toLong() } { 6 * 60 * 1000L } // 6 Minutes
 ignoreVideoExtraFoldersRegex    = any { ignoreVideoExtraFoldersRegex } { videoExtraDirectoryMatcher }
 ignoreVideoExtraFilesRegex = any { ignoreVideoExtraFilesRegex } { videoExtraFilesMatcher }
 
@@ -303,6 +313,12 @@ animeListsXML = Cache.getCache('anime-lists-anime-lists', CacheType.Persistent).
 // ---------- Compile into LinkedHashMap the AniDB XML Lists  ---------- //
 LinkedHashMap aniDBCompleteXMLList = loadAniDBOfflineXML(aniDBTitleXMLFilename, aniDBSynonymXMLFilename)
 
+// ---------- Our Custom Overrides to use during Series Basename Generation (See seriesBasenameGenerator() in lib/sorter.groovy ---------- //
+def seriesBasenameGeneratorOverrideJsonFile = new JsonSlurper().parse(new File('./series_basename_overrides.json'))
+
+// ---------- Our Custom Overrides to use during Series Basename Generation (See seriesBasenameGenerator() in lib/sorter.groovy ---------- //
+def moviesBasenameGeneratorOverrideJsonFile = new JsonSlurper().parse(new File('./movies_basename_overrides.json'))
+
 
 // collect input fileset as specified by the given --def parameters
 // - This basically has a list of all files (fullpath)
@@ -353,7 +369,7 @@ def extract(f) {
   }
 
   def folder = new File(extractFolder ?: f.dir, f.nameWithoutExtension)
-  def files = extract(file: f, output: folder.resolve(f.dir.name), conflict: 'auto', filter: { it.isArchive() || it.isVideo() || it.isSubtitle() || (music && it.isAudio()) }, forceExtractAll: true) ?: []
+  def files = extract(file: f, output: folder.resolve(f.dir.name), conflict: 'auto', filter: { it.isArchive() || it.isVideo() || it.isSubtitle() || it.getExtension() == 'mks' || (music && it.isAudio()) }, forceExtractAll: true) ?: []
 
   extractedArchives += f
   temporaryFiles += folder
@@ -375,26 +391,7 @@ def acceptFile(f) {
     return false
   }
 
-  // Ignore anything where the parent folder is containing the text extra or extras (case insensitive)
-  if (f.isVideo() && parentFilePath(f) =~ /${ignoreVideoExtraFoldersRegex}/ ) {
-    if ( renameExtras ) {
-      extraFiles += f
-      Logging.log.info "Moving Video Extra files in ${parentFilePath(f)} directory: $f"
-    } else {
-      Logging.log.info "Ignore Video Extra files in ${parentFilePath(f)} directory: $f"
-    }
-    return false
-  }
-  // Updated with latest Video Extra RegEx, and making with Step 1 Regex on the file name.
-  if ((f.isVideo() || f.isSubtitle()) && ( f.name.replaceAll(/_/, ' ').replaceAll(/${stripAllPeriodsExceptLast}/, ' ') =~ /${videoExtraFilesMatcher}/ )) {
-    if ( renameExtras ) {
-      extraFiles += f
-      Logging.log.info "Moving video extra: $f"
-    } else {
-      Logging.log.info "Ignore video extra: $f"
-    }
-    return false
-  }
+
 
   // ignore if the user-defined ignore pattern matches
   if (f.path.findMatch(ignore)) {
@@ -445,10 +442,10 @@ def acceptFile(f) {
   if (minLengthMS > 0 && f.isVideo() && any { f.mediaCharacteristics.duration.toMillis() < minLengthMS } { false }) {
     Logging.log.info "Skip short video: $f [$f.mediaCharacteristics.duration]"
     return false
-    }
+  }
 
   // ignore subtitle files without matching video file in the same or parent folder (in strict mode only)
-  if ( ignoreOrphanSubtitles && f.isSubtitle() && ![f, f.dir].findResults{ it.dir }.any{ it.listFiles{ it.isVideo() && f.isDerived(it) }}) {
+  if ( ignoreOrphanSubtitles && ( f.isSubtitle() || f.getExtension() == 'mks') && ![f, f.dir].findResults{ it.dir }.any{ it.listFiles{ it.isVideo() && f.isDerived(it) }}) {
     Logging.log.info "Ignore orphaned subtitles: $f"
     return false
   }
@@ -475,6 +472,29 @@ def acceptFile(f) {
         Logging.log.info "Ignore Invalid File: $f"
       }
       return false
+  }
+
+  // Ignore video files where there is a mismatch between the reported duration and the shortest duration reported.
+  // This This is an *indicator* of something wrong with the video file, this only applies to Matroska Video
+  if (f.isVideo() && f.getExtension() == 'mkv' && ( getMediaInfo(f, '{media["duration/string4"]}') != null ) ) {
+    def mediaDuration3 = getMediaInfo(f, '{media["duration/string3"]}').replaceAll(/(?i)([.;]\d+$)/, '')
+    def mediaDuration4 = getMediaInfo(f, '{media["duration/string4"]}').replaceAll(/(?i)([.;]\d+$)/, '')
+    def mediaDurationList = mediaDuration3.split(':')
+    Integer mediaDuration3Seconds = (mediaDurationList[0].toInteger() * 60 * 60) + (mediaDurationList[1].toInteger() * 60) + mediaDurationList[2].toInteger()
+    mediaDurationList = mediaDuration4.split(':')
+    Integer mediaDuration4Seconds = (mediaDurationList[0].toInteger() * 60 * 60) + (mediaDurationList[1].toInteger() * 60) + mediaDurationList[2].toInteger()
+    if ( mediaDuration4Seconds <= ( mediaDuration3Seconds - 30 ) || mediaDuration4Seconds >= ( mediaDuration3Seconds + 30 ) ) {
+      Logging.log.info "File ${f.name} has a duration mismatch of ${convertSecondsToHMS(mediaDuration3Seconds-mediaDuration4Seconds)}"
+      if ( renameInvalid ) {
+        invalidFiles += f
+        Logging.log.info "Moving Invalid File: $f"
+      } else {
+        Logging.log.info "Ignore Invalid File: $f"
+      }
+      return false
+    } else {
+      Logging.log.finest "File ${f.name} is valid duration"
+    }
   }
 
   // If checkCRC is enabled, then verify if it's a video file and the name has the CRC in it
@@ -519,8 +539,47 @@ def acceptFile(f) {
     }
   }
 
-  // process only media files (accept audio files only if music mode is enabled)
-  return f.isVideo() || f.isSubtitle() || (music && f.isAudio())
+  /*
+        "Extras" Checks
+  */
+  // Updated with latest Video Extra RegEx, and making with Step 1 Regex on the file name.
+  if ((f.isVideo() || f.isSubtitle() || f.getExtension() == 'mks') && ( f.name.replaceAll(/_/, ' ').replaceAll(/${stripAllPeriodsExceptLast}/, ' ') =~ /${videoExtraFilesMatcher}/ )) {
+    if ( renameExtras ) {
+      extraFiles += f
+      Logging.log.info "Moving video extra: $f"
+    } else {
+      Logging.log.info "Ignore video extra: $f"
+    }
+    return false
+  }
+
+  // Allow for casting a wider net on extras regex *if* the length is under 5 minutes
+  if (minLengthExtraMS > 0 && f.isVideo() && any { f.mediaCharacteristics.duration.toMillis() < minLengthExtraMS } { false }) {
+    // Strip out _ and . from the Filename
+    // Strip out file extension
+    // Strip out text in [] or ()
+    Logging.log.finer "Checking Short video $f if it's an 'extra'"
+    def myCheckName = f.nameWithoutExtension.replaceAll(/_/, ' ').replaceAll(/\./, ' ').replaceAll(/${removeStartingBracketParenthesis}/, '').replaceAll(/${removeEndingBracketParenthesis}/, '')
+    Logging.log.finer "...Extra Check Name: [${myCheckName}]"
+    if ( f.nameWithoutExtension.replaceAll(/_/, ' ').replaceAll(/\./, ' ').replaceAll(/${removeStartingBracketParenthesis}/, '').replaceAll(/${removeEndingBracketParenthesis}/, '') =~ /${looseVideoExtraFilesMatcher}/) {
+      if ( renameExtras ) {
+        extraFiles += f
+        Logging.log.info "Moving video extra: $f"
+      } else {
+        Logging.log.fine "Ignore *likely* video extra: $f"
+      }
+      return false
+    } else {
+      Logging.log.finer ".....Not extra video: $f"
+    }
+  } else {
+    Logging.log.finer ".....Not short video: $f [${any { f.mediaCharacteristics.duration.toMillis() } { "no duration" }}] is more then minLengthExtraMS[${minLengthExtraMS}]"
+  }
+
+  /*
+      process only media files (accept audio files only if music mode is enabled)
+  */
+  return f.isVideo() || f.isSubtitle() || f.getExtension() == 'mks' || (music && f.isAudio())
 }
 
 
@@ -569,7 +628,7 @@ Boolean useDetectAnimeName = false
 LinkedHashMap groupGenerationNew( def input, Boolean useFBAutoDetection, Boolean useFilebotGroupByAutoDetection, Locale locale, LinkedHashMap  aniDBCompleteXMLList) {
   def delim = $/\\/$
   def join = '\\' // Because it doesn't like dollar slashy for the join
-  // if there is only one file, don't both with commonPath()
+  // if there is only one file, don't bother with commonPath()
   String myInputFolder = args.size() == 1 ? FilenameUtils.getFullPathNoEndSeparator(commonPath(delim, join, args as ArrayList<File>)) : commonPath(delim, join, args as ArrayList<File>)
   Path inputFolderPath = Paths.get(myInputFolder)
   Integer inputFolderNameCount = inputFolderPath.getNameCount()
@@ -600,15 +659,15 @@ LinkedHashMap groupGenerationNew( def input, Boolean useFBAutoDetection, Boolean
     Boolean hasOrdinalSeasonality = false
     Boolean hasPartialSeasonality = false
     Boolean hasSeriesSyntax = false
-
     if (useFilebotGroupByAutoDetection) {
       return new AutoDetection([f] as Collection<File>, false, locale).group()
     }
-
     Logging.log.info "// ---------------- START -------------- //"
-    String myFileName = "${f.name}"
+    String myFileName = "${StringUtils.stripAccents(f.name)}"
     Logging.log.info "//--- myFileName: [${myFileName}]"
-    f.xattr["originalfilename"] = myFileName
+    tryQuietly {
+      f.xattr["originalfilename"] = myFileName
+    }
     String myFileNameForParsing = regexRemoveKeywords(regexStep1(f.name))
     Logging.log.info "//--- myFileNameForParsing: [${myFileNameForParsing}]"
     String releaseGroup = detectAnimeReleaseGroupFromFile(f)
@@ -633,7 +692,9 @@ LinkedHashMap groupGenerationNew( def input, Boolean useFBAutoDetection, Boolean
     }
     if ( animeBaseFolder != null ) {
       Logging.log.info "//--- animeBaseFolder: [${animeBaseFolder}]"
-      f.xattr["originalfolder"] = animeBaseFolder
+      tryQuietly {
+        f.xattr["originalfolder"] = animeBaseFolder
+      }
     }
     /*
       Static Checks for known cases where regexBlender() based Series name matching generation will not work.
@@ -666,11 +727,12 @@ LinkedHashMap groupGenerationNew( def input, Boolean useFBAutoDetection, Boolean
       // - Remove File Extension
       // - Remove Starting Bracket/Parenthesis info
       // - Remove all Ending Bracket/Parenthesis info unless it's likely a 4 digit date
+      // VOID - /^(([_\w-]*)$|(LCA_Sub_-_))/
       myDotNameMatcher = myFileName.replaceAll(/${removeFileExtensionRegex}/, '')
               .replaceAll(/${removeStartingBracketParenthesis}/, '')
-              .replaceAll(/${removeEndingBracketParenthesis}/, '') =~ /^(([_\w-]*)$|(LCA_Sub_-_))/
+              .replaceAll(/${removeEndingBracketParenthesis}/, '') =~ /^(([_\w-()\[\]]*)$|(LCA_Sub_-_))/
       if ( myDotNameMatcher.find() ) {
-        // Sigh .. Why do subbers hate the space?
+        // Sigh .. Why do people hate the space?
         Logging.log.info '//----- Detected "underscores are better then spaces group"'
         hasNoSpacesFileName = false
       } else {
@@ -738,6 +800,14 @@ LinkedHashMap groupGenerationNew( def input, Boolean useFBAutoDetection, Boolean
     }
     // Case where regexBlender doesn't work.. and you get basically just the word episode ...
     myRegexMatcher = animeRegexBlenderName.replaceAll(/${stripMultipleAdjacentSpaces}/, '') =~ /(?i)(episode)(?!\s\w)/
+    if ( myRegexMatcher ) {
+      Logging.log.info "//----- RegexBlender Name [${animeRegexBlenderName}] not usable"
+      Logging.log.info '//----- useDetectAnimeName = true'
+      useDetectAnimeName = true
+    }
+    // If animeRegexBlenderName starts with special<space>- or ova<space>-, then we are not going to be able to use the filename
+    // To find the Anime series nme
+    myRegexMatcher = animeRegexBlenderName.replaceAll(/${stripMultipleAdjacentSpaces}/, '') =~ /(?i)^(ova|special)($|\s-\s)/
     if ( myRegexMatcher ) {
       Logging.log.info "//----- RegexBlender Name [${animeRegexBlenderName}] not usable"
       Logging.log.info '//----- useDetectAnimeName = true'
@@ -903,14 +973,16 @@ LinkedHashMap groupGenerationNew( def input, Boolean useFBAutoDetection, Boolean
         myEpisodeNumber: myEpisodeNumber
     ]
     ArrayList returnThing = animeNameGroupGenerator(seriesOptions, aniDBCompleteXMLList)
-    Logging.log.info "//--- Group Anime Name:[${returnThing[0].anime}]"
+    Logging.log.info "//--- Pass 1:Group Anime Name:[${returnThing[0].anime}]"
+    ArrayList returnThing2 = animeNameGroupGenerator(returnThing[0], aniDBCompleteXMLList)
+    Logging.log.info "//--- Pass 2:Group Anime Name:[${returnThing2[0].anime}]"
     Logging.log.info "// ---------------- END -------------- //"
-    return returnThing[0]
+    return returnThing2[0]
   } // End groupsByManualFour
   return groupsByManualFour
 }
 
-ArrayList animeNameGroupGenerator(LinkedHashMap  seriesOptions, LinkedHashMap  aniDBCompleteXMLList){
+ArrayList animeNameGroupGenerator(LinkedHashMap seriesOptions, LinkedHashMap  aniDBCompleteXMLList){
   // Declare local only variables
   Boolean iDidSomething = false
   //noinspection GroovyUnusedAssignment
@@ -1126,7 +1198,9 @@ ArrayList animeNameGroupGenerator(LinkedHashMap  seriesOptions, LinkedHashMap  a
   if ( myOrdinalSeasonalityMatcher.find() ) {
     Logging.log.info "//--------${anime} name has Ordinal and/or Partial/TVDB Seasonality"
     def partialSeasonNumberTEMP = tryQuietly { myOrdinalSeasonalityMatcher[1][6] } // It would be [0][6] if it was ONLY Partial..
+    Logging.log.fine "//---------- partialSeasonNumberTEMP: [${partialSeasonNumberTEMP}]"
     def myOrdinalNumberTEMP = myOrdinalSeasonalityMatcher[0][6]
+    Logging.log.fine "//---------- myOrdinalNumberTEMP: [${myOrdinalNumberTEMP}]"
     if ( myOrdinalNumberTEMP == null ) {
       hasOrdinalSeasonality = true
       def myOrdinalNumber = myOrdinalSeasonalityMatcher[0][2]
@@ -1134,12 +1208,16 @@ ArrayList animeNameGroupGenerator(LinkedHashMap  seriesOptions, LinkedHashMap  a
       Logging.log.info "//---------- ordinalSeasonNumber: ${ordinalSeasonNumber}"
     } else {
       hasPartialSeasonality = true
-      partialSeasonNumber = myOrdinalNumberTEMP.toInteger()
+//      partialSeasonNumber = myOrdinalNumberTEMP.toInteger()
+      Logging.log.fine "//---------- myOrdinalNumberTEMP.isInteger(): [${myOrdinalNumberTEMP.isInteger()}]"
+      Logging.log.fine "//---------- getWordNumber(myOrdinalNumberTEMP): [${getWordNumber(myOrdinalNumberTEMP)}]"
+      partialSeasonNumber = myOrdinalNumberTEMP.isInteger() ? myOrdinalNumberTEMP.toInteger() : getWordNumber(myOrdinalNumberTEMP)
       Logging.log.info "//---------- Partial seasonNumber:: ${partialSeasonNumber}"
     }
     if ( partialSeasonNumberTEMP != null ) {
       hasPartialSeasonality = true
-      partialSeasonNumber = partialSeasonNumberTEMP.toInteger()
+//      partialSeasonNumber = partialSeasonNumberTEMP.toInteger()
+      partialSeasonNumber = partialSeasonNumberTEMP.isInteger() ? partialSeasonNumberTEMP.toInteger() : getWordNumber(partialSeasonNumberTEMP)
       Logging.log.info "//---------- Partial seasonNumber: ${partialSeasonNumber}"
     }
     anime = anime.replaceAll(/${ordinalPartialSeasonalityMatcher}/, '').replaceAll(/${stripMultipleAdjacentSpaces}/, ' ').replaceAll(/${stripTrailingSpacesDashRegex}/, '')
@@ -1252,16 +1330,6 @@ ArrayList animeNameGroupGenerator(LinkedHashMap  seriesOptions, LinkedHashMap  a
     }
     Logging.log.info "//---------- Anime Name is now: $anime"
   }
-
-  // myOVARegexMatcher = myFileNameForParsing =~ /(?i)([-\s\(]+(\bOAV|\bOVA|\bONA|\bOAD|\bSPECIAL|\bsp\d{1,2}|\bbonus)(\b\d)?)[-\s\)]?/ // OVA, ONA or Special and all spaces, dashes etc around them. It also requires at least one around the word.
-  // myOVARegexMatcher = myFileNameForParsing =~ /(?i)([-\s\(]+(\bOAV|\bOVA|\bONA|\bOAD|\bsp\d{1,2})(\b\d)?)[-\s\)]?/ // OVA, ONA or Special and all spaces, dashes etc around them. It also requires at least one around the word.
-  // if ( myOVARegexMatcher.find() ) {
-  //   // Logging.log.info "-------- ${myFileNameForParsing} has OVA/ONA/OAD/Special Syntax"
-  //   isSpecial = true
-  //   specialType = myOVARegexMatcher[0][2]
-  //   isMovieType = false // While OVA/ONA/OAD are treated more like movies then series in AniDB, we will treat them like episodes then movies for lookup/renaming
-  // }
-  // OVA, ONA or Special
 
   /*
    OVA Syntax
@@ -1477,7 +1545,8 @@ ArrayList animeNameGroupGenerator(LinkedHashMap  seriesOptions, LinkedHashMap  a
        isSpecialType: isSpecialType,
        specialType: specialType,
        yearDateInName: yearDateInName,
-       isSpecialEpisode: isSpecialEpisode
+       isSpecialEpisode: isSpecialEpisode,
+       releaseGroup: releaseGroup,
       ],
       [iDidSomething: iDidSomething]]
 }
@@ -1588,6 +1657,10 @@ def renameWrapper(LinkedHashMap group, def files, LinkedHashMap renameOptions) {
           rfs += rfsTemp
         }
       } catch (e) {
+        // Filebot doesn't return an error when you have been banned
+        // It looks to return text?
+        // AniDB has already banned your IP. Please stop hitting AniDB for at least 24 hours.
+        //    Failed to fetch resource: AniDB has already banned your IP. Please stop hitting AniDB for at least 24 hours.
         Logging.log.severe "renameWrapper() - Caught error:[${e}]"
 //      } catch (Exception IllegalStateException) {
         Logging.log.info 'AniDB BanHammer Detected. Please stop hitting AniDB for at least 24 hours'
@@ -1768,6 +1841,10 @@ def renameMovieWrapper(LinkedHashMap group, def files, Boolean renameStrict, def
           rfs += rfsTemp
         }
       } catch (e) {
+        // Filebot doesn't return an error when you have been banned
+        // It looks to return text?
+        // AniDB has already banned your IP. Please stop hitting AniDB for at least 24 hours.
+        //    Failed to fetch resource: AniDB has already banned your IP. Please stop hitting AniDB for at least 24 hours.
         Logging.log.severe "renameMovieWrapper() - Caught error:[${e}]"
 //      } catch (Exception IllegalStateException) {
         Logging.log.info 'AniDB BanHammer Detected. Please stop hitting AniDB for at least 24 hours'
@@ -2467,17 +2544,12 @@ if ( renameInvalid && invalidFiles.size() >= 1 ) {
   rename(file:invalidFiles, format: invalidFormat, db: 'file')
   Logging.log.info '// -------------------------------------- //'
 }
-//String order = ''
 animeDetectedName = ''
 renamerSource = 'script' as String
-rfsIncomplete = false as Boolean// Global variable?
-//Boolean hasTVDBSeasonalitySyntax = false
-//Boolean hasOrdinalSeasonalitySyntax = false
+rfsIncomplete = false as Boolean
 hasSeasonality = false as Boolean
 firstPassOptionsSet = false
 secondPassOptionsSet = false
-//myXMLTVDBSeasonLookupSetup = false
-//myXMLTVDBSeasonLookup = 0
 Boolean hasOVAONASyntax = false
 animeFoundInTVDB = false
 animeFoundInAniDB = false
@@ -2493,8 +2565,6 @@ statsTier3FilebotNameAdded = 0 as Integer
 statsTVDBFilebotMatchedScript = 0 as Integer
 statsANIDBFilebotMatchedScript = 0 as Integer
 rfsLeftOver = []
-//rfsFinalLeftOver = []
-//rfs = []
 tier1AnimeNames = [] as HashSet
 tier2AnimeNames = [] as HashSet
 tier3AnimeNames = [] as HashSet
@@ -2613,7 +2683,7 @@ groupsByManualThreeEpisodes.each { group, files ->
   isSpecial = false
   hasOVAONASyntax = false
   // ---------- Basename Generation ---------- //
-  returnThing = basenameGenerator(group, useBaseAnimeNameWithSeriesSyntax)
+  returnThing = seriesBasenameGenerator(group, useBaseAnimeNameWithSeriesSyntax, seriesBasenameGeneratorOverrideJsonFile)
   Logging.log.finest "returnThing.class:${returnThing.getClass()}"
   Logging.log.finest "/---"
   Logging.log.finest "returnThing:${returnThing}"
@@ -2932,6 +3002,44 @@ groupsByManualThreeEpisodes.each { group, files ->
   // ------------------------------ //
   // ---------- 3rd Pass ---------- //
   // ------------------------------ //
+  if ( performRename && rfsLeftOver.size() >= 1 ) {
+    sleep(2000) // Pause 2 seconds in between Stages
+    returnThing = episodeRenameOptionPassOne(3, group, rfsLeftOver, hasSeasonality, mySeasonalityNumber, firstANIDBWTMatchNumber, secondANIDBWTMatchNumber, thirdANIDBWTMatchNumber, fileBotANIDBJWDMatchNumber, anidbFirstMatchDetails, anidbSecondMatchDetails, anidbThirdMatchDetails, fileBotANIDBJWDMatchDetails, firstTVDBDWTMatchNumber, secondTVDBDWTMatchNumber, thirdTVDBDWTMatchNumber, fileBotTheTVDBJWDMatchNumber, theTVDBFirstMatchDetails, theTVDBSecondMatchDetails, theTVDBThirdMatchDetails, fileBotTheTVDBJWDMatchDetails, performRename, fileBotAniDBMatchUsed, animeFoundInAniDB, animeFoundInTVDB, fileBotTheTVDBMatchUsed, statsRenamedUsingScript, statsRenamedUsingFilebot, useNonStrictOnAniDBFullMatch, useNonStrictOnAniDBSpecials, animeOfflineDatabase, useNonStrictOnTVDBSpecials)
+    groupByRenameOptions = returnThing.groupByRenameOptions
+    statsRenamedUsingScript = returnThing.statsRenamedUsingScript
+    statsRenamedUsingFilebot = returnThing.statsRenamedUsingFilebot
+    // ---------- 3rd pass Renaming---------- //
+    groupByRenameOptions.each { groupRenameOptions, renameFiles ->
+      performRename = groupRenameOptions.performRename
+      renameOptions.renameStrict = groupRenameOptions.renameStrict
+      renameOptions.renameQuery = groupRenameOptions.renameQuery
+      renameOptions.renameDB = groupRenameOptions.renameDB
+      renameOptions.renameOrder = groupRenameOptions.renameOrder
+      renameOptions.renameFilter = groupRenameOptions.renameFilter
+      renameOptions.renameMapper = groupRenameOptions.renameMapper
+      renameOptions.isSpecialEpisode = groupRenameOptions.isSpecialEpisode
+      renameOptions.isSpecialType = groupRenameOptions.isSpecialType
+      renameOptions.isMovieType = groupRenameOptions.isMovieType
+      if (!performRename && renameOptions.isMovieType) {
+        Logging.log.info "--- MOVIE Detected, Moving to Movie Processing Stage"
+        groupsByManualThreeMovies += [(group): renameFiles]
+      }
+      if ( performRename ) {
+        Logging.log.info '// -------------------------------------- //'
+        Logging.log.info '// ---------- 3rd pass Renaming---------- //'
+        Logging.log.info "group: ${group}, files: ${renameFiles}"
+        Logging.log.info "renameStrict: ${renameOptions.renameStrict}, renameQuery: ${renameOptions.renameQuery}, renameDB: ${renameOptions.renameDB}, renameOrder: ${renameOptions.renameOrder}, renameFilter: ${renameOptions.renameFilter}, renameMapper: ${renameOptions.renameMapper}"
+        renameWrapper(group, renameFiles, renameOptions )
+        Logging.log.info "\t rfsLeftOver: ${rfsLeftOver}, rfsIncomplete: ${rfsIncomplete}"
+        Logging.log.info '// -------------------------------------- //'
+        rfsLeftOver = files.getFiles { it.isFile() }
+        if (rfsLeftOver.size() >= 1 && renameOptions.isMovieType) {
+          Logging.log.info "--- MOVIE Detected, Moving to Movie Processing Stage"
+          groupsByManualThreeMovies += [(group): renameFiles]
+        }
+      }
+    }
+  }
 
   // ------------------------------ //
   // ---------- 4th Pass ---------- //
@@ -3021,7 +3129,7 @@ groupsByManualThreeMovies.each { group, files ->
   Logging.log.info "${groupInfoGenerator(group)} => ${files*.name}"
   Logging.log.fine "${group}"
   // ---------- START Movie Mode ---------- //
-  returnThing = searchForMoviesJWD(group, aniDBTitleXMLFilename, aniDBSynonymXMLFilename, useFilebotAniDBAliases, locale, animeOfflineDatabase, aniDBCompleteXMLList)
+  returnThing = searchForMoviesJWD(group, aniDBTitleXMLFilename, aniDBSynonymXMLFilename, useFilebotAniDBAliases, locale, animeOfflineDatabase, aniDBCompleteXMLList, moviesBasenameGeneratorOverrideJsonFile)
   animeFoundInAniDB = returnThing.animeFoundInAniDB
   firstANIDBWTMatchNumber = returnThing.firstANIDBWTMatchNumber
   //noinspection GroovyUnusedAssignment

@@ -1,11 +1,20 @@
 # filebot datafiles & Scripts to share
 ## Data Files
 - Synonyms & Short Names for AniDB entries [anime-synonyms.xml](datafiles/anime-synonyms.xml)
-  - This file is created using a filebot script [generate_anidb_synonyms_from_aod.groovy](scripts/generate_anidb_synonyms_from_aod.groovy) 
+  - This file is created using a filebot script [generate_anidb_synonyms_from_aod.groovy](scripts/generate_anidb_synonyms_from_aod.groovy)
+- local override files for [anime-raw-sorter-jwd.groovy](scripts/anime-raw-sorter-jwd.groovy) to set specific variable/data values
+  - [series_basename_overrides.json](datafiles/series_basename_overrides.json) - Our Custom Overrides to use during Series Basename Generation (See seriesBasenameGenerator() in lib/sorter.groovy
+  - [movies_basename_overrides.json](datafiles/movies_basename_overrides.json) - Our Custom Overrides to use during Movie Basename Generation (See searchForMoviesJWD() in lib/sorter.groovy
+- Local file containing the default renaming rules to use with filebot rename() function
+  - [initialSort_strict_series.groovy](datafiles/initialSort_strict_series.groovy)
+  
+## Currently only Filebot 4.9.x is supported. Filebot 5.x WILL NOT WORK!!!
 
 ## Scripts
 - [generate_anidb_synonyms_from_aod.groovy](scripts/generate_anidb_synonyms_from_aod.groovy)
   - This filebot script parses the [Anime Offline Database](https://github.com/manami-project/anime-offline-database) json file, as well as the AniDB Title xml to generate a list of unique synonyms that do not exist currently in AniDB.  Why not use AOD directly? Because some of the data providers used to generate AOD will result in synonyms matching *multiple* AniDB series, this is a big problem for what I use this file for. It is in XML format mainly because at the time I was too lazy to implement a new search method, and so I made it xml and in the same format as the AnidB title XML so I could reuse that search code :)
+- [anime-raw-sorter-jwd.ps1](scripts/anime-raw-sorter-jwd.ps1)
+  - My pwsh (PowerShell) script that I use to manage the sorting and manipulation of downloaded Anime files.
 - [anime-raw-sorter-jwd.groovy](scripts/anime-raw-sorter-jwd.groovy)
   - This filebot script is my <ins>D</ins>isaster <ins>I</ins>n <ins>P</ins>rogress that I use to match Anime (directly from release groups) Series and Seasons against AniDB. This script requires several "library" scripts in the [lib folder](scripts/lib/), and has minimal support for matching Series, OVA's, ONA's, OAD's and Movies to AniDB. 
   - WHY CREATE THIS WHEN AMC IS SO GOOD?
@@ -28,46 +37,35 @@
     - WARNING!!!!! I HIGHLY recommend against changing the filename in your format expression,this is especially important for Movies!
     - WARNING!!!!! I HIGHLY recommend not adding XATTR information to the files (which adds episode info to them, and is likely not accurate)
     - I use this in steps (Powershell 7 btw)
-  
-  Step #1 - Clear out any existing filebot xattr (Frequently it's wrong, and filebot seems to automatically use cache it for use with some methods)
-  ```powershell
-  $ACTION = "move"
-  $MYScriptPath = (Get-Location).Path
-  $FileBotSourceDirectory = "FULL PATH TO DIRECTORY WITH FILES"
-  $MyScript = "$MyScriptPath\clear_xattr_all_files.groovy"
-  filebot -script $MyScript $FileBotSourceDirectory --log all
-  ```  
+- [2-AniAdd-Condense.groovy](scripts/2-AniAdd-Condense.groovy)
+  - This script requires that directories follow a specific aniDB centric naming convention
+    - `anime series [anidb-id]` for example:  `Ani ni Tsukeru Kusuri wa Nai! 4 [anidb-15600]`
+  - What this script does is it looks for directories in one or more directories that ALSO exist in the output directory, and then moves all the files in to the corresponding output AniDB directory
+  - I do this because sometimes the script doesn't properly detect the airdate of the episode, and I like to organize the current year's episodes into seasons.
+  - So any series that it couldn't determine the airdate properly, will end up in the correct "season" folder eventually.
+- [clear_xattr_all_files.groovy](scripts/clear_xattr_all_files.groovy)
+  - Simple script to clears out all extended attributes on the files in the input path.
+  - The extended info on downloaded files is **often** inconplete, or worse WRONG.
+- [move_cjk_filenames.groovy](scripts/move_cjk_filenames.groovy)
+  - Simple script to detect files that are in Chinese, Korean or Japanese and move them to another folder.
+  - This is until I can create a good solution for translation, and keeping the original filename for later rework (much like rehydration in the main script)
+- [move_english_audio_files.groovy](scripts/move_english_audio_files.groovy)
+  - Script to detect files that *indicate* they have an English audio track.
+  - At this time I have no way to actually determine if the audio track is actually english or labelled incorrectly.
+- [move_ova_series.groovy](scripts/move_ova_series.groovy)
+  - somewhat vain attempt to recreate the "ova" vs "series" that AniAdd uses, so when plex tries to lookup stuff in AniDB is matches the type.
+  - It is really specific to my setup.
+- [move_raw_groups_orphaned_subtitles.groovy](scripts/move_raw_groups_orphaned_subtitles.groovy)
+  - Initial attempt to handle subtitles that are in child/nested directories from the video files that filebot doesn't detect normally.
+- [restore_original_path.groovy](scripts/restore_original_path.groovy)
+  - I add some xttr info to each file moved by [anime-raw-sorter-jwd.groovy](scripts/anime-raw-sorter-jwd.groovy) so that if I later determine the file was matched incorrectly I can have the ORIGINAL filename/directory recreated so I can try matching it again (usually to determine why it failed to match correctly)
 
-  Step #2 - Run Filebot to move Only Series/Movies/Specials using strict!
+## How to use these scripts?
+  Step #1 - Update the [anime-raw-sorter-jwd.ps1](scripts/anime-raw-sorter-jwd.ps1) script to suit your needs.
+  Step #2 - Put all the scripts, and datafiles (excepting the xml as that would be downloaded automatically) into the same directory (I recommend a different directory then the one with your video files)
+
+  Step #3 - Run it using pwsh
   ```powershell
-  $ACTION = "move"
-  $MYScriptPath = (Get-Location).Path
-  $MyScript = "$MyScriptPath\anime-raw-sorter-jwd.groovy"
-  $MYAnimeFormat= "$MYScriptPath\initialSort_strict_series.groovy"
-  $FileBotSourceDirectory = "FULL PATH TO DIRECTORY WITH FILES"
-  $FileBotDestDirectory = "FULL PATH TO OUTPUT DIRECTORY"
-  filebot -script $MyScript --action $ACTION -rename -no-xattr --conflict index -r --def clearXattr=y aniDBuserAgent="nosuchuser/filebot" animeFormat=@$MYAnimeFormat minFileSize=10 minLengthMS=5 aniDBXMLrefreshDays=1  $FileBotSourceDirectory --output $FileBotDestDirectory --log all --lang English
+  ./anime-raw-sorter-jwd.ps1
   ```
- 
-  Step #3 - If you want to reduce false positivies, look at the output from step #2 prior to using non-strict with movies/specialTypes/Specials as Filebot doesn't have support for Movies, and OVA/ONA/OAD are .. kinda supported (even when the filename is useful) 
-  ```powershell
-    $ACTION = "move"
-    $MYScriptPath = (Get-Location).Path
-    $MyScript = "$MyScriptPath\anime-raw-sorter-jwd.groovy"
-    $MYAnimeFormat= "$MYScriptPath\initialSort_strict_series.groovy"
-    $FileBotSourceDirectory = "FULL PATH TO DIRECTORY WITH FILES"
-    $FileBotDestDirectory = "..."
-    filebot -script $MyScript --action $ACTION -rename -no-xattr --conflict index -r --def aniDBuserAgent="nosuchuser/filebot" animeFormat=@$MYAnimeFormat minFileSize=10 minLengthMS=5 aniDBXMLrefreshDays=1 useNonStrictOnAniDBSpecials=y useNonStrictOnAniDBMovies=y $FileBotSourceDirectory --output $FileBotDestDirectory --log all --lang English
-  ```  
-
-  Step #4 - Look at the output from Step 2/3 if you want to reduce false matches on Anime Series. Run the script in NON-STRICT mode for "full AniDB matches". This is the step most likely to produce incorrect matches. I do not recommend using these switches as your first step. The primary reason to do the movies/specials non-strict prior is that movie detection kinda sucks and is primarily based on video length which can often not match series in AniDB that are classified as "movies", so they end up matching in the episode phase and using non-strict with episodes would match them :) this happens *more* often then the reverse.
-  ```powershell
-    $ACTION = "move"
-    $MYScriptPath = (Get-Location).Path
-    $MyScript = "$MyScriptPath\anime-raw-sorter-jwd.groovy"
-    $MYAnimeFormat= "$MYScriptPath\initialSort_strict_series.groovy"
-    $FileBotSourceDirectory = "FULL PATH TO DIRECTORY WITH FILES"
-    $FileBotDestDirectory = "..."
-    filebot -script $MyScript --action $ACTION -rename -no-xattr --conflict index -r --def aniDBuserAgent="nosuchuser/filebot" animeFormat=@$MYAnimeFormat  minFileSize=10 minLengthMS=5 aniDBXMLrefreshDays=1 useNonStrictOnAniDBFullMatch=y  $FileBotSourceDirectory --output $FileBotDestDirectory --log all --lang English
-  ```  
   Step #4 - Use AMC Non-Strict on whatever is left :) Tho I use a different output path then normal, so I know those files are from AMC Non-Strict and require manual verification more often then not.

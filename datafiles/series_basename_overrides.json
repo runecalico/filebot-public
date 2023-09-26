@@ -1,0 +1,471 @@
+[
+  {
+    "match": {
+      "anime": "marulks daily life"
+    },
+    "set": {
+      "anime": "Made in Abyss: Dawn of the Deep Soul",
+      "isSpecialEpisode": true
+    }
+  },
+  {
+    "match": {
+      "anime": "nomad",
+      "altTitle": "megalo box"
+    },
+    "set": {
+      "anime": "nomad: megalo box",
+      "altTitle": null
+    }
+  },
+  {
+    "match": {
+      "anime": "mirai nikki",
+      "isSpecialEpisode": false
+    },
+    "set": {
+      "anime": "Mirai Nikki (2011)"
+    }
+  },
+  {
+    "match": {
+      "anime": "shokugeki no souma",
+      "ordinalSeasonNumber": 4
+    },
+    "set": {
+      "anime": "Food Wars! The Fourth Plate",
+      "hasOrdinalSeasonality": false,
+      "ordinalSeasonNumber": null
+    }
+  },
+  {
+    "match": {
+      "anime": "shokugeki no souma",
+      "airdateSeasonNumber": 4
+    },
+    "set": {
+      "anime": "Food Wars! The Fourth Plate"
+    }
+  },
+  {
+    "match": {
+      "anime": "shokugeki no souma",
+      "seriesNumber": 4
+    },
+    "set": {
+      "anime": "Food Wars! The Fourth Plate",
+      "hasSeriesSyntax": false,
+      "seriesNumber": null
+    }
+  },
+  {
+    "match": {
+      "anime": "shokugeki no souma",
+      "seasonNumber": 4
+    },
+    "set": {
+      "anime": "Food Wars! The Fourth Plate",
+      "hasSeasonality": false,
+      "seasonNumber": null
+    }
+  },
+  {
+    "match": {
+      "anime": "dragon quest dai no daibouken",
+      "yearDateInName": "2021"
+    },
+    "set": {
+      "anime": "Dragon Quest: The Adventure of Dai",
+      "yearDateInName": null
+    }
+  },
+  {
+    "match": {
+      "anime": "hunter x hunter",
+      "yearDateInName": "2011"
+    },
+    "set": {
+      "anime": "Hunter x Hunter 2011",
+      "yearDateInName": null
+    }
+  },
+  {
+    "match": {
+      "anime": "dragon quest",
+      "yearDateInName": "2020"
+    },
+    "set": {
+      "anime": "Dragon Quest: The Adventure of Dai",
+      "yearDateInName": null
+    }
+  },
+  {
+    "match": {
+      "anime": "mushishi",
+      "airdateSeasonNumber": 3
+    },
+    "set": {
+      "anime": "Mushishi Zoku Shou (2014)",
+      "airdateSeasonNumber": null
+    }
+  },
+  {
+    "match": {
+      "anime": "mushishi",
+      "seriesNumber": 3
+    },
+    "set": {
+      "anime": "Mushishi Zoku Shou (2014)",
+      "hasSeriesSyntax": false,
+      "seriesNumber": null
+    }
+  },
+  {
+    "match": {
+      "anime": "mushishi",
+      "seasonNumber": 3
+    },
+    "set": {
+      "anime": "Mushishi Zoku Shou (2014)",
+      "hasSeasonality": false,
+      "seasonNumber": null
+    }
+  },
+  {
+    "match": {
+      "anime": "mushishi",
+      "ordinalSeasonNumber": 3
+    },
+    "set": {
+      "anime": "Mushishi Zoku Shou (2014)",
+      "hasOrdinalSeasonality": false,
+      "ordinalSeasonNumber": null
+    }
+  },
+  {
+    "match": {
+      "anime": "strike witches dai 501 tougou sentou koukuudan road to berlin",
+      "airdateSeasonNumber": 3
+    },
+    "set": {
+      "anime": "strike witches"
+    }
+  },
+  {
+    "match": {
+      "anime": "strike witches dai 501 tougou sentou koukuudan road to berlin",
+      "seriesNumber": 3
+    },
+    "set": {
+      "anime": "strike witches"
+    }
+  },
+  {
+    "match": {
+      "anime": "strike witches dai 501 tougou sentou koukuudan road to berlin",
+      "seasonNumber": 3
+    },
+    "set": {
+      "anime": "strike witches"
+    }
+  },
+  {
+    "match": {
+      "anime": "strike witches dai 501 tougou sentou koukuudan road to berlin",
+      "ordinalSeasonNumber": 3
+    },
+    "set": {
+      "anime": "strike witches"
+    }
+  },
+  {
+    "match": {
+      "anime": "dungeon ni deai darou ka",
+      "seriesNumber": "ii"
+    },
+    "set": {
+      "anime": "Dungeon ni Deai o Motomeru no wa Machigatteiru Darou ka"
+    }
+  },
+  {
+    "match": {
+      "anime": "to love ru darkness",
+      "seriesNumber": "ii"
+    },
+    "set": {
+      "anime": "To Love-Ru: Trouble - Darkness",
+      "seriesNumber": 2
+    }
+  },
+  {
+    "match": {
+      "anime": "sk crazy rock jam"
+    },
+    "set": {
+      "anime": "SK8 the Infinity",
+      "isSpecialEpisode": true
+    }
+  },
+  {
+    "match": {
+      "anime": "mobile suit gundam zz frag"
+    },
+    "set": {
+      "anime": "Kidou Senshi Gundam ZZ",
+      "isSpecialEpisode": true
+    }
+  },
+  {
+    "match": {
+      "anime": "mini dragon"
+    },
+    "set": {
+      "anime": "Kobayashi-san Chi no Maidragon S",
+      "isSpecialEpisode": true
+    }
+  },
+  {
+    "match": {
+      "anime": "sorcerer hunters",
+      "isSpecialType": false
+    },
+    "set": {
+      "anime": "Sorcerer Hunters TV"
+    }
+  },
+  {
+    "match": {
+      "anime": "btth",
+      "animeDetectedName": "origins 2022"
+    },
+    "set": {
+      "anime": "Dou Po Cangqiong: Yuanqi",
+      "animeDetectedName": ""
+    }
+  },
+  {
+    "match": {
+      "anime": "btth - sp2",
+      "isSpecialEpisode": true
+    },
+    "set": {
+      "anime": "Battle Through the Heavens Special II - Song of Desert",
+      "isSpecialEpisode": false
+    }
+  },
+  {
+    "match": {
+      "anime": "btth"
+    },
+    "set": {
+      "anime": "Battle Through the Heavens"
+    }
+  },
+  {
+    "match": {
+      "anime": "xyswn"
+    },
+    "set": {
+      "anime": "forty millenniums of cultivation"
+    }
+  },
+  {
+    "match": {
+      "anime": "danmachi",
+      "hasSeriesSyntax": true,
+      "seriesNumber": "i"
+    },
+    "set": {
+      "anime": "Is It Wrong to Try to Pick Up Girls in a Dungeon?",
+      "hasSeriesSyntax": false,
+      "seriesNumber": ""
+    }
+  },
+  {
+    "match": {
+      "anime": "fanrenxiuxianzhuan crxh"
+    },
+    "set": {
+      "anime": "Fan Ren Xiu Xian Zhuan: Chu Ru Xing Hai",
+      "altTitle": "Fanren Xiu Xian Chuan: Mo Dao Zhengfeng"
+    }
+  },
+  {
+    "match": {
+      "anime": "fanrenxiuxianzhuan zbtn"
+    },
+    "set": {
+      "anime": "Fan Ren Xiu Xian Zhuan: Zai Bie Tian Nan",
+      "altTitle": "Fanren Xiu Xian Chuan: Mo Dao Zhengfeng"
+    }
+  },
+  {
+    "match": {
+      "anime": "yi nian yong heng awe"
+    },
+    "set": {
+      "anime": "A Will Eternal",
+      "altTitle": "Yi Nian Yong Heng"
+    }
+  },
+  {
+    "match": {
+      "anime": "maou gakuin no futekigousha"
+    },
+    "set": {
+      "anime": "maogaku"
+    }
+  },
+  {
+    "match": {
+      "anime": "miabyss"
+    },
+    "set": {
+      "anime": "Made in Abyss"
+    }
+  },
+  {
+    "match": {
+      "anime": "spy x family",
+      "hasPartialSeasonality": true,
+      "partialSeasonNumber": 2
+    },
+    "set": {
+      "anime": "Spy x Family (2022)",
+      "hasPartialSeasonality": false,
+      "partialSeasonNumber": ""
+    }
+  },
+  {
+    "match": {
+      "anime": "a couple of cockoos"
+    },
+    "set": {
+      "anime": "A Couple of Cuckoos"
+    }
+  },
+  {
+    "match": {
+      "anime": "cuckoos"
+    },
+    "set": {
+      "anime": "A Couple of Cuckoos"
+    }
+  },
+  {
+    "match": {
+      "anime": "life!",
+      "isFileBotDetectedName": true,
+      "releaseGroup": "MkvShows.in"
+    },
+    "set": {
+      "anime": "Fantasy Bishoujo Juniku Ojisan to",
+      "isFileBotDetectedName": false
+    }
+  },
+  {
+    "match": {
+      "anime": "totsukuni no shoujo",
+      "animeDetectedName": "Totsukuni no Shoujo (2022)",
+      "yearDateInName": null
+    },
+    "set": {
+      "anime": "Totsukuni no Shoujo (2022)"
+    }
+  },
+  {
+    "match": {
+      "anime": "tengai makyou"
+    },
+    "set": {
+      "anime": "Tengai Makyou: Ziria Oboro Hen"
+    }
+  },
+  {
+    "match": {
+      "anime": "dd hokuto no ken 2 + hokuto no ken",
+      "hasSeasonality": true,
+      "seasonNumber" : 2
+    },
+    "set": {
+      "anime": "DD Fist of the North Star 2: Strawberry Flavor Plus",
+      "hasSeasonality": false,
+      "seasonNumber" : null
+    }
+  },
+  {
+    "match": {
+      "anime": "seijo no anime"
+    },
+    "set": {
+      "anime": "Seijo no Maryoku wa Bannou Desu"
+    }
+  },
+  {
+    "match": {
+      "anime": "dungeon ni deai"
+    },
+    "set": {
+      "anime": "Dungeon ni Deai o Motomeru no wa Machigatte Iru Darouka: Familia Myth"
+    }
+  },
+  {
+    "match": {
+      "anime": "princesa bibliofila"
+    },
+    "set": {
+      "anime": "Mushikaburi Hime"
+    }
+  },
+  {
+    "match": {
+      "anime": "isekai dude"
+    },
+    "set": {
+      "anime": "Isekai Ojisan"
+    }
+  },
+  {
+    "match": {
+      "anime": "tsundere akuyaku reijou liselotte"
+    },
+    "set": {
+      "anime": "Tsundere Akuyaku Reijou Liselotte to Jikkyou no Endou-kun to Kaisetsu no Kobayashi-san"
+    }
+  },
+  {
+    "match": {
+      "anime": "tensei oujo to tensai reijou"
+    },
+    "set": {
+      "anime": "Tensei Oujo to Tensai Reijou no Mahou Kakumei"
+    }
+  },
+  {
+    "match": {
+      "anime": "rpg",
+      "releaseGroup": "NC-Raws"
+    },
+    "set": {
+      "anime": "RPG Real Estate"
+    }
+  },
+  {
+    "match": {
+      "anime": "heroine tarumono!"
+    },
+    "set": {
+      "anime": "Heroines Run the Show: The Unpopular Girl and the Secret Task"
+    }
+  },
+  {
+    "match": {
+      "anime": "goal to the future"
+    },
+    "set": {
+      "anime": "Shoot! Goal to the Future"
+    }
+  }
+]
+
+

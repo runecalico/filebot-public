@@ -208,7 +208,7 @@ def animeListXMLGetTVDBNAme(fbCacheName, aid, locale) {
   if ( theTVDBID == null ) {
     return null
   }
-  myOptionsTVDB = tryQuietly { TheTVDB.search(theTVDBID, locale) }
+  myOptionsTVDB = tryQuietly { WebServices.TheTVDB.search(theTVDBID, locale) }
   if ( myOptionsTVDB == null ) {
     return null
   }

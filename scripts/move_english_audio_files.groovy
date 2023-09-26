@@ -13,7 +13,7 @@ import org.apache.ivy.plugins.version.Match
 import java.util.regex.Matcher
 
 // log input parameters
-Logging.log.fine("Run script [$_args.script] at [$now]")
+Logging.log.info("Run script [$_args.script] at [$now]")
 
 // Define a set list of Arguments?
 _def.each { n, v -> log.finest('Parameter: ' + [n, n =~ /plex|kodi|pushover|pushbullet|discord|mail|myepisodes/ ? '*****' : v].join(' = ')) }
@@ -41,39 +41,8 @@ include('lib/detect') // Renamer Detect Functions
 include('lib/sorter') // Renamer Sorter methods
 
 // Simple get list of video files
-//ArrayList input = args.getFiles{ f -> f.isVideo() }
 ArrayList inputFolders = args[0].getFolders() { it =~ /(\[anidb\-\d+\])/ } // W:\1-InitialSort\2020\winter
-
-//String detectReleaseGroupFromFileName(File file) {
-//  def myDetectedGroup = getMediaInfo(file, '{group}')
-//  if ( myDetectedGroup == null ) {
-//    def myRegexMatcher = file.name =~ /^\[([^)\]]*)\].*$/
-//    if ( myRegexMatcher ) {
-//      myDetectedGroup = myRegexMatcher[0][1]
-//    }
-//  }
-//  groupsWithVariableFilenamePositionsUsingBrackets = /Rady|NHK/
-//  if ( myDetectedGroup == null ) {
-//    def myRegexMatcher = file.name =~ /\[(/ + groupsWithVariableFilenamePositionsUsingBrackets + /)\].*$/
-//    if ( myRegexMatcher ) {
-//      myDetectedGroup = myRegexMatcher[0][1]
-//    }
-//  }
-//  if ( myDetectedGroup == null ) {
-//    def myRegexMatcher = file.name =~ /^(.+)\s-\s(\d{1,3}|S\d{1,3})(?>v\d)?\s-\s(.+)(\[([^)\]]*)\])(\[([^)\]]*)\])(\[([^)\]]*)\])(\[([^)\]]*)\])(\[([^)\]]*)\])(\.\d)?\.[^.]+$/
-//    if ( myRegexMatcher ) {
-//      // AniAdd Episode Format
-//      myDetectedGroup = myRegexMatcher[0][5]
-//    } else {
-//      // AniAdd Movie Format
-//      myRegexMatcher = file.name =~ /^(.+)(\[([^)\]]*)\])(\[([^)\]]*)\])(\[([^)\]]*)\])(\[([^)\]]*)\])(\[([^)\]]*)\])(\.\d)?\.[^.]+$/
-//      if ( myRegexMatcher ) {
-//        myDetectedGroup = myRegexMatcher[0][3]
-//      }
-//    }
-//  }
-//  return myDetectedGroup
-//}
+String myReleaseGroup
 
 // Problem #1 - Mislabelled Audio
 // - Some groups do not release English Audio, but sometimes label the Japanese audio as English
@@ -81,7 +50,7 @@ ArrayList inputFolders = args[0].getFolders() { it =~ /(\[anidb\-\d+\])/ } // W:
 //     // def group = getMediaInfo(f, '{group}') // Returns release group, but only for "supported release groups" aka it works when it recognizes
 //     // // the release group, but it doesn't really figure it out from the filename or anything. Often null for Anime.
 inputFolders.each { folderToPrune ->
-  log.fine "folderToPrune: ${folderToPrune}"
+  Logging.log.info "folderToPrune: ${folderToPrune}"
   def filesToDelete = []
   def filesToPrune = folderToPrune.getFiles{ f -> f.isVideo() }
   filesToPrune.each { file ->
@@ -92,83 +61,62 @@ inputFolders.each { folderToPrune ->
 //    def mediaTextCount = getMediaInfo(f, '{media.TextCount}')
 //    def mediaTextLangList = getMediaInfo(f, '{media.Text_Language_List}')
 //    def mediaAudioDefault = getMediaInfo(f, '{audio.Default}')
-//    x = getMediaInfo(f, '{media.AudioCount}')
-//    y = getMediaInfo(f, '{media.Audio_Language_List}')
-//    w = getMediaInfo(f, '{media.TextCount}')
-//    z = getMediaInfo(f, '{media.Text_Language_List}')
-//    v = getMediaInfo(f, '{audio.Default}')
+    def x = getMediaInfo(f, '{media.AudioCount}')
+    def y = getMediaInfo(f, '{media.Audio_Language_List}')
+    def w = getMediaInfo(f, '{media.TextCount}')
+    def z = getMediaInfo(f, '{media.Text_Language_List}')
+    def v = getMediaInfo(f, '{audio.Default}')
     if (mediaAudioCount != null) {
-      // println "\t $filename has $x Audio Count. "
+      Logging.log.fine"\t $filename has $x Audio Count. "
       if (mediaAudioLangList != null) {
         hasAudio = true
-//         println "\t The Audio Languages are $mediaAudioLangList"
+        Logging.log.fine "\t The Audio Languages are $mediaAudioLangList"
         if (mediaAudioLangList.matches(".*([eE]nglish).*")) {
-          // println "\t MATCH ENGLISH"
-          // println "\t English Audio found (Languages are: $y)"
+          Logging.log.finest "\t MATCH ENGLISH"
+          Logging.log.finest "\t English Audio found (Languages are: $y)"
           hasEnglishAudio = true
         } else {
-          // println "\t No English Audio found (Languages are: $y)"
+          Logging.log.finest "\t No English Audio found (Languages are: $y)"
           hasEnglishAudio = false
         }
       } else {
         // Means mediaAudioLangList is null
         hasAudio = true
         hasEnglishAudio = false
-        // println "\t Unknown Audio Language(s)"
+        Logging.log.fine "\t Unknown/null Audio Language(s) description (Languages are: $y)"
       }
     } else {
       // MeansmediaAudioCount is null
       hasAudio = false
-      // println "\t has NO Audio (detected)"
+      Logging.log.fine "\t has NO Audio (detected) (Audio count: ${mediaAudioCount})"
     }
     if ( hasEnglishAudio ) {
       myReleaseGroup = detectAnimeReleaseGroupFromFile(file)
       if ( myReleaseGroup == null ) {
-        log.finest "Release Group Not Detected:[$file.name]"
+        Logging.log.fine "Release Group Not Detected:[$file.name]"
       }
-//      println "MyReleaseGroup:[${myReleaseGroup}]"
+      Logging.log.fine "MyReleaseGroup:[${myReleaseGroup}]"
       if ( mediaAudioCount.toInteger() > 1 ) {
-//        log.fine '//-----------------------\\\\'
-//        println "multiAudioRequired Match"
-//        println "MyReleaseGroup:[${myReleaseGroup}]"
-//        println "mediaAudioCount:[${mediaAudioCount}]"
+        Logging.log.fine '//-----------------------\\\\'
+        Logging.log.fine "multiAudioRequired Match"
+        Logging.log.finest "MyReleaseGroup:[${myReleaseGroup}]"
+        Logging.log.finest "mediaAudioCount:[${mediaAudioCount}]"
         filesToDelete += file
       } else {
-        def singleAudioRequiredGroups = /Moviejunkie2009|ARR|KaiDubs|a4e|Golumpa|Tomica Wiki|Samir755|Zeph|ShadowFox|kuchikirukia|Darkulime|Fullmetal|Abystoma|Fete Rider|Exiled-Destiny|Dodgy|Rady|DragsterPS|LostYears|Saier_404|Zweeflol|tlacatlc6/
-        if (file.name.findMatch(/\[/ + singleAudioRequiredGroups + /\]/) ) {
-//          log.fine '//-----------------------\\\\'
-//          println "singleAudioRequiredGroups Match"
-//          println "MyReleaseGroup:[${myReleaseGroup}]"
-//          println "mediaAudioCount:[${mediaAudioCount}]"
+        def singleAudioRequiredGroups = /NanDesuKa|FUNi|Moviejunkie2009|ARR|KaiDubs|a4e|Golumpa|Tomica Wiki|Samir755|Zeph|ShadowFox|kuchikirukia|Darkulime|Fullmetal|Abystoma|Fete Rider|Exiled-Destiny|Dodgy|Rady|DragsterPS|LostYears|Saier_404|Zweeflol|tlacatlc6/
+        if (myReleaseGroup.findMatch(/${singleAudioRequiredGroups}/) ) {
+          Logging.log.fine '//-----------------------\\\\'
+          Logging.log.fine "singleAudioRequiredGroups Match"
+          Logging.log.fine "MyReleaseGroup:[${myReleaseGroup}]"
+          Logging.log.fine "mediaAudioCount:[${mediaAudioCount}]"
           filesToDelete += file
         } else {
-          log.fine '//-----------------------\\\\'
-          println "Single Audio match FAIL"
-          println "MyReleaseGroup:[${myReleaseGroup}]"
-          log.fine '//-----------------------\\\\'
+          Logging.log.fine '//-----------------------\\\\'
+          Logging.log.fine "Single Audio match FAIL"
+          Logging.log.fine "MyReleaseGroup:[${myReleaseGroup}]"
+          Logging.log.fine '//-----------------------\\\\'
         }
       }
-//      if ( myReleaseGroup == null && mediaAudioCount.toInteger() > 1  ) {
-//        log.fine '//-----------------------\\\\'
-//        println "mediaAudioCount:[${mediaAudioCount}]"
-//        filesToDelete += file
-//      }
-//      def multiAudioRequiredGroups = /NoobSubs|Rias|Hakata Ramen|HR|edge/
-//      if (file.name.findMatch(/\[/ + multiAudioRequiredGroups + /\]/) && mediaAudioCount.toInteger() > 1 ) {
-//        log.fine '//-----------------------\\\\'
-//        println "multiAudioRequiredGroups Match"
-//        println "MyReleaseGroup:[${myReleaseGroup}]"
-//        println "mediaAudioCount:[${mediaAudioCount}]"
-//        filesToDelete += file
-//      }
-//      def singleAudioRequiredGroups = /Tomica Wiki|Samir755|Zeph|ShadowFox|kuchikirukia|Darkulime|Fullmetal|Abystoma|Fete Rider|Exiled-Destiny|Dodgy|Rady|DragsterPS|LostYears|Saier_404|Zweeflol|tlacatlc6|Samir755/
-//      if (file.name.findMatch(/\[/ + singleAudioRequiredGroups + /\]/) ) {
-//        log.fine '//-----------------------\\\\'
-//        println "singleAudioRequiredGroups Match"
-//        println "MyReleaseGroup:[${myReleaseGroup}]"
-//        println "mediaAudioCount:[${mediaAudioCount}]"
-//        filesToDelete += file
-//      }
     }
   }
   if (filesToDelete.size() >= 1 ) {

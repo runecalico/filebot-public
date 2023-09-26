@@ -10,6 +10,6 @@ def files = args.getFiles{ f -> f.xattr.size() > 0 }
  }
 
 files.each { f ->
-    log.finest "--- xattr: [$f.name] => [$f.metadata]"
+    log.finest "--- xattr: [$f.name] => [$f.xattr]"
     tryQuietly { f.xattr.clear() }
 }

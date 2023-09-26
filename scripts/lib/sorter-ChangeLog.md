@@ -4,6 +4,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0] - 2023-02-03
+### Changed/Added
+- seriesBasenameGenerator() - Renamed from basenameGenerator
+- Added movieBasenameGenerator()
+- Rework Movie Keyword Regex for #1, #2 and #4
+
+## [1.9.5] - 2023-01-30
+### Added
+- searchForMoviesJWD() - Add Series Syntax Movie Variation
+- renameOptionsForEpisodesUsingAnimeLists() - First 3rd RenamePass addition
+- renameOptionForAniDBAbsoluteEpisodes() - First 3rd RenamePass addition
+
+## [1.9.4] - 2023-01-20
+### Added
+- groupOverrides() added fine logging and changed the match from .equals() to a .each loop with logging (fine)
+
+## [1.9.3] - 2023-01-16
+### Added
+- basenameGenerator() - If there is an AltTitle iterate over both alttitle and basename (group.anime) to compile list of baseAnimeNames
+
+## [1.9.2] - 2023-01-15
+### Added
+- seriesNameGenerator() - Fixed bug when anime is using romain ordinal series format by referencing non-existant group variable.
+
+## [1.9.1] - 2022-04-09
+### Added
+- When episode # is null, also log filename at log.info level
+
+## [1.9.0] - 2022-02-27
+### Added
+- groupOverrides() - Added so we can externalize some of the complex match/set overrides in Series basename generation to an override json file
+
+## [1.8.0] - 2022-02-23
+### Changed
+- searchForMoviesJWD() - Moved Alt Title checks so they add additional baseGeneratedAnimeNames   
+- searchForMoviesJWD() - Added group.anime name back into tempBaseGeneratedAnimeNames
+
+## [1.7.3] - 2022-01-14
+### Changed
+- baseNameGenerator() - Changed series numerial syntax in switch to [0-9]+ to match integer series, before defaulting to romanordinal
+
 ## [1.7.2] - 2021-12-27
 ### Changed
 - searchForMoviesJWD() - Added switch for changing tempAnimeName based on group.animename

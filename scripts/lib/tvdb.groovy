@@ -6,9 +6,9 @@ import net.filebot.Logging
 import net.filebot.WebServices
 import net.filebot.web.Episode
 import net.filebot.web.SortOrder
-import net.filebot.web.TheTVDBSeriesInfo
+import net.filebot.web.SeriesInfo
 
-//--- VERSION 1.2.2
+//--- VERSION 1.2.3
 
 /**
  * Have filebot Search TVDB using a list, and return the results as a Set
@@ -21,11 +21,11 @@ import net.filebot.web.TheTVDBSeriesInfo
 Set filebotTVDBSearch(Set searchList, locale) {
   resultsAsSet = [] as HashSet
   searchList.each { item ->
-        myTVDBSearch = WebServices.TheTVDB.search(item, locale)
-        if (myTVDBSearch.isEmpty()) {
-        } else {
-          resultsAsSet += myTVDBSearch
-        }
+    myTVDBSearch = WebServices.TheTVDB.search(item, locale)
+    if (myTVDBSearch.isEmpty()) {
+    } else {
+      resultsAsSet += myTVDBSearch
+    }
   }
   return resultsAsSet
 }
@@ -38,7 +38,7 @@ Set filebotTVDBSearch(Set searchList, locale) {
  * @return  Collection<Episode> of Episodes from TVDB
  */
 Collection<Episode> filebotTVDBgetEpisodeList(Integer tvdbSeriesID) {
-  TheTVDBSeriesInfo myTVDBseriesInfo
+  SeriesInfo myTVDBseriesInfo
   try {
     myTVDBseriesInfo = WebServices.TheTVDB.getSeriesInfo(tvdbSeriesID, Locale.ENGLISH)
   } catch (e) {

@@ -1,0 +1,25 @@
+[
+  {
+    "anime": "value",
+    "altTitle": "value",
+    "animeDetectedName": "value",
+    "filebotMovieTitle": "value",
+    "order": "value",
+    "airdateSeasonNumber": "value",
+    "isMovieType": false,
+    "isFileBotDetectedName": false,
+    "hasSeriesSyntax": false,
+    "seriesNumber": "value",
+    "hasSeasonality": false,
+    "seasonNumber": "value",
+    "hasOrdinalSeasonality": false,
+    "ordinalSeasonNumber": "value",
+    "hasPartialSeasonality": false,
+    "partialSeasonNumber": "value",
+    "isSpecialType": false,
+    "specialType": "value",
+    "yearDateInName": "value",
+    "isSpecialEpisode": false,
+    "releaseGroup": "value"
+  },
+]

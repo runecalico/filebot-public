@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+
+## [1.5.4] - 2023-09-26
+### Added
+detectCJKCharacters() - Detect CJK characters in a String (filename)
+detectEpisodeNumberFromFile() - Refinement(s) on additional edge cases
+detectEpisodeNumberFromFile2() - Testing version of detectEpisodeNumberFromFile() with workingSort script
+
+## [1.5.3] - 2022-04-18
+### Added
+detectEpisodeNumberFromFile() - Added 10.2, 10.3, 10.4, 10.5, 12, 13, 14, 15, 16  Detection
+
+## [1.5.2] - 2022-02-20
+### Added
+detectEpisodeNumberFromFile() - Added 10.2 Edge Case Detection
+
 ## [1.5.1] - 2021-11-20
 ### Changed
 detectEpisodeNumberFromFile() - Switch to Logging.fine for output

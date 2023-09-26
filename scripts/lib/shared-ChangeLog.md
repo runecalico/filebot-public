@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2023-02-05
+### Changed
+- Added convertSecondsToHMS()
+
+## [1.5.4] - 2023-02-02
+### Changed
+- getWordNumber() added singular word (one, two, three etc)
+
+## [1.5.3] - 2022-04-18
+### Added
+- stripMetadataKeywordsWordComplex() - Add BD Regex when followed by specific resolutions
+
+## [1.5.2] - 2022-02-20
+### Added
+- Added removeVersionAtEndOfLine Regext to RegexBlender Step 3 
+- removeAbsoluteEpisodeInfo() - Add number as alternative for episode
+
 ## [1.5.1 - 2021-12-26
 ### Changed
 - stripMetadataKeywordsWordBoundary - Modified Regex

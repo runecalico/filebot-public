@@ -49,3 +49,4 @@
     { any { db.AniDB.n.replaceAll(/\\|\//, '') } { db.AniDB.primaryTitle.replaceAll(/\\|\//, '') } { db.TheTVDB.n.colon(' - ').replaceTrailingBrackets().replaceAll(/\\|\//, '') } { n.replaceAll(/\\|\//, '') } }
     { any { if (db.AniDB.id) '[anidb-' + { db.AniDB.id } + ']' } { if (order.airdate.db.AniDB.id) '[anidb-' + { order.airdate.db.AniDB.id } + ']' } { if (order.absolute.db.AniDB.id) '[anidb-' + { order.absolute.db.AniDB.id } + ']' } { '[tvdb-' + db.TheTVDB.id + ']' } { '[tmdb-' + tmdbid + ']' } }
 / { fn }
+// Replace ` with '

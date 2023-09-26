@@ -1,0 +1,67 @@
+[
+  {
+    "match": {
+      "anime": "go-toubun no hanayome"
+    },
+    "set": {
+      "anime": "Eiga Go-Toubun no Hanayome"
+    }
+  },
+  {
+    "match": {
+      "anime": "kara no kyoukai 6 5 remix - gate of seventh heaven"
+    },
+    "set": {
+      "anime": "Gekijouban Kara no Kyoukai The Garden of Sinners",
+      "isSpecialEpisode": true
+    }
+  },
+  {
+    "match": {
+      "anime": "city of lost things"
+    },
+    "set": {
+      "anime": "Feiqi Zhi Cheng"
+    }
+  },
+  {
+    "match": {
+      "anime": "tropical-rouge! precure the movie"
+    },
+    "set": {
+      "anime": "Eiga Tropical-Rouge! Precure Yuki no Princess to Kiseki no Yubiwa!"
+    }
+  },
+  {
+    "match": {
+      "anime": "new maple town story - palm town chapter"
+    },
+    "set": {
+      "anime": "Shin Maple Town Monogatari: Palm Town Hen - Konnichiwa! Atarashii Machi"
+    }
+  },
+  {
+    "match": {
+      "anime": "pocket monsters - emperor of the crystal tower"
+    },
+    "set": {
+      "anime": "Gekijouban Pocket Monsters: Kesshoutou no Teiou Entei"
+    }
+  },
+  {
+    "match": {
+      "anime": "macross delta the movie absolute live!!!!!!"
+    },
+    "set": {
+      "anime": "Gekijouban Macross Delta: Zettai Live!!!!!!"
+    }
+  },
+  {
+    "match": {
+      "anime": "delicious party?precure the movie"
+    },
+    "set": {
+      "anime": "Eiga Delicious Party Precure: Yume Miru Oko-sama Lunch"
+    }
+  }
+]

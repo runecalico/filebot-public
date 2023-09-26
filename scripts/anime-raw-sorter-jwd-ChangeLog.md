@@ -4,6 +4,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.11.0] - 2023-02-09
+- Removed Directory base Video extras detection
+- Added looser video extras detection for short duration videos
+
+## [3.10.0] - 2023-02-05
+- Added support for detecting and renaming Matroska (mks) files with a duration mismatch, for example reported duration of 1h10m, but actually only 23 minutes
+
+## [3.9.0] - 2023-02-02
+- Added moviesBasenameGeneratorOverrideJsonFile - Movies basename override file
+- renamed basenameGenerator to seriesBasenameGenenerator()
+- Update ordinalPartialSeasonalityMatcher Regex
+
+## [3.8.0] - 2023-01-17
+- groupGenerationNew() - use StringUtils.stripaccents from f.name to remove "accent" characters that screw up compares later on like in sorter().groupOverrides()
+
+## [3.7.0] - 2023-01-16
+- groupGenerationNew() - run animeNameGroupGenerator twice in attempt to detect multiple/layered naming schemes used in same file, or where the filename doesn't work correctly with single pass
+  - example `[DKB] Boku no Hero Academia VI - S06E01 [1080p][HEVC x265 10bit][Multi-Subs].mkv` which has both Roman Ordinal (VI) AND Airdate/Seasonality instead of just one
+  - example `Pocket Monsters Advanced Generation 121 - Begin! Grand Festival I.ass` as the first pass returns `pocket monsters advanced generation 121` while the 2nd pass returns `pocket monsters advanced generation` (which is what we want)
+
+## [3.6.0] - 2022-02-27
+- Added seriesBasenameGeneratorOverrideJsonFile to use with baseNameGenerator() to externalize Series basename overrides
+
+## [3.5.6] - 2022-02-27
+### Changed
+- animeNameGroupGenerator() - add releaseGroup to returned object
+
+## [3.5.5] - 2022-02-23
+### Changed
+- Add recognision of .mks as a valid file (it's not recognized by filebot as subtitle)
+
+## [3.5.4] - 2022-02-22
+### Changed
+- groupGenerationNew() - GroupBy() - Added () and [] to the "underscores are better then spaces" group detection
 
 ## [3.5.3] - 2021-12-26
 ### Changed

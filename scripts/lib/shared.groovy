@@ -2,7 +2,7 @@
 //file:noinspection unused
 //file:noinspection RegExpRedundantEscape
 package lib
-//--- VERSION 1.5.1
+//--- VERSION 1.6.0
 
 import groovy.time.TimeCategory
 import net.filebot.Logging
@@ -15,13 +15,13 @@ import groovy.transform.Field
 // Strip out the following UNLESS they are at the end of the string ` or ! or . why? Because there are a few AniDB Series where the ending punctuation is the ONLY difference between multiple series.
 @Field String jwdStripSpecialCharaters = /(@|"|,|_|\\|\/|:|;|-|\||\[|]|((?![\.]+$)([\.]))|~|\(|\)|\?|'|((?![`]+$)([`]))|&|((?![!]+$)([!])))/
 // 1 - Strip out by regex (Just the regex)
-@Field String stripMetadataKeywordsWordComplex = /(?i)\b(BD[,\s]{1,2}(540|720|1080|480|800)p?)\b|\b(1280x720[p]?|640480[p]?|768x576[p]?|1448x1080[p]?|1408x1056[p]?|1920x1080[p]?)\b|\b(dual|tri)[- .]audio\b|\bbd[- .]remux\b|\b(8|10)-bit\b|\bh\s?(264|265)\b/
+@Field String stripMetadataKeywordsWordComplex = /(?i)\b(BD)(?=\s(1024x576[p]?|1280x720[p]?|640480[p]?|768x576[p]?|1448x1080[p]?|1408x1056[p]?|1920x1080[p]?))|\b(BD[,\s]{1,2}(540|720|1080|480|800)p?)\b|\b(1024x576[p]?|1280x720[p]?|640480[p]?|768x576[p]?|1448x1080[p]?|1408x1056[p]?|1920x1080[p]?)\b|\b(dual|tri)[- .]audio\b|\bbd[- .]remux\b|\b(8|10)-bit\b|\bh\s?(264|265)\b/
 // 2 -  Strip out Keywords surrounded by word boundry
-@Field String stripMetadataKeywordsWordBoundary = /theatrical edition|Remaster|LCA|H\.264|flac2|EngSub|THORA|EAC3|HDR10|QAAC|480p|SDR|Blu-ray|WebRip|bJPTVTS|4k|bENGSUB|flac|ac-3|promo|cht|chs|vp9|remux|restored|korean|NVENC|uhd|truehd|ttga|dvdrip|hr-sr|rencode|r2fr|divx|vostfr|rus|jap|deadmauvlad|hd1080|nooped|MULTi|2ch|subtitles|tv|hr-rg|hd720|web-dl|web|opus|opus-m3d|DVD|AC3|AAC|dts|ita|eng|sub/
+@Field String stripMetadataKeywordsWordBoundary = /theatrical edition|Remaster|LCA|H\.264|flac2|EngSub|THORA|EAC3|HDR10|QAAC|480p|SDR|Blu-ray|WebRip|bJPTVTS|4k|bENGSUB|flac|ac-3|promo|cht|chs|vp9|remux|restored|korean|NVENC|uhd|truehd|ttga|dvdrip|hr-sr|rencode|r2fr|divx|vostfr|rus|jap|deadmauvlad|hd1080|nooped|Multi-Subs|MULTi|2ch|subtitles|tv|hr-rg|hd720|web-dl|web|opus|opus-m3d|DVD|AC3|AAC|dts|ita|eng|sub/
 // 3- Strip out Misc Regex (Just the regex)
-@Field String stripMetadataKeywordsWordMisc = /(?i)\b(-DE|RAW)$|\sbd\sbox\s/
+@Field String stripMetadataKeywordsWordMisc = /(?i)\b(-DE|RAW)$|\sbd\sbox\s|(?<=\]\s)BD(?=\s\[)/
 // 4 - Strip out Metadata Keywords (Just the keyword)
-@Field String stripMetadataKeywordsOnly = /-SceneGuardians|-WiCkEd|LM ANIME|-NanDesuKa|GameRip|-DucksterPS|-YURASUKA|-sLaX|WEB-DL|540p|800p|hd720blu|1080p|BDRip|BluRay|720p|BD720p|x265|x264|10bit|8bit|english|60fps|HEVC|HDTV|Subbed|MultiSub/
+@Field String stripMetadataKeywordsOnly = /HDMA-RONiN|DD5\.1|NTSC|-Krispy|-SceneGuardians|-WiCkEd|LM ANIME|-NanDesuKa|GameRip|-DucksterPS|-RONiN|-YURASUKA|-sLaX|WEB-DL|540p|800p|hd720blu|1080p|BDRip|BluRay|720p|BD720p|x265|x264|10bit|8bit|english|60fps|120fps|HEVC|HDTV|Subbed|MultiSub/
 @Field String stripMultipleAdjacentSpaces = /(\s){2,20}/
 @Field String stripTrailingSpacesDashRegex = /([\s-])*$/
 @Field String stripLeadingSpacesDashRegex = /^([\s-])*/
@@ -57,11 +57,16 @@ import groovy.transform.Field
 // VOID - /(?i)([-\s]+Episode[s]?|[-\s]+ep|#|e)(?<!Season)(?<!Part)([-\s#]*[\d]{1,3}\s{0,1}v[\d]{1,2}\b.*$|[-\s#]*[\d]{1,3}\b.*$)/
 // VOID - /(?i)([-\s]+Episode[s]?|[-\s]+ep|[-\s]+#|[-\s]+e)(?<!Season)(?<!Part)([-\s#]*[\d]{1,3}\s{0,1}v[\d]{1,2}\b.*$|[-\s#]*[\d]{1,3}\b.*$)/
 // VOID - /(?i)([-\s]+Episode[s]?|[-\s]+ep|[-\s]+eps[s]?|[-\s]+#|[-\s]+e)(?<!Season)(?<!Part)([-\s#]*[\d]{1,3}\s{0,1}v[\d]{1,2}\b.*$|[-\s#]*[\d]{1,3}\b.*$)/
-@Field String removeAbsoluteEpisodeInfo = /(?i)([-\s]+Episode[s]?|[-\s]+ep|[-\s]+eps[s]?|[-\s]+#|[-\s]+e)(?<!Season)(?<!Part)([-\s#]*[\d]{1,4}\s{0,1}v[\d]{1,2}\b.*$|[-\s#]*[\d]{1,4}\b.*$)/
+// VOID - /(?i)([-\s]+Episode[s]?|[-\s]+ep|[-\s]+eps[s]?|[-\s]+#|[-\s]+e)(?<!Season)(?<!Part)([-\s#]*[\d]{1,4}\s{0,1}v[\d]{1,2}\b.*$|[-\s#]*[\d]{1,4}\b.*$)/
+@Field String removeAbsoluteEpisodeInfo = /(?i)([-\s]+(episode|number)[s]?|[-\s]+ep|[-\s]+eps[s]?|[-\s]+#|[-\s]+e)(?<!Season)(?<!Part)([-\s#]*[\d]{1,4}\s{0,1}v[\d]{1,2}\b.*$|[-\s#]*[\d]{1,4}\b.*$)/
 // - Remove the Absolute Episode info when it's a dash space(s) then digits to end of line
 // VOID - /(?i)(?<!Season)(?<!Part)(-[\s]*[\d]{1,3}\s{0,1}v[\d]{1,2}\b.*$|-[\s]*[\d]{1,3}\b.*$)/
 // VOID - /(?i)(?<!Season)(?<!Part)(?<![a-z0-9])(-[\s]*[\d]{1,3}\s{0,1}v[\d]{1,2}\b.*$|-[\s]*[\d]{1,3}\b.*$)/
 @Field String removeAbsoluteEpisodeWithDashInfo = /(?i)(?<!Season)(?<!Part)(?<![a-z0-9])(-[\s]*[\d]{1,4}\s{0,1}v[\d]{1,2}\b.*$|-[\s]*[\d]{1,4}\b.*$)/
+// - Remove the version/revision info when it's at the end of the line (aka something 01 v2)
+@Field String removeVersionAtEndOfLine = /(?i)(?<!Season\s|Part\s|[a-z0-9])(v[\d]{1,2}\b.*$)/
+// - Remove the text after a number followed by dash till end of line as long as there are NO digits!
+@Field String removeEndingTextAfterNumberDash = /(?i)(?>[\d]{1,4})(\s?-[^\d]*?$)/
 // - Remove - vol/sp in the name
 @Field String removeVolSp = /(?i)(?<!Season)(?<!Part)(-[\s]+(vol|sp)\b.*$)/
 
@@ -303,6 +308,7 @@ String regexBlender(String name) {
 // - Remove the Absolute Episode info when there is episode/ep and the # to end of line
 // - Remove the Absolute Episode info when it's a dash space(s) then digits to end of line
 // - Remove - vol/sp in the name
+// - Remove vxx at the end of the line (aka the version or revision) when it's got a space in front of it.
 // VOID - Remove trailing numbers from the end of the line, need to be very careful on exceptions
 // VOID - replaceAll(/(?i)(?<!\d)(?<!Season)(?<!\bS)(?<!Part)(\s[\d]{1,3}\s?$)/, '')
 // VOID - replaceAll(/(?i)(?<!\d\d)(?<!Season)(?<!\bS)(?<!Part)(\s[\d]{2,3}\s?$|\s[\d]{2,3}v[\d]{1,2}\s?)/, '')
@@ -310,6 +316,7 @@ String regexBlender(String name) {
       .replaceAll(/${removeAbsoluteEpisodeInfo}/, '')
       .replaceAll(/${removeAbsoluteEpisodeWithDashInfo}/, '')
       .replaceAll(/${removeVolSp}/, '')
+      .replaceAll(/${removeVersionAtEndOfLine}/, '')
   Logging.log.fine "regexBlender - Step 3:[${step3}]"
   String step4 = regexStep4(step3)
   Logging.log.fine "regexBlender - Step 4:[${step4}]"
@@ -473,25 +480,25 @@ String getWordNumber(int i) {
  */
 Integer getWordNumber(String i) {
   switch (i) {
-    case 'first':
+    case ['first', 'one']:
       return 1
-    case 'second':
+    case ['second', 'two']:
       return 2
-    case 'third':
+    case ['third', 'three']:
       return 3
-    case 'fourth':
+    case ['fourth', 'four']:
       return 4
-    case 'fifth':
+    case ['fifth', 'five']:
       return 5
-    case 'sixth':
+    case ['sixth', 'six']:
       return 6
-    case 'seventh':
+    case ['seventh', 'seven']:
       return 7
-    case 'eighth':
+    case ['eighth', 'eight']:
       return 8
-    case 'ninth':
+    case ['ninth', 'nine']:
       return 9
-    case 'tenth':
+    case ['tenth', 'ten']:
       return 10
     default:
       return 0
@@ -549,4 +556,21 @@ def commonPath(String delim, String join, ArrayList<File> files){
     if (aggregator.match) { aggregator.commonParts << part[0] }
     aggregator
   }.commonParts.join(join)
+}
+
+/**
+ * Given the number of seconds return the number of hours, minues, seconds
+ * https://stackoverflow.com/questions/6118922/convert-seconds-value-to-hours-minutes-seconds
+ *
+ * @param seconds
+ * @return String
+ */
+String convertSecondsToHMS(int seconds) {
+  int h = seconds/ 3600;
+  int m = (seconds % 3600) / 60;
+  int s = seconds % 60;
+  String sh = (h > 0 ? String.valueOf(h) + " " + "h" : "");
+  String sm = (m < 10 && m > 0 && h > 0 ? "0" : "") + (m > 0 ? (h > 0 && s == 0 ? String.valueOf(m) : String.valueOf(m) + " " + "min") : "");
+  String ss = (s == 0 && (h > 0 || m > 0) ? "" : (s < 10 && (h > 0 || m > 0) ? "0" : "") + String.valueOf(s) + " " + "sec");
+  return sh + (h > 0 ? " " : "") + sm + (m > 0 ? " " : "") + ss;
 }
