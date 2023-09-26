@@ -62,7 +62,8 @@
 
 ## How to use these scripts?
   Step #1 - Update the [anime-raw-sorter-jwd.ps1](scripts/anime-raw-sorter-jwd.ps1) script to suit your needs.
-  Step #2 - Put all the scripts, and datafiles (excepting the xml as that would be downloaded automatically) into the same directory (I recommend a different directory then the one with your video files)
+  
+Step #2 - Put all the scripts, and datafiles (excepting the xml as that would be downloaded automatically) into the same directory (I recommend a different directory then the one with your video files)
 
   Step #3 - Run it using pwsh
   ```powershell
