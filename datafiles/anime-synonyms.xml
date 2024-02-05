@@ -1127,6 +1127,7 @@
   </anime>
   <anime aid="331">
     <title xml:lang="en" type="official">tenkuu no shiro laputa</title>
+    <title xml:lang="en" type="syn">laputa - podniebny zamek</title>
     <title xml:lang="en" type="syn">laputa: castello nel cielo</title>
     <title xml:lang="en" type="syn">tenkuu no shiro rapyuta</title>
     <title xml:lang="en" type="syn">castello nel cielo</title>
@@ -6455,6 +6456,7 @@
   </anime>
   <anime aid="1886">
     <title xml:lang="en" type="official">saint seiya: the heated battle of the gods</title>
+    <title xml:lang="en" type="syn">saint seiya : la bataille des dieux</title>
     <title xml:lang="en" type="syn">saint seiya film 2: les chevaliers du zodiaque: la guerre des dieux</title>
     <title xml:lang="en" type="syn">saint seiya movie 2: kamigami no atsuki tatakai</title>
     <title xml:lang="en" type="syn">saint seiya movie 2: the heated battle of the gods</title>
@@ -11074,6 +11076,7 @@
   <anime aid="3353">
     <title xml:lang="en" type="official">the hakkenden: shin shou</title>
     <title xml:lang="en" type="syn">the legend of the dog warriors: the hakkenden - shin shou</title>
+    <title xml:lang="en" type="syn">hakkenden : la geste des guerriers chiens (2)</title>
     <title xml:lang="en" type="syn">the hakkenden: die legende der hundekrieger (2)</title>
     <title xml:lang="en" type="syn">hakkenden: shin shou</title>
     <title xml:lang="en" type="syn">hakkenden: legend of the dog warriors (2)</title>
@@ -14793,6 +14796,7 @@
     <title xml:lang="en" type="official">moonlight mile 1st season: lift off</title>
     <title xml:lang="en" type="syn">moonlight mile sezon 1 - start</title>
     <title xml:lang="en" type="syn">moonlight mile saisons 1</title>
+    <title xml:lang="en" type="syn">moonlight mile : lift off</title>
   </anime>
   <anime aid="4901">
     <title xml:lang="en" type="official">yes! precure 5</title>
@@ -15411,10 +15415,10 @@
   <anime aid="5104">
     <title xml:lang="en" type="official">shin kyuuseishu densetsu hokuto no ken raou-den gekitou no shou</title>
     <title xml:lang="en" type="syn">fist of the north star: legends of the true savior (chapter 03)</title>
+    <title xml:lang="en" type="syn">fist of the north star: the legend of the true savior - legend of raoh: chapter of fierce fighting</title>
     <title xml:lang="en" type="syn">hokuto no ken: raou gaiden gekitou-hen</title>
     <title xml:lang="en" type="syn">shin kyuseishu densetsu hokuto no ken raoh gaiden: gekito hen</title>
     <title xml:lang="en" type="syn">fist of the north star: the legend of raoh ii - fierce fighting arc</title>
-    <title xml:lang="en" type="syn">fist of the north star: legend of the true savior - fierce fighting</title>
     <title xml:lang="en" type="syn">fist of the north star: raoh side story fierce fighting arc</title>
     <title xml:lang="en" type="syn">fist of the north star: legend of the true savior - fierce fight</title>
     <title xml:lang="en" type="syn">hokuto no ken: raoh gaiden gekitou-hen</title>
@@ -21340,6 +21344,7 @@
   <anime aid="7354">
     <title xml:lang="en" type="official">bikkuriman: muen zone no hihou</title>
     <title xml:lang="en" type="syn">bikkuriman: moen zone no himitsu</title>
+    <title xml:lang="en" type="syn">bikkuriman: moen zone no hihou</title>
   </anime>
   <anime aid="7356">
     <title xml:lang="en" type="official">gegege no kitarou: daikaijuu</title>
@@ -26768,6 +26773,7 @@
   <anime aid="9088">
     <title xml:lang="en" type="official">rakuen tsuihou</title>
     <title xml:lang="en" type="syn">rakuen tsuihou: expelled from paradise</title>
+    <title xml:lang="en" type="syn">rakuen tsuiho -expelled from paradise-</title>
   </anime>
   <anime aid="9089">
     <title xml:lang="en" type="official">little charo: touhoku hen</title>
@@ -29558,6 +29564,7 @@
     <title xml:lang="en" type="official">lupin sansei: princess of the breeze - kakusareta kuuchuu toshi</title>
     <title xml:lang="en" type="syn">lupin iii: princess of the breeze - kakusareta kuuchuu toshi</title>
     <title xml:lang="en" type="syn">lupin the third: princess of the breeze - hidden city in the sky</title>
+    <title xml:lang="en" type="syn">lupin the third: princess of the breeze</title>
     <title xml:lang="en" type="syn">lupin 3: princess of the breeze - kakusareta kuuchuu toshi</title>
     <title xml:lang="en" type="syn">lupin iii: princess of the breeze - the hidden city in the sky</title>
     <title xml:lang="en" type="syn">lupin the third: princess of the breeze - kakusareta kuuchuu toshi</title>
@@ -43584,6 +43591,7 @@
     <title xml:lang="en" type="syn">kanini &amp; kanino</title>
     <title xml:lang="en" type="syn">modest heroes: crab and egg and invisible man</title>
     <title xml:lang="en" type="syn">skromni bohaterowie</title>
+    <title xml:lang="en" type="syn">die bescheidenen helden des studio ponoc</title>
     <title xml:lang="en" type="syn">modest heroes: ponoc short films theatre</title>
   </anime>
   <anime aid="13993">
@@ -46635,8 +46643,8 @@
   </anime>
   <anime aid="14729">
     <title xml:lang="en" type="official">tsugumomo (2020)</title>
+    <title xml:lang="en" type="syn">tsugumomo2 ova</title>
     <title xml:lang="en" type="syn">tsugumomo ova</title>
-    <title xml:lang="en" type="syn">tsugumomo 2 ova</title>
     <title xml:lang="en" type="syn">chotto h-na ova</title>
   </anime>
   <anime aid="14730">
@@ -47545,11 +47553,9 @@
   </anime>
   <anime aid="14953">
     <title xml:lang="en" type="official">muhyo to roji no mahouritsu soudan jimusho (2020)</title>
-    <title xml:lang="en" type="syn">muhyo &amp; roji's bureau of supernatural investigation staffel 2</title>
     <title xml:lang="en" type="syn">muhyo &amp; roji's bureau of supernatural investigation 2nd season</title>
     <title xml:lang="en" type="syn">muhyo to roujii no mahouritsu soudan jimusho 2</title>
     <title xml:lang="en" type="syn">muhyo to roujii no mahouritsu soudan jimusho 2nd season</title>
-    <title xml:lang="en" type="syn">muhyo &amp; roji's bureau of supernatural investigation saison 2</title>
     <title xml:lang="en" type="syn">muhyo &amp; roji's bureau of supernatural investigation season 2</title>
     <title xml:lang="en" type="syn">muhyo to rouji no mahouritsu soudan jimusho 2</title>
   </anime>
@@ -49408,7 +49414,7 @@
   </anime>
   <anime aid="15443">
     <title xml:lang="en" type="official">wu shen zhuzai</title>
-    <title xml:lang="en" type="syn">the god of war dominates</title>
+    <title xml:lang="en" type="syn">god of war dominates</title>
   </anime>
   <anime aid="15447">
     <title xml:lang="en" type="official">kyojin-zoku no hanayome</title>
@@ -55356,6 +55362,7 @@
   <anime aid="17121">
     <title xml:lang="en" type="official">eiga sore ike! anpanman: dororin to bakeru carnival</title>
     <title xml:lang="en" type="syn">sore ike! anpanman: dororin to bakeru carnival</title>
+    <title xml:lang="en" type="syn">anpanman movie 33</title>
     <title xml:lang="en" type="syn">sore ike! anpanman: dororin and the transforming carnival</title>
     <title xml:lang="en" type="syn">go! anpanman: dororin and the transforming carnival</title>
     <title xml:lang="en" type="syn">sore ike! anpanman movie: dororin to bakeru carnival</title>
@@ -57424,7 +57431,6 @@
   <anime aid="17749">
     <title xml:lang="en" type="official">sokushi cheat ga saikyou sugite, isekai no yatsura ga marude aite ni naranaindesu ga.</title>
     <title xml:lang="en" type="syn">no one in this other world stands a chance against me!</title>
-    <title xml:lang="en" type="syn">sokushicheat</title>
     <title xml:lang="en" type="syn">the other world doesn't stand a chance against the power of instant death</title>
     <title xml:lang="en" type="syn">my instant death ability is so overpowered</title>
   </anime>
@@ -57914,6 +57920,7 @@
     <title xml:lang="en" type="syn">urusei yatsura 2nd season</title>
     <title xml:lang="en" type="syn">urusei yatsura (2022) season 3</title>
     <title xml:lang="en" type="syn">urusei yatsura dai 2 ki</title>
+    <title xml:lang="en" type="syn">urusei yatsura: staffel 2</title>
     <title xml:lang="en" type="syn">urusei yatsura reboot part 2</title>
     <title xml:lang="en" type="syn">urusei yatsura season 2</title>
     <title xml:lang="en" type="syn">urusei yatsura: all stars season 2</title>
@@ -58164,15 +58171,15 @@
   <anime aid="17916">
     <title xml:lang="en" type="official">the fire hunter (2024)</title>
     <title xml:lang="en" type="syn">the fire hunter (stagione 2)</title>
-    <title xml:lang="en" type="syn">the fire hunter: season 2</title>
     <title xml:lang="en" type="syn">hikari no ou 2nd season</title>
     <title xml:lang="en" type="syn">fire hunter (2024)</title>
+    <title xml:lang="en" type="syn">the fire hunter (staffel 2)</title>
     <title xml:lang="en" type="syn">the fire hunter 2nd season</title>
     <title xml:lang="en" type="syn">hikari no ou dai 2 season</title>
+    <title xml:lang="en" type="syn">the fire hunter season 2</title>
     <title xml:lang="en" type="syn">the fire hunter (temporada 2)</title>
     <title xml:lang="en" type="syn">the firecatcher lord season 2</title>
     <title xml:lang="en" type="syn">the fire hunter (saison 2)</title>
-    <title xml:lang="en" type="syn">the fire hunter: staffel 2</title>
   </anime>
   <anime aid="17917">
     <title xml:lang="en" type="official">fuyu no okurimono</title>
@@ -58779,6 +58786,7 @@
   <anime aid="18083">
     <title xml:lang="en" type="official">kizuna no allele (2023)</title>
     <title xml:lang="en" type="syn">kizuna no allele: staffel 2</title>
+    <title xml:lang="en" type="syn">kizuna no allele (part 2)</title>
     <title xml:lang="en" type="syn">kizuna no allele (partie 2)</title>
     <title xml:lang="en" type="syn">kizuna no allele 2nd season</title>
     <title xml:lang="en" type="syn">kizuna no allele season 2</title>
@@ -59048,7 +59056,7 @@
     <title xml:lang="en" type="syn">urahara (ryohei kamide)</title>
   </anime>
   <anime aid="18150">
-    <title xml:lang="en" type="official">boku no hero academia the movie</title>
+    <title xml:lang="en" type="official">boku no hero academia the movie: you`re next</title>
     <title xml:lang="en" type="syn">my hero academia the movie (tentative)</title>
     <title xml:lang="en" type="syn">my hero academia the movie 4</title>
     <title xml:lang="en" type="syn">boku no hero academia movie 4</title>
@@ -59682,6 +59690,10 @@
     <title xml:lang="en" type="syn">honzuki no gekokujou: shisho ni naru tame ni wa shudan wo erandeiraremasen 4th season</title>
     <title xml:lang="en" type="syn">honzuki no gekokujou: shisho ni naru tame ni wa shudan wo erande iraremasen - ryoushu no youjo</title>
   </anime>
+  <anime aid="18305">
+    <title xml:lang="en" type="official">rising impact</title>
+    <title xml:lang="en" type="syn">academia de golf</title>
+  </anime>
   <anime aid="18306">
     <title xml:lang="en" type="official">eiga crayon shin-chan: ora-tachi no kyouyuu nikki</title>
     <title xml:lang="en" type="syn">crayon shin-chan: ora-tachi no kyouryuu nikki</title>
@@ -59887,6 +59899,7 @@
   <anime aid="18358">
     <title xml:lang="en" type="official">mob kara hajimaru tansaku eiyuutan</title>
     <title xml:lang="en" type="syn">heroic exploration tale starting from mob</title>
+    <title xml:lang="en" type="syn">a nobody's way up to an exploration hero</title>
     <title xml:lang="en" type="syn">the story of an exploration hero who has worked his way up from common people</title>
     <title xml:lang="en" type="syn">hero who has worked his way up from common people</title>
   </anime>
@@ -60207,5 +60220,43 @@
     <title xml:lang="en" type="syn">rising of the shield hero season 4</title>
     <title xml:lang="en" type="syn">tate no yuusha no nariagari 4th season</title>
     <title xml:lang="en" type="syn">the rising of the shield hero: staffel 4</title>
+  </anime>
+  <anime aid="18443">
+    <title xml:lang="en" type="official">da yuzhou shidai</title>
+    <title xml:lang="en" type="syn">age of cosmos exploration</title>
+  </anime>
+  <anime aid="18446">
+    <title xml:lang="en" type="official">sheng zu</title>
+    <title xml:lang="en" type="syn">sacred ancestor</title>
+  </anime>
+  <anime aid="18449">
+    <title xml:lang="en" type="official">taigu xing shen jue</title>
+    <title xml:lang="en" type="syn">secrets of star divine arts</title>
+  </anime>
+  <anime aid="18450">
+    <title xml:lang="en" type="official">pi zhe lang pi de yang</title>
+    <title xml:lang="en" type="syn">pi zhao lang pi de yang</title>
+    <title xml:lang="en" type="syn">pi zhuo lang pi de yang</title>
+  </anime>
+  <anime aid="18451">
+    <title xml:lang="en" type="official">party kara tsuihou sareta sono chiyushi, jitsu wa saikyou ni tsuki</title>
+    <title xml:lang="en" type="syn">the healer who was banished from his party, is, in fact, the strongest</title>
+  </anime>
+  <anime aid="18454">
+    <title xml:lang="en" type="official">mayonaka punch</title>
+    <title xml:lang="en" type="syn">midnight punch</title>
+  </anime>
+  <anime aid="18457">
+    <title xml:lang="en" type="official">rakuen tsuihou: kokoro no resonance</title>
+    <title xml:lang="en" type="syn">liberated from paradise</title>
+    <title xml:lang="en" type="syn">rakuen tsuiho -liberated from paradise-</title>
+    <title xml:lang="en" type="syn">rakuen tsuihou: liberated from paradise</title>
+    <title xml:lang="en" type="syn">rakuen tsuiho kokoro no resonance</title>
+  </anime>
+  <anime aid="18458">
+    <title xml:lang="en" type="official">shen yin wangzuo 2</title>
+    <title xml:lang="en" type="syn">shen yin wangzuo 2nd season</title>
+    <title xml:lang="en" type="syn">shen yin wang zuo 2nd season</title>
+    <title xml:lang="en" type="syn">throne of seal 2</title>
   </anime>
 </animetitles>
