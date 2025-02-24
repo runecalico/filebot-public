@@ -2267,10 +2267,12 @@
     <title xml:lang="en" type="syn">let's go to the jungle!</title>
   </anime>
   <anime aid="601">
-    <title xml:lang="en" type="official">maison ikkoku: bangaihen ikkokujima nanpa shimatsuki</title>
+    <title xml:lang="en" type="official">maison ikkoku: bangaihen ikkokutou nanpa shimatsuki</title>
     <title xml:lang="en" type="syn">maison ikkoku: ikkokujima nanpa shimatsuki</title>
     <title xml:lang="en" type="syn">maison ikkoku: ikkoku-tou nanpa shimatsuki</title>
     <title xml:lang="en" type="syn">maison ikkoku: shipwrecked on ikkoku island</title>
+    <title xml:lang="en" type="syn">maison ikkoku: bangaihen ikkokujima nanpa shimatsuki</title>
+    <title xml:lang="en" type="syn">maison ikkoku: bangai-hen - ikkokujima nanpa shimatsuki</title>
   </anime>
   <anime aid="602">
     <title xml:lang="en" type="official">maze bakunetsu jikuu</title>
@@ -13171,6 +13173,10 @@
     <title xml:lang="en" type="syn">fairy tale favorites</title>
     <title xml:lang="en" type="syn">sekai dowa anime zenshu</title>
   </anime>
+  <anime aid="4191">
+    <title xml:lang="en" type="official">paprika</title>
+    <title xml:lang="en" type="syn">papryka</title>
+  </anime>
   <anime aid="4193">
     <title xml:lang="en" type="official">tales from earthsea</title>
     <title xml:lang="en" type="syn">record of the gedo war - tales from earthsea</title>
@@ -18913,7 +18919,6 @@
     <title xml:lang="en" type="syn">fight ippatsu! juuden-chan</title>
     <title xml:lang="en" type="syn">one shot! charger girls!!</title>
     <title xml:lang="en" type="syn">las chicas recargadoras</title>
-    <title xml:lang="en" type="syn">fight ippatsu! juuden-chan!! oad</title>
     <title xml:lang="en" type="syn">juden chan recharged</title>
   </anime>
   <anime aid="6489">
@@ -44705,7 +44710,6 @@
     <title xml:lang="en" type="official">bokura no nanokakan sensou</title>
     <title xml:lang="en" type="syn">our seven-day war</title>
     <title xml:lang="en" type="syn">7 jours</title>
-    <title xml:lang="en" type="syn">a nossa guerra dos 7 dias</title>
     <title xml:lang="en" type="syn">7 days war</title>
   </anime>
   <anime aid="14072">
@@ -54637,6 +54641,7 @@
   <anime aid="16603">
     <title xml:lang="en" type="official">fei ren zai (3)</title>
     <title xml:lang="en" type="syn">non-human part 2</title>
+    <title xml:lang="en" type="syn">fei ren zai part 2</title>
     <title xml:lang="en" type="syn">shenme gui 2</title>
     <title xml:lang="en" type="syn">deviant 2nd season</title>
     <title xml:lang="en" type="syn">shenme gui 1st season part 2</title>
@@ -58905,7 +58910,6 @@
     <title xml:lang="en" type="syn">bastard!!: ankoku no hakaishin 2nd season</title>
     <title xml:lang="en" type="syn">bastard!! heavy metal, dark fantasy 2nd season</title>
     <title xml:lang="en" type="syn">bastard!! heavy metal, dark fantasy: season 2</title>
-    <title xml:lang="en" type="syn">bastard!! heavy metal</title>
     <title xml:lang="en" type="syn">dark fantasy: hell's requiem arc</title>
     <title xml:lang="en" type="syn">bastard!! heavy metal, dark fantasy : saison 2</title>
     <title xml:lang="en" type="syn">bastard!! ankoku no hakaishin season 2</title>
@@ -62101,7 +62105,6 @@
     <title xml:lang="en" type="syn">apothecary diaries s2</title>
     <title xml:lang="en" type="syn">drugstore soliloquy 2</title>
     <title xml:lang="en" type="syn">apothecary diaries season 2</title>
-    <title xml:lang="en" type="syn">los diarios de la boticaria: temporada 2</title>
     <title xml:lang="en" type="syn">the apothecary diaries 2nd season</title>
   </anime>
   <anime aid="18563">
@@ -64050,6 +64053,8 @@
   <anime aid="19078">
     <title xml:lang="en" type="official">shiguang dailiren: yingdu pian</title>
     <title xml:lang="en" type="syn">link click: yingdu chapter</title>
+    <title xml:lang="en" type="syn">link click 3rd season</title>
+    <title xml:lang="en" type="syn">shiguang dailiren 3rd season</title>
   </anime>
   <anime aid="19079">
     <title xml:lang="en" type="official">bleach: thousand-year blood war - the calamity</title>
@@ -64128,7 +64133,8 @@
   </anime>
   <anime aid="19110">
     <title xml:lang="en" type="official">fushigi no kuni de alice to: dive in wonderland</title>
-    <title xml:lang="en" type="syn">alice in wonderland -dive in wonderland-</title>
+    <title xml:lang="en" type="syn">fushigi no de alice: dive in wonderland</title>
+    <title xml:lang="en" type="syn">alice in wonderland: dive in wonderland</title>
   </anime>
   <anime aid="19114">
     <title xml:lang="en" type="official">shi wangzhe a? di 4 ji: mudan xiang you dali si</title>
